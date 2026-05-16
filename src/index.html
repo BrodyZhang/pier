@@ -9,8 +9,9 @@
         body {
             overflow: hidden;
             touch-action: none;
-            background: linear-gradient(180deg, #87CEEB 0%, #E0F6FF 100%);
-            font-family: 'Segoe UI', sans-serif;
+            background: #87CEEB;
+            font-family: sans-serif;
+            user-select: none;
         }
         canvas { display: block; }
         #score {
@@ -18,288 +19,204 @@
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-            text-shadow: 2px 2px 4px rgba(255,255,255,0.8);
+            font-size: 32px;
+            color: #fff;
+            text-shadow: 2px 2px 4px #000;
             z-index: 10;
         }
-        #start-screen, #game-over {
+        #start, #over {
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            inset: 0;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0,0,0,0.5);
             z-index: 20;
         }
-        #game-over { display: none; }
-        h1 { font-size: 48px; color: #FFD700; text-shadow: 3px 3px 6px #000; margin-bottom: 20px; }
-        p { font-size: 18px; color: #fff; margin-bottom: 30px; }
+        #over { display: none; }
+        h1 { font-size: 40px; color: #FFD700; margin-bottom: 10px; }
+        p { font-size: 18px; color: #fff; margin-bottom: 20px; }
         button {
-            padding: 15px 40px;
-            font-size: 20px;
-            background: linear-gradient(135deg, #FFD700, #FFA500);
+            padding: 12px 30px;
+            font-size: 18px;
+            background: #FFD700;
             border: none;
-            border-radius: 30px;
-            color: #333;
+            border-radius: 20px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: transform 0.2s;
         }
-        button:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
-    <div id="score">得分: 0</div>
-    <div id="start-screen">
+    <div id="score">0</div>
+    <div id="start">
         <h1>🐉 跳跳龙</h1>
-        <p>点击或触摸屏幕跳跃</p>
-        <button onclick="startGame()">开始游戏</button>
+        <p>点击或按空格跳跃</p>
+        <button onclick="start()">开始</button>
     </div>
-    <div id="game-over">
+    <div id="over">
         <h1>游戏结束</h1>
-        <p>最终得分: <span id="final-score">0</span></p>
-        <button onclick="restartGame()">再玩一次</button>
+        <p>得分: <span id="final">0</span></p>
+        <button onclick="start()">再来</button>
     </div>
-    <canvas id="game"></canvas>
+    <canvas id="c"></canvas>
     <script>
-        const canvas = document.getElementById('game');
-        const ctx = canvas.getContext('2d');
-
+        const c = document.getElementById('c');
+        const ctx = c.getContext('2d');
         let W, H;
-        let gameRunning = false;
-        let score = 0;
-        let frame = 0;
-        let speed = 4;
 
-        const dragon = {
-            x: 0, y: 0, width: 60, height: 60,
-            vy: 0, gravity: 0.6, jump: -12,
-            ground: 0, rotation: 0
-        };
+        function size() {
+            W = c.width = window.innerWidth;
+            H = c.height = window.innerHeight;
+        }
+        size();
+        window.onresize = size;
 
-        const obstacles = [];
-        const clouds = [];
-        const stars = [];
-
-        function resize() {
-            W = canvas.width = window.innerWidth;
-            H = canvas.height = window.innerHeight;
-            dragon.ground = H - 80;
-            dragon.y = dragon.ground;
-            dragon.x = W * 0.2;
+        // Sound effects using Web Audio API
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playJump() {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+        function playScore() {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(1000, audioCtx.currentTime + 0.05);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+        function playOver() {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
         }
 
-        function init() {
+        let running = false;
+        let score = 0;
+        let frame = 0;
+        let gameSpeed = 5;
+
+        const dragon = { x: 100, y: 0, vy: 0, r: 30, ground: 0 };
+        const obstacles = [];
+
+        function reset() {
             dragon.y = dragon.ground;
             dragon.vy = 0;
-            dragon.rotation = 0;
             obstacles.length = 0;
             score = 0;
             frame = 0;
-            speed = 4;
-            clouds.length = 0;
-            stars.length = 0;
-
-            for (let i = 0; i < 5; i++) {
-                clouds.push({
-                    x: Math.random() * W,
-                    y: Math.random() * H * 0.4,
-                    w: 80 + Math.random() * 60,
-                    speed: 0.5 + Math.random() * 0.5
-                });
-            }
-
-            for (let i = 0; i < 20; i++) {
-                stars.push({
-                    x: Math.random() * W,
-                    y: Math.random() * H * 0.6,
-                    size: 2 + Math.random() * 3,
-                    blink: Math.random() * Math.PI * 2
-                });
-            }
-
-            document.getElementById('score').textContent = '得分: 0';
+            gameSpeed = 5;
+            document.getElementById('score').innerText = '0';
         }
 
-        function drawDragon(x, y, rotation) {
-            ctx.save();
-            ctx.translate(x + dragon.width/2, y + dragon.height/2);
-            ctx.rotate(rotation);
-
-            // Body
-            ctx.fillStyle = '#4CAF50';
-            ctx.beginPath();
-            ctx.ellipse(0, 0, 30, 20, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Head
-            ctx.fillStyle = '#45a049';
-            ctx.beginPath();
-            ctx.arc(20, -5, 15, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Eye
-            ctx.fillStyle = '#fff';
-            ctx.beginPath();
-            ctx.arc(25, -8, 6, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#000';
-            ctx.beginPath();
-            ctx.arc(27, -8, 3, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Spikes
-            ctx.fillStyle = '#2E7D32';
-            for (let i = 0; i < 3; i++) {
-                ctx.beginPath();
-                ctx.moveTo(-20 + i * 15, -15);
-                ctx.lineTo(-15 + i * 15, -25);
-                ctx.lineTo(-10 + i * 15, -15);
-                ctx.fill();
-            }
-
-            // Wing
-            ctx.fillStyle = '#81C784';
-            const wingFlap = Math.sin(frame * 0.3) * 15;
-            ctx.beginPath();
-            ctx.moveTo(-5, 0);
-            ctx.lineTo(-20, -15 + wingFlap);
-            ctx.lineTo(-10, 0);
-            ctx.fill();
-
-            // Tail
-            ctx.strokeStyle = '#4CAF50';
-            ctx.lineWidth = 8;
-            ctx.lineCap = 'round';
-            ctx.beginPath();
-            ctx.moveTo(-25, 5);
-            ctx.quadraticCurveTo(-40, 0, -45, -10);
-            ctx.stroke();
-
-            // Legs
-            ctx.fillStyle = '#388E3C';
-            const legOffset = Math.sin(frame * 0.5) * 5;
-            ctx.beginPath();
-            ctx.arc(10, 15 + legOffset, 5, 0, Math.PI * 2);
-            ctx.arc(-10, 15 - legOffset, 5, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.restore();
+        function start() {
+            document.getElementById('start').style.display = 'none';
+            document.getElementById('over').style.display = 'none';
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            reset();
+            running = true;
         }
 
-        function drawObstacle(o) {
-            ctx.fillStyle = '#8D6E63';
-            ctx.beginPath();
-            ctx.moveTo(o.x, o.y);
-            ctx.lineTo(o.x + 15, o.y - o.height);
-            ctx.lineTo(o.x + 30, o.y);
-            ctx.fill();
-
-            // Cactus details
-            ctx.fillStyle = '#6D4C41';
-            ctx.fillRect(o.x + 5, o.y - o.height + 10, 8, 15);
-            ctx.fillRect(o.x + 18, o.y - o.height + 5, 6, 12);
-        }
-
-        function drawCloud(c) {
-            ctx.fillStyle = 'rgba(255,255,255,0.8)';
-            ctx.beginPath();
-            ctx.arc(c.x, c.y, 30, 0, Math.PI * 2);
-            ctx.arc(c.x + 25, c.y - 10, 25, 0, Math.PI * 2);
-            ctx.arc(c.x + 50, c.y, 30, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        function drawGround() {
-            ctx.fillStyle = '#DEB887';
-            ctx.fillRect(0, H - 50, W, 50);
-
-            ctx.fillStyle = '#D2691E';
-            ctx.fillRect(0, H - 50, W, 5);
-
-            // Sand dots
-            for (let i = 0; i < W; i += 30) {
-                ctx.fillStyle = 'rgba(139,69,19,0.3)';
-                ctx.beginPath();
-                ctx.arc(i + Math.sin(i)*10, H - 30, 3, 0, Math.PI * 2);
-                ctx.fill();
+        function jump() {
+            if (!running) return;
+            if (dragon.y >= dragon.ground - 5) {
+                dragon.vy = -15;
+                playJump();
             }
         }
 
         function update() {
-            if (!gameRunning) return;
-
+            if (!running) return;
             frame++;
 
-            // Dragon physics
-            dragon.vy += dragon.gravity;
+            dragon.vy += 0.8;
             dragon.y += dragon.vy;
-
             if (dragon.y > dragon.ground) {
                 dragon.y = dragon.ground;
                 dragon.vy = 0;
-                dragon.rotation = 0;
-            } else {
-                dragon.rotation = Math.min(Math.PI / 6, dragon.vy * 0.05);
             }
 
-            // Obstacles
-            if (frame % 120 === 0) {
-                obstacles.push({
-                    x: W + 50,
-                    y: dragon.ground,
-                    height: 40 + Math.random() * 40
-                });
+            if (frame % 90 === 0) {
+                obstacles.push({ x: W, h: 40 + Math.random() * 30 });
             }
 
             for (let i = obstacles.length - 1; i >= 0; i--) {
-                const o = obstacles[i];
-                o.x -= speed;
-
-                if (o.x < -50) {
+                obstacles[i].x -= gameSpeed;
+                if (obstacles[i].x < -50) {
                     obstacles.splice(i, 1);
                     score++;
-                    document.getElementById('score').textContent = '得分: ' + score;
-                    if (score % 5 === 0) speed += 0.5;
+                    document.getElementById('score').innerText = score;
+                    playScore();
+                    if (score % 5 === 0) gameSpeed += 0.5;
                 }
 
                 // Collision
-                if (
-                    dragon.x + 20 < o.x + 30 &&
-                    dragon.x + dragon.width - 20 > o.x + 5 &&
-                    dragon.y + dragon.height > o.y - o.height
-                ) {
-                    gameOver();
+                const o = obstacles[i];
+                if (dragon.x + dragon.r > o.x && dragon.x - dragon.r < o.x + 30 &&
+                    dragon.y + dragon.r > dragon.ground - o.h) {
+                    running = false;
+                    playOver();
+                    document.getElementById('final').innerText = score;
+                    document.getElementById('over').style.display = 'flex';
                 }
-            }
-
-            // Clouds
-            for (const c of clouds) {
-                c.x -= c.speed;
-                if (c.x < -100) c.x = W + 100;
             }
         }
 
         function draw() {
-            ctx.clearRect(0, 0, W, H);
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(0, 0, W, H);
 
-            // Background
-            for (const s of stars) {
-                ctx.fillStyle = `rgba(255,255,255,${0.3 + Math.sin(s.blink + frame * 0.05) * 0.3})`;
-                ctx.beginPath();
-                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
-                ctx.fill();
+            // Ground
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(0, dragon.ground + dragon.r, W, H - dragon.ground - dragon.r);
+
+            // Dragon
+            ctx.fillStyle = '#228B22';
+            ctx.beginPath();
+            ctx.arc(dragon.x, dragon.y, dragon.r, 0, Math.PI * 2);
+            ctx.fill();
+            // Eye
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(dragon.x + 10, dragon.y - 5, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(dragon.x + 12, dragon.y - 5, 4, 0, Math.PI * 2);
+            ctx.fill();
+            // Horn
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.moveTo(dragon.x - 5, dragon.y - 20);
+            ctx.lineTo(dragon.x + 5, dragon.y - 35);
+            ctx.lineTo(dragon.x + 15, dragon.y - 20);
+            ctx.fill();
+
+            // Obstacles
+            ctx.fillStyle = '#654321';
+            for (const o of obstacles) {
+                ctx.fillRect(o.x, dragon.ground + dragon.r - o.h, 30, o.h);
             }
-
-            for (const c of clouds) drawCloud(c);
-            drawGround();
-
-            for (const o of obstacles) drawObstacle(o);
-
-            drawDragon(dragon.x, dragon.y, dragon.rotation);
         }
 
         function loop() {
@@ -308,38 +225,13 @@
             requestAnimationFrame(loop);
         }
 
-        function jump() {
-            if (!gameRunning) return;
-            if (dragon.y >= dragon.ground - 5) {
-                dragon.vy = dragon.jump;
-            }
-        }
+        dragon.ground = H - 100;
+        dragon.y = dragon.ground;
 
-        function startGame() {
-            document.getElementById('start-screen').style.display = 'none';
-            gameRunning = true;
-            init();
-        }
+        window.ontouchstart = (e) => { e.preventDefault(); jump(); };
+        window.onmousedown = jump;
+        window.onkeydown = (e) => { if (e.code === 'Space') jump(); };
 
-        function gameOver() {
-            gameRunning = false;
-            document.getElementById('final-score').textContent = score;
-            document.getElementById('game-over').style.display = 'flex';
-        }
-
-        function restartGame() {
-            document.getElementById('game-over').style.display = 'none';
-            gameRunning = true;
-            init();
-        }
-
-        window.addEventListener('resize', resize);
-        window.addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
-        window.addEventListener('mousedown', jump);
-        window.addEventListener('keydown', (e) => { if (e.code === 'Space') jump(); });
-
-        resize();
-        init();
         loop();
     </script>
 </body>
