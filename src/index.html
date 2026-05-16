@@ -19,7 +19,7 @@
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 32px;
+            font-size: 36px;
             color: #fff;
             text-shadow: 2px 2px 4px #000;
             z-index: 10;
@@ -35,16 +35,18 @@
             z-index: 20;
         }
         #over { display: none; }
-        h1 { font-size: 40px; color: #FFD700; margin-bottom: 10px; }
-        p { font-size: 18px; color: #fff; margin-bottom: 20px; }
+        h1 { font-size: 48px; color: #FFD700; margin-bottom: 10px; text-shadow: 3px 3px 0 #000; }
+        p { font-size: 20px; color: #fff; margin-bottom: 20px; }
         button {
-            padding: 12px 30px;
-            font-size: 18px;
-            background: #FFD700;
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(180deg, #FFD700, #FF8C00);
             border: none;
-            border-radius: 20px;
+            border-radius: 25px;
             cursor: pointer;
+            box-shadow: 0 4px 0 #B8860B;
         }
+        button:active { transform: translateY(2px); box-shadow: 0 2px 0 #B8860B; }
     </style>
 </head>
 <body>
@@ -52,12 +54,12 @@
     <div id="start">
         <h1>🐉 跳跳龙</h1>
         <p>点击或按空格跳跃</p>
-        <button onclick="start()">开始</button>
+        <button onclick="start()">开始游戏</button>
     </div>
     <div id="over">
         <h1>游戏结束</h1>
         <p>得分: <span id="final">0</span></p>
-        <button onclick="start()">再来</button>
+        <button onclick="start()">再来一次</button>
     </div>
     <canvas id="c"></canvas>
     <script>
@@ -72,8 +74,32 @@
         size();
         window.onresize = size;
 
-        // Sound effects using Web Audio API
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let bgmOsc = null;
+
+        function playBgm() {
+            if (bgmOsc) return;
+            const notes = [262, 294, 330, 349, 392, 440, 494, 523];
+            let noteIdx = 0;
+            bgmOsc = setInterval(() => {
+                if (!running) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.frequency.setValueAtTime(notes[noteIdx % 4], audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+                noteIdx++;
+            }, 400);
+        }
+
+        function stopBgm() {
+            if (bgmOsc) { clearInterval(bgmOsc); bgmOsc = null; }
+        }
+
         function playJump() {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
@@ -81,7 +107,7 @@
             gain.connect(audioCtx.destination);
             osc.frequency.setValueAtTime(400, audioCtx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
             osc.start();
             osc.stop(audioCtx.currentTime + 0.1);
@@ -91,24 +117,23 @@
             const gain = audioCtx.createGain();
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-            osc.frequency.setValueAtTime(1000, audioCtx.currentTime + 0.05);
-            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
             osc.start();
-            osc.stop(audioCtx.currentTime + 0.1);
+            osc.stop(audioCtx.currentTime + 0.08);
         }
         function playOver() {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
-            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.4);
+            gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
             osc.start();
-            osc.stop(audioCtx.currentTime + 0.3);
+            osc.stop(audioCtx.currentTime + 0.4);
         }
 
         let running = false;
@@ -116,17 +141,22 @@
         let frame = 0;
         let gameSpeed = 5;
 
-        const dragon = { x: 100, y: 0, vy: 0, r: 30, ground: 0 };
+        const dragon = { x: 100, y: 0, vy: 0, r: 35, ground: 0 };
         const obstacles = [];
+        const clouds = [];
 
         function reset() {
             dragon.y = dragon.ground;
             dragon.vy = 0;
             obstacles.length = 0;
+            clouds.length = 0;
             score = 0;
             frame = 0;
             gameSpeed = 5;
             document.getElementById('score').innerText = '0';
+            for (let i = 0; i < 4; i++) {
+                clouds.push({ x: Math.random() * W, y: 50 + Math.random() * 150, s: 0.5 + Math.random() });
+            }
         }
 
         function start() {
@@ -135,12 +165,13 @@
             if (audioCtx.state === 'suspended') audioCtx.resume();
             reset();
             running = true;
+            playBgm();
         }
 
         function jump() {
             if (!running) return;
             if (dragon.y >= dragon.ground - 5) {
-                dragon.vy = -15;
+                dragon.vy = -16;
                 playJump();
             }
         }
@@ -149,15 +180,20 @@
             if (!running) return;
             frame++;
 
-            dragon.vy += 0.8;
+            dragon.vy += 0.7;
             dragon.y += dragon.vy;
             if (dragon.y > dragon.ground) {
                 dragon.y = dragon.ground;
                 dragon.vy = 0;
             }
 
-            if (frame % 90 === 0) {
-                obstacles.push({ x: W, h: 40 + Math.random() * 30 });
+            for (const c of clouds) {
+                c.x -= c.s;
+                if (c.x < -80) c.x = W + 80;
+            }
+
+            if (frame % 100 === 0) {
+                obstacles.push({ x: W, h: 35 + Math.random() * 30 });
             }
 
             for (let i = obstacles.length - 1; i >= 0; i--) {
@@ -167,14 +203,14 @@
                     score++;
                     document.getElementById('score').innerText = score;
                     playScore();
-                    if (score % 5 === 0) gameSpeed += 0.5;
+                    if (score % 3 === 0) gameSpeed += 0.3;
                 }
 
-                // Collision
                 const o = obstacles[i];
-                if (dragon.x + dragon.r > o.x && dragon.x - dragon.r < o.x + 30 &&
-                    dragon.y + dragon.r > dragon.ground - o.h) {
+                if (dragon.x + dragon.r * 0.5 > o.x && dragon.x - dragon.r * 0.5 < o.x + 30 &&
+                    dragon.y + dragon.r * 0.5 > dragon.ground - o.h) {
                     running = false;
+                    stopBgm();
                     playOver();
                     document.getElementById('final').innerText = score;
                     document.getElementById('over').style.display = 'flex';
@@ -182,41 +218,124 @@
             }
         }
 
+        function drawDragon() {
+            const x = dragon.x;
+            const y = dragon.y;
+
+            // Body gradient
+            const grad = ctx.createRadialGradient(x, y, 0, x, y, dragon.r);
+            grad.addColorStop(0, '#32CD32');
+            grad.addColorStop(1, '#228B22');
+
+            // Body
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.ellipse(x, y, dragon.r, dragon.r * 0.8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Belly
+            ctx.fillStyle = '#98FB98';
+            ctx.beginPath();
+            ctx.ellipse(x, y + 8, dragon.r * 0.6, dragon.r * 0.4, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eye white
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(x + 12, y - 8, 10, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eye pupil
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(x + 14, y - 8, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eye shine
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(x + 16, y - 10, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Horns
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.moveTo(x - 5, y - 20);
+            ctx.quadraticCurveTo(x - 15, y - 40, x - 5, y - 45);
+            ctx.quadraticCurveTo(x + 5, y - 40, x + 5, y - 20);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(x + 8, y - 18);
+            ctx.quadraticCurveTo(x + 20, y - 35, x + 15, y - 42);
+            ctx.quadraticCurveTo(x + 10, y - 35, x + 15, y - 18);
+            ctx.fill();
+
+            // Wings
+            const wingFlap = Math.sin(frame * 0.4) * 8;
+            ctx.fillStyle = 'rgba(144, 238, 144, 0.8)';
+            ctx.beginPath();
+            ctx.moveTo(x - 15, y);
+            ctx.quadraticCurveTo(x - 35, y - 25 + wingFlap, x - 30, y - 5);
+            ctx.quadraticCurveTo(x - 25, y, x - 15, y);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(x + 15, y);
+            ctx.quadraticCurveTo(x + 35, y - 25 + wingFlap, x + 30, y - 5);
+            ctx.quadraticCurveTo(x + 25, y, x + 15, y);
+            ctx.fill();
+
+            // Nostrils
+            ctx.fillStyle = '#006400';
+            ctx.beginPath();
+            ctx.arc(x + 20, y + 2, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Teeth
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.moveTo(x + 15, y + 10);
+            ctx.lineTo(x + 18, y + 15);
+            ctx.lineTo(x + 21, y + 10);
+            ctx.fill();
+        }
+
         function draw() {
             ctx.fillStyle = '#87CEEB';
             ctx.fillRect(0, 0, W, H);
 
-            // Ground
-            ctx.fillStyle = '#8B4513';
-            ctx.fillRect(0, dragon.ground + dragon.r, W, H - dragon.ground - dragon.r);
-
-            // Dragon
-            ctx.fillStyle = '#228B22';
-            ctx.beginPath();
-            ctx.arc(dragon.x, dragon.y, dragon.r, 0, Math.PI * 2);
-            ctx.fill();
-            // Eye
-            ctx.fillStyle = '#fff';
-            ctx.beginPath();
-            ctx.arc(dragon.x + 10, dragon.y - 5, 8, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#000';
-            ctx.beginPath();
-            ctx.arc(dragon.x + 12, dragon.y - 5, 4, 0, Math.PI * 2);
-            ctx.fill();
-            // Horn
+            // Sun
             ctx.fillStyle = '#FFD700';
             ctx.beginPath();
-            ctx.moveTo(dragon.x - 5, dragon.y - 20);
-            ctx.lineTo(dragon.x + 5, dragon.y - 35);
-            ctx.lineTo(dragon.x + 15, dragon.y - 20);
+            ctx.arc(W - 80, 60, 40, 0, Math.PI * 2);
             ctx.fill();
 
-            // Obstacles
-            ctx.fillStyle = '#654321';
-            for (const o of obstacles) {
-                ctx.fillRect(o.x, dragon.ground + dragon.r - o.h, 30, o.h);
+            // Clouds
+            ctx.fillStyle = 'rgba(255,255,255,0.9)';
+            for (const cl of clouds) {
+                ctx.beginPath();
+                ctx.arc(cl.x, cl.y, 30, 0, Math.PI * 2);
+                ctx.arc(cl.x + 25, cl.y - 10, 25, 0, Math.PI * 2);
+                ctx.arc(cl.x + 50, cl.y, 30, 0, Math.PI * 2);
+                ctx.fill();
             }
+
+            // Ground
+            ctx.fillStyle = '#DEB887';
+            ctx.fillRect(0, dragon.ground + dragon.r, W, H - dragon.ground - dragon.r);
+            ctx.fillStyle = '#CD853F';
+            ctx.fillRect(0, dragon.ground + dragon.r, W, 8);
+
+            // Obstacles (cacti)
+            ctx.fillStyle = '#228B22';
+            for (const o of obstacles) {
+                ctx.fillRect(o.x + 10, dragon.ground + dragon.r - o.h, 10, o.h);
+                ctx.fillRect(o.x, dragon.ground + dragon.r - o.h + 10, 30, 8);
+                ctx.fillRect(o.x + 5, dragon.ground + dragon.r - o.h - 5, 8, 15);
+            }
+
+            drawDragon();
         }
 
         function loop() {
@@ -227,6 +346,10 @@
 
         dragon.ground = H - 100;
         dragon.y = dragon.ground;
+
+        for (let i = 0; i < 4; i++) {
+            clouds.push({ x: Math.random() * W, y: 50 + Math.random() * 150, s: 0.5 + Math.random() });
+        }
 
         window.ontouchstart = (e) => { e.preventDefault(); jump(); };
         window.onmousedown = jump;
