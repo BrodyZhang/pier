@@ -3,457 +3,347 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>贪吃蛇</title>
+    <title>致我最爱的人</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             overflow: hidden;
             touch-action: none;
-            background: #1a1a2e;
-            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            font-family: 'Microsoft YaHei', sans-serif;
             user-select: none;
         }
-        canvas { display: block; margin: 0 auto; }
-        #ui {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            right: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 10;
-        }
-        #score {
-            font-size: 24px;
-            color: #0f0;
-            text-shadow: 0 0 10px #0f0;
-            font-weight: bold;
-        }
-        #level {
-            font-size: 18px;
-            color: #ff0;
-            text-shadow: 0 0 10px #ff0;
-        }
+        canvas { display: block; position: fixed; top: 0; left: 0; }
+
         #refresh {
-            padding: 8px 20px;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 25px;
             font-size: 16px;
-            background: linear-gradient(180deg, #4a4, #262);
+            background: linear-gradient(135deg, #e94560, #c0392b);
             border: none;
-            border-radius: 20px;
+            border-radius: 25px;
             color: #fff;
             cursor: pointer;
-            box-shadow: 0 0 10px rgba(0,255,0,0.3);
+            box-shadow: 0 4px 15px rgba(233,69,96,0.4);
+            z-index: 100;
         }
         #refresh:active { transform: scale(0.95); }
-        #start, #over, #pause {
-            position: fixed;
-            inset: 0;
+
+        #main {
+            position: relative;
+            z-index: 10;
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            background: rgba(0,0,0,0.85);
-            z-index: 20;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
         }
-        #over, #pause { display: none; }
-        h1 { font-size: 42px; color: #0f0; text-shadow: 0 0 20px #0f0; margin-bottom: 15px; }
-        p { font-size: 20px; color: #ccc; margin-bottom: 25px; }
-        button {
-            padding: 15px 50px;
-            font-size: 20px;
-            background: linear-gradient(180deg, #0f0, #0a0);
-            border: none;
-            border-radius: 30px;
-            color: #000;
-            font-weight: bold;
+
+        h1 {
+            font-size: 48px;
+            color: #fff;
+            text-shadow: 0 0 30px rgba(233,69,96,0.8);
+            margin-bottom: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .heart {
+            font-size: 100px;
+            animation: heartbeat 1s infinite;
             cursor: pointer;
-            box-shadow: 0 0 20px rgba(0,255,0,0.5);
         }
-        button:active { transform: scale(0.95); }
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.1); }
+            50% { transform: scale(1); }
+            75% { transform: scale(1.1); }
         }
-        .btn {
-            width: 60px;
-            height: 60px;
-            background: rgba(0,255,0,0.2);
-            border: 2px solid #0f0;
-            border-radius: 10px;
-            color: #0f0;
+
+        p {
+            font-size: 20px;
+            color: rgba(255,255,255,0.8);
+            margin: 20px 0;
+            line-height: 1.8;
+        }
+
+        .love-list {
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 30px;
+            margin: 20px;
+            max-width: 400px;
+            backdrop-filter: blur(10px);
+        }
+
+        .love-list h2 {
+            color: #e94560;
             font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .love-item {
+            color: #fff;
+            padding: 8px 0;
+            font-size: 18px;
+        }
+
+        #ai-tag {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            padding: 12px 30px;
+            border-radius: 30px;
+            color: #fff;
+            font-size: 16px;
+            box-shadow: 0 4px 20px rgba(102,126,234,0.5);
+            z-index: 100;
+        }
+
+        #ai-tag span {
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #e94560, #c0392b);
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            color: #fff;
+            border-radius: 30px;
+            cursor: pointer;
+            margin: 10px;
+            box-shadow: 0 4px 15px rgba(233,69,96,0.4);
+        }
+        .btn:active { transform: scale(0.95); }
+
+        #message {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 50;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            user-select: none;
         }
-        .btn:active { background: rgba(0,255,0,0.5); }
+        #message .msg-box {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 350px;
+            text-align: center;
+        }
+        #message h2 {
+            color: #e94560;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+        #message p {
+            font-size: 18px;
+            color: #ccc;
+        }
+        #message .close {
+            margin-top: 20px;
+            background: #667eea;
+        }
     </style>
 </head>
 <body>
-    <div id="ui">
-        <div>
-            <div id="score">得分: 0</div>
-            <div id="level">等级: 1</div>
-        </div>
-        <button id="refresh" onclick="location.reload()">刷新</button>
-    </div>
-    <div id="start">
-        <h1>🐍 贪吃蛇</h1>
-        <p>控制蛇吃到食物变长</p>
-        <button onclick="start()">开始游戏</button>
-        <div class="controls">
-            <div class="btn" onclick="setDir(0,-1)">↑</div>
-            <div></div>
-            <div class="btn" onclick="setDir(-1,0)">←</div>
-            <div class="btn" onclick="setDir(0,1)">↓</div>
-            <div class="btn" onclick="setDir(1,0)">→</div>
-        </div>
-    </div>
-    <div id="over">
-        <h1>游戏结束</h1>
-        <p>最终得分: <span id="final">0</span></p>
-        <button onclick="start()">重新开始</button>
-    </div>
-    <div id="pause">
-        <h1>暂停</h1>
-        <p>点击屏幕继续</p>
-    </div>
     <canvas id="c"></canvas>
+
+    <button id="refresh" onclick="location.reload()">🔄 刷新</button>
+
+    <div id="main">
+        <div class="heart" onclick="showLove()">💕</div>
+        <h1>给我的宝贝</h1>
+        <p>你是我最美的遇见<br>我想把全世界最好的都给你</p>
+
+        <div class="love-list">
+            <h2>💖 我爱你的理由 💖</h2>
+            <div class="love-item">1. 你的笑容像阳光一样温暖</div>
+            <div class="love-item">2. 你的眼睛里有星辰大海</div>
+            <div class="love-item">3. 你是世界上最善良的女孩</div>
+            <div class="love-item">4. 和你在一起的每分每秒</div>
+            <div class="love-item">5. 你是我一生的挚爱</div>
+        </div>
+
+        <button class="btn" onclick="showMessage()">💌 给宝贝的情话</button>
+        <button class="btn" onclick="showPromise()">💍 我的承诺</button>
+    </div>
+
+    <div id="message" style="display: none;" onclick="closeMessage(event)">
+        <div class="msg-box" onclick="event.stopPropagation()">
+            <h2 id="msg-title">💌 情话</h2>
+            <p id="msg-text">Loading...</p>
+            <button class="btn close" onclick="document.getElementById('message').style.display='none'">关闭</button>
+        </div>
+    </div>
+
+    <div id="ai-tag">
+        🤖 <span>AI</span> 智能学习自动建站中...
+    </div>
+
     <script>
         const c = document.getElementById('c');
         const ctx = c.getContext('2d');
-
-        let size = 20;
-        let cols, rows;
         let W, H;
 
-        function sizeCanvas() {
-            const maxSize = Math.min(window.innerWidth, window.innerHeight - 100);
-            cols = Math.floor(maxSize / size);
-            rows = Math.floor(maxSize / size);
-            W = cols * size;
-            H = rows * size;
-            c.width = W;
-            c.height = H;
-            c.style.marginTop = (window.innerHeight - H) / 2 + 'px';
+        function size() {
+            W = c.width = window.innerWidth;
+            H = c.height = window.innerHeight;
         }
-        sizeCanvas();
-        window.onresize = sizeCanvas;
+        size();
+        window.onresize = size;
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        function playEat() {
+        function playHeart() {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-            osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.05);
+            osc.frequency.setValueAtTime(523, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(659, audioCtx.currentTime + 0.1);
+            osc.frequency.setValueAtTime(784, audioCtx.currentTime + 0.2);
             gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
             osc.start();
-            osc.stop(audioCtx.currentTime + 0.1);
+            osc.stop(audioCtx.currentTime + 0.4);
         }
 
-        function playDie() {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.3);
-            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.3);
-        }
+        const hearts = [];
+        const stars = [];
 
-        function playLevelUp() {
-            [523, 659, 784, 1047].forEach((n, i) => {
-                setTimeout(() => {
-                    const osc = audioCtx.createOscillator();
-                    const gain = audioCtx.createGain();
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.frequency.setValueAtTime(n, audioCtx.currentTime);
-                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 0.2);
-                }, i * 100);
+        for (let i = 0; i < 50; i++) {
+            stars.push({
+                x: Math.random() * W,
+                y: Math.random() * H * 0.7,
+                r: Math.random() * 2 + 1,
+                twinkle: Math.random() * Math.PI * 2
             });
         }
 
-        let running = false;
-        let paused = false;
-        let score = 0;
-        let level = 1;
+        function spawnHeart() {
+            hearts.push({
+                x: Math.random() * W,
+                y: H + 50,
+                v: 1 + Math.random() * 2,
+                size: 15 + Math.random() * 20,
+                rot: Math.random() * Math.PI * 2,
+                vRot: (Math.random() - 0.5) * 0.05,
+                alpha: 1
+            });
+        }
+
+        setInterval(spawnHeart, 500);
+
         let frame = 0;
-        let speed = 10;
-
-        let snake = [];
-        let food = {};
-        let bonusFood = null;
-        let dx = 0, dy = 0;
-        let nextDx = 0, nextDy = 0;
-
-        function reset() {
-            snake = [
-                { x: Math.floor(cols / 2), y: Math.floor(rows / 2) },
-                { x: Math.floor(cols / 2), y: Math.floor(rows / 2) + 1 },
-                { x: Math.floor(cols / 2), y: Math.floor(rows / 2) + 2 }
-            ];
-            dx = 0; dy = -1;
-            nextDx = 0; nextDy = -1;
-            score = 0;
-            level = 1;
-            speed = 10;
-            frame = 0;
-            bonusFood = null;
-            spawnFood();
-            updateUI();
-        }
-
-        function start() {
-            document.getElementById('start').style.display = 'none';
-            document.getElementById('over').style.display = 'none';
-            document.getElementById('pause').style.display = 'none';
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            reset();
-            running = true;
-            paused = false;
-        }
-
-        function spawnFood() {
-            let valid = false;
-            while (!valid) {
-                food = {
-                    x: Math.floor(Math.random() * cols),
-                    y: Math.floor(Math.random() * rows)
-                };
-                valid = !snake.some(s => s.x === food.x && s.y === food.y);
-            }
-        }
-
-        function spawnBonus() {
-            let valid = false;
-            while (!valid) {
-                bonusFood = {
-                    x: Math.floor(Math.random() * cols),
-                    y: Math.floor(Math.random() * rows),
-                    time: 300
-                };
-                valid = !snake.some(s => s.x === bonusFood.x && s.y === bonusFood.y);
-            }
-        }
-
-        function updateUI() {
-            document.getElementById('score').innerText = '得分: ' + score;
-            document.getElementById('level').innerText = '等级: ' + level;
-        }
-
-        function setDir(x, y) {
-            if (!running || paused) return;
-            if (dx === -x && dy === -y) return;
-            nextDx = x;
-            nextDy = y;
-        }
-
-        function keyDown(e) {
-            if (e.code === 'Space') {
-                if (running && !paused) {
-                    paused = true;
-                    document.getElementById('pause').style.display = 'flex';
-                } else if (paused) {
-                    paused = false;
-                    document.getElementById('pause').style.display = 'none';
-                }
-                return;
-            }
-            if (e.code === 'ArrowUp' || e.code === 'KeyW') setDir(0, -1);
-            if (e.code === 'ArrowDown' || e.code === 'KeyS') setDir(0, 1);
-            if (e.code === 'ArrowLeft' || e.code === 'KeyA') setDir(-1, 0);
-            if (e.code === 'ArrowRight' || e.code === 'KeyD') setDir(1, 0);
-        }
-
-        window.addEventListener('keydown', keyDown);
-        c.ontouchstart = (e) => {
-            e.preventDefault();
-            if (!running) return;
-            if (paused) {
-                paused = false;
-                document.getElementById('pause').style.display = 'none';
-                return;
-            }
-            const t = e.touches[0];
-            const cx = playerX || W/2;
-            const cy = playerY || H/2;
-            const dx = t.clientX - cx;
-            const dy = t.clientY - cy;
-            if (Math.abs(dx) > Math.abs(dy)) {
-                setDir(dx > 0 ? 1 : -1, 0);
-            } else {
-                setDir(0, dy > 0 ? 1 : -1);
-            }
-        };
-
-        let playerX = 0, playerY = 0;
-        c.ontouchmove = (e) => {
-            const t = e.touches[0];
-            playerX = t.clientX;
-            playerY = t.clientY;
-        };
-
-        function update() {
-            if (!running || paused) return;
-            frame++;
-
-            if (frame % (12 - Math.min(8, speed)) !== 0) return;
-
-            dx = nextDx;
-            dy = nextDy;
-
-            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
-
-            // Wall wrap
-            if (head.x < 0) head.x = cols - 1;
-            if (head.x >= cols) head.x = 0;
-            if (head.y < 0) head.y = rows - 1;
-            if (head.y >= rows) head.y = 0;
-
-            // Self collision
-            if (snake.some(s => s.x === head.x && s.y === head.y)) {
-                running = false;
-                playDie();
-                document.getElementById('final').innerText = score;
-                document.getElementById('over').style.display = 'flex';
-                return;
-            }
-
-            snake.unshift(head);
-
-            // Eat food
-            if (head.x === food.x && head.y === food.y) {
-                score += 10;
-                playEat();
-                spawnFood();
-
-                if (score % 50 === 0) {
-                    level++;
-                    speed++;
-                    playLevelUp();
-                }
-
-                if (score % 30 === 0 && !bonusFood) {
-                    spawnBonus();
-                }
-                updateUI();
-            } else if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
-                score += 30;
-                playEat();
-                bonusFood = null;
-                updateUI();
-            } else {
-                snake.pop();
-            }
-
-            // Bonus countdown
-            if (bonusFood) {
-                bonusFood.time--;
-                if (bonusFood.time <= 0) bonusFood = null;
-            }
-        }
 
         function draw() {
-            // Background
-            ctx.fillStyle = '#1a1a2e';
-            ctx.fillRect(0, 0, W, H);
+            ctx.clearRect(0, 0, W, H);
 
-            // Grid
-            ctx.strokeStyle = 'rgba(0,255,0,0.1)';
-            for (let i = 0; i <= cols; i++) {
+            // Stars
+            stars.forEach(s => {
+                s.twinkle += 0.03;
+                const a = 0.5 + Math.sin(s.twinkle) * 0.5;
+                ctx.fillStyle = `rgba(255,255,255,${a})`;
                 ctx.beginPath();
-                ctx.moveTo(i * size, 0);
-                ctx.lineTo(i * size, H);
-                ctx.stroke();
-            }
-            for (let i = 0; i <= rows; i++) {
-                ctx.beginPath();
-                ctx.moveTo(0, i * size);
-                ctx.lineTo(W, i * size);
-                ctx.stroke();
-            }
-
-            // Food
-            const fx = food.x * size + size/2;
-            const fy = food.y * size + size/2;
-            const fGrad = ctx.createRadialGradient(fx, fy, 0, fx, fy, size/2);
-            fGrad.addColorStop(0, '#ff0');
-            fGrad.addColorStop(1, '#f00');
-            ctx.fillStyle = fGrad;
-            ctx.beginPath();
-            ctx.arc(fx, fy, size/2 - 2, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Bonus food (star)
-            if (bonusFood) {
-                const bx = bonusFood.x * size + size/2;
-                const by = bonusFood.y * size + size/2;
-                ctx.fillStyle = `rgba(255,0,255,${0.5 + Math.sin(frame * 0.2) * 0.5})`;
-                ctx.beginPath();
-                for (let i = 0; i < 5; i++) {
-                    const angle = (i * 4 * Math.PI / 5) - Math.PI / 2;
-                    const r = i % 2 === 0 ? size/2 : size/4;
-                    ctx.lineTo(bx + Math.cos(angle) * r, by + Math.sin(angle) * r);
-                }
-                ctx.closePath();
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
                 ctx.fill();
-            }
-
-            // Snake
-            snake.forEach((s, i) => {
-                const x = s.x * size;
-                const y = s.y * size;
-
-                if (i === 0) {
-                    // Head
-                    ctx.fillStyle = '#0f0';
-                    ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
-
-                    // Eyes
-                    ctx.fillStyle = '#000';
-                    const eyes = { '0,-1': [3, 5], '0,1': [3, 13], '-1,0': [5, 7], '1,0': [13, 7] };
-                    const key = `${dx},${dy}`;
-                    if (eyes[key]) {
-                        ctx.fillRect(x + eyes[key][0], y + eyes[key][1], 4, 4);
-                        ctx.fillRect(x + eyes[key][0] + 8, y + eyes[key][1], 4, 4);
-                    }
-                } else {
-                    // Body with gradient
-                    const grad = ctx.createLinearGradient(x, y, x + size, y + size);
-                    grad.addColorStop(0, '#0a0');
-                    grad.addColorStop(1, '#0f0');
-                    ctx.fillStyle = grad;
-                    ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
-                }
             });
 
-            // Watermark
-            ctx.font = '12px sans-serif';
-            ctx.fillStyle = 'rgba(255,255,255,0.3)';
-            ctx.fillText('AI 自动化学习中...', 5, H - 5);
+            // Hearts
+            hearts.forEach((h, i) => {
+                h.y -= h.v;
+                h.rot += h.vRot;
+
+                ctx.save();
+                ctx.translate(h.x, h.y);
+                ctx.rotate(h.rot);
+                ctx.globalAlpha = h.alpha;
+                ctx.fillStyle = '#e94560';
+                ctx.font = h.size + 'px Arial';
+                ctx.fillText('❤️', -h.size/2, h.size/3);
+                ctx.restore();
+
+                if (h.y < -50) hearts.splice(i, 1);
+            });
+
+            requestAnimationFrame(draw);
+        }
+        draw();
+
+        function showLove() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            playHeart();
+            for (let i = 0; i < 20; i++) {
+                setTimeout(spawnHeart, i * 50);
+            }
         }
 
-        function loop() {
-            update();
-            draw();
-            requestAnimationFrame(loop);
+        const messages = [
+            "宝贝，你是我这辈子最大的幸运",
+            "我想和你一起慢慢变老",
+            "你的笑容比春天的花还要美",
+            "我爱你，不只是说说而已",
+            "你是我的唯一，我的全世界",
+            "只要有你在，其他的都是风景",
+            "我想陪你走过每一个春夏秋冬",
+            "你是我心里最柔软的地方",
+            "遇见你，是我最美的意外",
+            "我会永远爱你，直到地老天荒"
+        ];
+
+        const promises = [
+            "我会永远陪在你身边",
+            "永远不让你受委屈",
+            "会把最好的都给你",
+            "每天都会逗你开心",
+            "永远不欺骗你",
+            "把你宠成小公主",
+            "陪你一起实现梦想",
+            "给你一个温暖的家",
+            "和你一起慢慢变老",
+            "永远把你放在第一位"
+        ];
+
+        function showMessage() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            playHeart();
+            const msg = messages[Math.floor(Math.random() * messages.length)];
+            document.getElementById('msg-title').innerText = '💌 送给最爱的你';
+            document.getElementById('msg-text').innerText = msg;
+            document.getElementById('message').style.display = 'flex';
         }
 
-        loop();
+        function showPromise() {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            playHeart();
+            const p = promises[Math.floor(Math.random() * promises.length)];
+            document.getElementById('msg-title').innerText = '💍 我的承诺';
+            document.getElementById('msg-text').innerText = p;
+            document.getElementById('message').style.display = 'flex';
+        }
+
+        function closeMessage(e) {
+            if (e.target.id === 'message') {
+                document.getElementById('message').style.display = 'none';
+            }
+        }
     </script>
 </body>
 </html>
