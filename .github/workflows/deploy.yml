@@ -51,4 +51,4 @@ jobs:
             docker pull ${{ secrets.DOCKER_USERNAME }}/pier:latest
             docker stop pier || true
             docker rm pier || true
-            docker run -d -p 443:443 --name pier ${{ secrets.DOCKER_USERNAME }}/pier:latest
+            docker run -d -p 80:80 -p 443:443 --name pier ${{ secrets.DOCKER_USERNAME }}/pier:latest
