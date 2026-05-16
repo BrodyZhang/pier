@@ -27,7 +27,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: brodyzhang2026/pier:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/pier:latest
 
   restart-vps-container:
     needs: build-and-push
@@ -41,7 +41,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            docker pull brodyzhang2026/pier:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/pier:latest
             docker stop pier || true
             docker rm pier || true
-            docker run -d -p 443:443 --name pier brodyzhang2026/pier:latest
+            docker run -d -p 443:443 --name pier ${{ secrets.DOCKER_USERNAME }}/pier:latest
