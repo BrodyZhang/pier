@@ -1,14 +1,11 @@
 FROM nginx:alpine
 
-RUN apk add --no-cache openssl
+RUN apk add --no-cache certbot
 
-RUN mkdir -p /etc/nginx/ssl && \
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-    -keyout /etc/nginx/ssl/server.key \
-    -out /etc/nginx/ssl/server.crt \
-    -subj "/C=CN/ST=Beijing/L=Beijing/O=MySite/CN=localhost"
+RUN mkdir -p /etc/nginx/ssl /etc/letsencrypt
 
 COPY src/index.html /usr/share/nginx/html/
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 443
-CMD ["nginx", "-g", "daemon off;"]
+
+EXPOSE 80 443
+CMD ["sh", "-c", "nginx && sleep infinity"]
