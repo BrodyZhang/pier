@@ -3,468 +3,448 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>消防员</title>
+    <title>贪吃蛇</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             overflow: hidden;
             touch-action: none;
-            background: #1a1a1a;
-            font-family: sans-serif;
+            background: #1a1a2e;
+            font-family: 'Segoe UI', sans-serif;
             user-select: none;
         }
-        canvas { display: block; }
+        canvas { display: block; margin: 0 auto; }
+        #ui {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
         #score {
-            position: fixed;
-            top: 15px;
-            left: 20px;
-            font-size: 22px;
+            font-size: 24px;
+            color: #0f0;
+            text-shadow: 0 0 10px #0f0;
+            font-weight: bold;
+        }
+        #level {
+            font-size: 18px;
+            color: #ff0;
+            text-shadow: 0 0 10px #ff0;
+        }
+        #refresh {
+            padding: 8px 20px;
+            font-size: 16px;
+            background: linear-gradient(180deg, #4a4, #262);
+            border: none;
+            border-radius: 20px;
             color: #fff;
-            text-shadow: 2px 2px 4px #000;
-            z-index: 10;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0,255,0,0.3);
         }
-        #water-bar {
-            position: fixed;
-            top: 15px;
-            right: 20px;
-            width: 150px;
-            height: 20px;
-            background: #333;
-            border-radius: 10px;
-            overflow: hidden;
-            z-index: 10;
-        }
-        #water-level {
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, #00aaff, #00ffff);
-            transition: width 0.1s;
-        }
-        #start, #over {
+        #refresh:active { transform: scale(0.95); }
+        #start, #over, #pause {
             position: fixed;
             inset: 0;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.85);
             z-index: 20;
         }
-        #over { display: none; }
-        h1 { font-size: 40px; color: #ff6600; text-shadow: 0 0 20px #ff6600; margin-bottom: 15px; }
-        p { font-size: 18px; color: #ccc; margin-bottom: 25px; }
+        #over, #pause { display: none; }
+        h1 { font-size: 42px; color: #0f0; text-shadow: 0 0 20px #0f0; margin-bottom: 15px; }
+        p { font-size: 20px; color: #ccc; margin-bottom: 25px; }
         button {
             padding: 15px 50px;
             font-size: 20px;
-            background: linear-gradient(180deg, #ff6600, #cc3300);
+            background: linear-gradient(180deg, #0f0, #0a0);
             border: none;
             border-radius: 30px;
-            color: #fff;
+            color: #000;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 0 20px rgba(255,100,0,0.5);
+            box-shadow: 0 0 20px rgba(0,255,0,0.5);
         }
         button:active { transform: scale(0.95); }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(0,255,0,0.2);
+            border: 2px solid #0f0;
+            border-radius: 10px;
+            color: #0f0;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+        .btn:active { background: rgba(0,255,0,0.5); }
     </style>
 </head>
 <body>
-    <div id="score">灭火: 0</div>
-    <div id="water-bar"><div id="water-level"></div></div>
+    <div id="ui">
+        <div>
+            <div id="score">得分: 0</div>
+            <div id="level">等级: 1</div>
+        </div>
+        <button id="refresh" onclick="location.reload()">刷新</button>
+    </div>
     <div id="start">
-        <h1>🚒 消防员</h1>
-        <p>拖动移动，点击喷水救火</p>
-        <button onclick="start()">开始行动</button>
+        <h1>🐍 贪吃蛇</h1>
+        <p>控制蛇吃到食物变长</p>
+        <button onclick="start()">开始游戏</button>
+        <div class="controls">
+            <div class="btn" onclick="setDir(0,-1)">↑</div>
+            <div></div>
+            <div class="btn" onclick="setDir(-1,0)">←</div>
+            <div class="btn" onclick="setDir(0,1)">↓</div>
+            <div class="btn" onclick="setDir(1,0)">→</div>
+        </div>
     </div>
     <div id="over">
-        <h1>任务完成!</h1>
-        <p>灭火数量: <span id="final">0</span></p>
-        <button onclick="start()">再次出警</button>
+        <h1>游戏结束</h1>
+        <p>最终得分: <span id="final">0</span></p>
+        <button onclick="start()">重新开始</button>
+    </div>
+    <div id="pause">
+        <h1>暂停</h1>
+        <p>点击屏幕继续</p>
     </div>
     <canvas id="c"></canvas>
     <script>
         const c = document.getElementById('c');
         const ctx = c.getContext('2d');
+
+        let size = 20;
+        let cols, rows;
         let W, H;
 
-        function size() {
-            W = c.width = window.innerWidth;
-            H = c.height = window.innerHeight;
+        function sizeCanvas() {
+            const maxSize = Math.min(window.innerWidth, window.innerHeight - 100);
+            cols = Math.floor(maxSize / size);
+            rows = Math.floor(maxSize / size);
+            W = cols * size;
+            H = rows * size;
+            c.width = W;
+            c.height = H;
+            c.style.marginTop = (window.innerHeight - H) / 2 + 'px';
         }
-        size();
-        window.onresize = size;
+        sizeCanvas();
+        window.onresize = sizeCanvas;
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        function playWater() {
-            const noise = audioCtx.createBufferSource();
-            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.15, audioCtx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for (let i = 0; i < data.length; i++) {
-                data[i] = (Math.random() * 2 - 1) * 0.3;
-            }
-            noise.buffer = buffer;
+        function playEat() {
+            const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-            noise.connect(gain);
+            osc.connect(gain);
             gain.connect(audioCtx.destination);
-            noise.start();
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime + 0.05);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
         }
 
-        function playFire() {
-            const noise = audioCtx.createBufferSource();
-            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
-            const data = buffer.getChannelData(0);
-            for (let i = 0; i < data.length; i++) {
-                data[i] = (Math.random() * 2 - 1) * 0.1;
-            }
-            noise.buffer = buffer;
-            const filter = audioCtx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(800, audioCtx.currentTime);
+        function playDie() {
+            const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-            noise.connect(filter);
-            filter.connect(gain);
+            osc.connect(gain);
             gain.connect(audioCtx.destination);
-            noise.loop = true;
-            noise.start();
-            return noise;
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
         }
 
-        function playWin() {
-            const notes = [523, 659, 784, 1047];
-            notes.forEach((n, i) => {
+        function playLevelUp() {
+            [523, 659, 784, 1047].forEach((n, i) => {
                 setTimeout(() => {
                     const osc = audioCtx.createOscillator();
                     const gain = audioCtx.createGain();
                     osc.connect(gain);
                     gain.connect(audioCtx.destination);
                     osc.frequency.setValueAtTime(n, audioCtx.currentTime);
-                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
                     osc.start();
-                    osc.stop(audioCtx.currentTime + 0.3);
-                }, i * 150);
+                    osc.stop(audioCtx.currentTime + 0.2);
+                }, i * 100);
             });
         }
 
-        let bgm = null;
-
         let running = false;
+        let paused = false;
         let score = 0;
-        let water = 100;
+        let level = 1;
         let frame = 0;
+        let speed = 10;
 
-        const player = { x: 0, y: 0, w: 40, h: 60 };
-        const fires = [];
-        const waterDrops = [];
-        const smokeParticles = [];
+        let snake = [];
+        let food = {};
+        let bonusFood = null;
+        let dx = 0, dy = 0;
+        let nextDx = 0, nextDy = 0;
 
         function reset() {
-            player.x = W / 2;
-            player.y = H - 100;
-            fires.length = 0;
-            waterDrops.length = 0;
-            smokeParticles.length = 0;
+            snake = [
+                { x: Math.floor(cols / 2), y: Math.floor(rows / 2) },
+                { x: Math.floor(cols / 2), y: Math.floor(rows / 2) + 1 },
+                { x: Math.floor(cols / 2), y: Math.floor(rows / 2) + 2 }
+            ];
+            dx = 0; dy = -1;
+            nextDx = 0; nextDy = -1;
             score = 0;
-            water = 100;
+            level = 1;
+            speed = 10;
             frame = 0;
+            bonusFood = null;
+            spawnFood();
             updateUI();
-
-            // Generate initial fires
-            for (let i = 0; i < 5; i++) {
-                spawnFire();
-            }
         }
 
         function start() {
             document.getElementById('start').style.display = 'none';
             document.getElementById('over').style.display = 'none';
+            document.getElementById('pause').style.display = 'none';
             if (audioCtx.state === 'suspended') audioCtx.resume();
             reset();
             running = true;
-            if (bgm) bgm.stop();
-            bgm = playFire();
+            paused = false;
         }
 
-        function spawnFire() {
-            fires.push({
-                x: 50 + Math.random() * (W - 100),
-                y: H - 80,
-                h: 40 + Math.random() * 30,
-                w: 30 + Math.random() * 20,
-                life: 100
-            });
+        function spawnFood() {
+            let valid = false;
+            while (!valid) {
+                food = {
+                    x: Math.floor(Math.random() * cols),
+                    y: Math.floor(Math.random() * rows)
+                };
+                valid = !snake.some(s => s.x === food.x && s.y === food.y);
+            }
+        }
+
+        function spawnBonus() {
+            let valid = false;
+            while (!valid) {
+                bonusFood = {
+                    x: Math.floor(Math.random() * cols),
+                    y: Math.floor(Math.random() * rows),
+                    time: 300
+                };
+                valid = !snake.some(s => s.x === bonusFood.x && s.y === bonusFood.y);
+            }
         }
 
         function updateUI() {
-            document.getElementById('score').innerText = '灭火: ' + score;
-            document.getElementById('water-level').style.width = water + '%';
+            document.getElementById('score').innerText = '得分: ' + score;
+            document.getElementById('level').innerText = '等级: ' + level;
         }
 
-        let lastWater = 0;
-        function spray() {
-            if (!running || water <= 0) return;
-            const now = Date.now();
-            if (now - lastWater < 80) return;
-            lastWater = now;
-
-            water = Math.max(0, water - 2);
-            updateUI();
-
-            waterDrops.push({
-                x: player.x,
-                y: player.y - 40,
-                vx: (Math.random() - 0.5) * 4,
-                vy: -8 - Math.random() * 4,
-                v: 0
-            });
-
-            playWater();
+        function setDir(x, y) {
+            if (!running || paused) return;
+            if (dx === -x && dy === -y) return;
+            nextDx = x;
+            nextDy = y;
         }
 
+        function keyDown(e) {
+            if (e.code === 'Space') {
+                if (running && !paused) {
+                    paused = true;
+                    document.getElementById('pause').style.display = 'flex';
+                } else if (paused) {
+                    paused = false;
+                    document.getElementById('pause').style.display = 'none';
+                }
+                return;
+            }
+            if (e.code === 'ArrowUp' || e.code === 'KeyW') setDir(0, -1);
+            if (e.code === 'ArrowDown' || e.code === 'KeyS') setDir(0, 1);
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') setDir(-1, 0);
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') setDir(1, 0);
+        }
+
+        window.addEventListener('keydown', keyDown);
         c.ontouchstart = (e) => {
             e.preventDefault();
-            const t = e.touches[0];
-            if (t.clientY > H - 150) {
-                player.x = t.clientX;
-                player.y = Math.min(t.clientY, H - 60);
-            } else {
-                spray();
-            }
-        };
-
-        c.ontouchmove = (e) => {
-            e.preventDefault();
             if (!running) return;
+            if (paused) {
+                paused = false;
+                document.getElementById('pause').style.display = 'none';
+                return;
+            }
             const t = e.touches[0];
-            if (t.clientY > H - 150) {
-                player.x = t.clientX;
-                player.y = Math.min(t.clientY, H - 60);
-            }
-        };
-
-        c.ontouchend = (e) => {
-            e.preventDefault();
-        };
-
-        c.onmousedown = (e) => {
-            if (e.clientY > H - 150) {
-                player.x = e.clientX;
+            const cx = playerX || W/2;
+            const cy = playerY || H/2;
+            const dx = t.clientX - cx;
+            const dy = t.clientY - cy;
+            if (Math.abs(dx) > Math.abs(dy)) {
+                setDir(dx > 0 ? 1 : -1, 0);
             } else {
-                spray();
+                setDir(0, dy > 0 ? 1 : -1);
             }
         };
 
-        c.onmousemove = (e) => {
-            if (e.buttons === 1 && e.clientY > H - 150) {
-                player.x = e.clientX;
-                player.y = Math.min(e.clientY, H - 60);
-            }
+        let playerX = 0, playerY = 0;
+        c.ontouchmove = (e) => {
+            const t = e.touches[0];
+            playerX = t.clientX;
+            playerY = t.clientY;
         };
 
         function update() {
-            if (!running) return;
+            if (!running || paused) return;
             frame++;
 
-            // Water drops physics
-            waterDrops.forEach(w => {
-                w.vy += 0.4;
-                w.x += w.vx;
-                w.y += w.vy;
-            });
+            if (frame % (12 - Math.min(8, speed)) !== 0) return;
 
-            // Check water hitting fire
-            waterDrops.forEach((w, wi) => {
-                if (w.y > H - 100) {
-                    waterDrops.splice(wi, 1);
-                } else {
-                    fires.forEach((f, fi) => {
-                        if (Math.abs(w.x - f.x) < f.w && w.y > f.y - f.h) {
-                            f.life -= 30;
-                            waterDrops.splice(wi, 1);
+            dx = nextDx;
+            dy = nextDy;
 
-                            // Smoke
-                            for (let i = 0; i < 5; i++) {
-                                smokeParticles.push({
-                                    x: f.x + (Math.random() - 0.5) * f.w,
-                                    y: f.y - f.h + Math.random() * 20,
-                                    vy: -1 - Math.random(),
-                                    life: 40,
-                                    size: 10 + Math.random() * 15
-                                });
-                            }
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
-                            if (f.life <= 0) {
-                                fires.splice(fi, 1);
-                                score++;
-                                updateUI();
+            // Wall wrap
+            if (head.x < 0) head.x = cols - 1;
+            if (head.x >= cols) head.x = 0;
+            if (head.y < 0) head.y = rows - 1;
+            if (head.y >= rows) head.y = 0;
 
-                                if (score >= 10) {
-                                    running = false;
-                                    if (bgm) bgm.stop();
-                                    playWin();
-                                    document.getElementById('final').innerText = score;
-                                    document.getElementById('over').style.display = 'flex';
-                                } else {
-                                    setTimeout(spawnFire, 1000);
-                                }
-                            }
-                        }
-                    });
+            // Self collision
+            if (snake.some(s => s.x === head.x && s.y === head.y)) {
+                running = false;
+                playDie();
+                document.getElementById('final').innerText = score;
+                document.getElementById('over').style.display = 'flex';
+                return;
+            }
+
+            snake.unshift(head);
+
+            // Eat food
+            if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                playEat();
+                spawnFood();
+
+                if (score % 50 === 0) {
+                    level++;
+                    speed++;
+                    playLevelUp();
                 }
-            });
 
-            // Fire animation
-            fires.forEach(f => {
-                f.h = f.w + Math.sin(frame * 0.2) * 10;
-            });
-
-            // Smoke
-            smokeParticles.forEach(s => {
-                s.y += s.vy;
-                s.x += Math.sin(frame * 0.1 + s.y * 0.01) * 0.5;
-                s.life--;
-                s.size += 0.3;
-            });
-            smokeParticles.forEach((s, i) => {
-                if (s.life <= 0) smokeParticles.splice(i, 1);
-            });
-
-            // Refill water
-            if (frame % 60 === 0 && water < 100) {
-                water = Math.min(100, water + 5);
+                if (score % 30 === 0 && !bonusFood) {
+                    spawnBonus();
+                }
                 updateUI();
-            }
-        }
-
-        function drawFirefighter(x, y) {
-            // Body
-            ctx.fillStyle = '#cc2200';
-            ctx.fillRect(x - 15, y - 20, 30, 40);
-
-            // Helmet
-            ctx.fillStyle = '#ffaa00';
-            ctx.beginPath();
-            ctx.arc(x, y - 25, 15, Math.PI, 0);
-            ctx.fill();
-
-            // Face
-            ctx.fillStyle = '#ffdd88';
-            ctx.beginPath();
-            ctx.arc(x, y - 15, 10, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Eyes
-            ctx.fillStyle = '#000';
-            ctx.beginPath();
-            ctx.arc(x - 4, y - 15, 2, 0, Math.PI * 2);
-            ctx.arc(x + 4, y - 15, 2, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Hose
-            ctx.strokeStyle = '#666';
-            ctx.lineWidth = 4;
-            ctx.beginPath();
-            ctx.moveTo(x + 10, y);
-            ctx.quadraticCurveTo(x + 25, y - 20, x + 15, y - 35);
-            ctx.stroke();
-        }
-
-        function drawFire(f) {
-            // Base
-            ctx.fillStyle = '#8B0000';
-            ctx.fillRect(f.x - f.w/2, f.y, f.w, 10);
-
-            // Flames
-            for (let i = 0; i < 3; i++) {
-                const offset = (i - 1) * 10;
-                const flameH = f.h * (0.7 + Math.sin(frame * 0.3 + i) * 0.3);
-
-                const grad = ctx.createLinearGradient(f.x + offset, f.y, f.x + offset, f.y - flameH);
-                grad.addColorStop(0, '#ff4400');
-                grad.addColorStop(0.5, '#ff8800');
-                grad.addColorStop(1, '#ffff00');
-
-                ctx.fillStyle = grad;
-                ctx.beginPath();
-                ctx.moveTo(f.x + offset - 10, f.y);
-                ctx.quadraticCurveTo(f.x + offset - 5, f.y - flameH * 0.6, f.x + offset, f.y - flameH);
-                ctx.quadraticCurveTo(f.x + offset + 5, f.y - flameH * 0.6, f.x + offset + 10, f.y);
-                ctx.fill();
+            } else if (bonusFood && head.x === bonusFood.x && head.y === bonusFood.y) {
+                score += 30;
+                playEat();
+                bonusFood = null;
+                updateUI();
+            } else {
+                snake.pop();
             }
 
-            // Glow
-            ctx.fillStyle = 'rgba(255,100,0,0.2)';
-            ctx.beginPath();
-            ctx.arc(f.x, f.y - f.h/2, f.w + 20, 0, Math.PI * 2);
-            ctx.fill();
+            // Bonus countdown
+            if (bonusFood) {
+                bonusFood.time--;
+                if (bonusFood.time <= 0) bonusFood = null;
+            }
         }
 
         function draw() {
-            // Room background
-            ctx.fillStyle = '#2a2a2a';
+            // Background
+            ctx.fillStyle = '#1a1a2e';
             ctx.fillRect(0, 0, W, H);
 
-            // Floor
-            ctx.fillStyle = '#444';
-            ctx.fillRect(0, H - 80, W, 80);
-
-            // Wall pattern
-            ctx.strokeStyle = '#333';
-            ctx.lineWidth = 1;
-            for (let i = 0; i < W; i += 40) {
+            // Grid
+            ctx.strokeStyle = 'rgba(0,255,0,0.1)';
+            for (let i = 0; i <= cols; i++) {
                 ctx.beginPath();
-                ctx.moveTo(i, 0);
-                ctx.lineTo(i, H - 80);
+                ctx.moveTo(i * size, 0);
+                ctx.lineTo(i * size, H);
+                ctx.stroke();
+            }
+            for (let i = 0; i <= rows; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, i * size);
+                ctx.lineTo(W, i * size);
                 ctx.stroke();
             }
 
-            // Windows
-            ctx.fillStyle = '#1a3a5c';
-            ctx.fillRect(50, 100, 80, 100);
-            ctx.fillRect(W - 130, 100, 80, 100);
-            ctx.fillStyle = '#0a1a2c';
-            ctx.fillRect(60, 110, 25, 35);
-            ctx.fillRect(95, 110, 25, 35);
-            ctx.fillRect(W - 120, 110, 25, 35);
-            ctx.fillRect(W - 85, 110, 25, 35);
+            // Food
+            const fx = food.x * size + size/2;
+            const fy = food.y * size + size/2;
+            const fGrad = ctx.createRadialGradient(fx, fy, 0, fx, fy, size/2);
+            fGrad.addColorStop(0, '#ff0');
+            fGrad.addColorStop(1, '#f00');
+            ctx.fillStyle = fGrad;
+            ctx.beginPath();
+            ctx.arc(fx, fy, size/2 - 2, 0, Math.PI * 2);
+            ctx.fill();
 
-            // Fire light effect
-            fires.forEach(f => {
-                ctx.fillStyle = `rgba(255,100,0,${0.1 + Math.sin(frame * 0.2) * 0.05})`;
-                ctx.fillRect(0, 0, W, H);
-            });
-
-            // Smoke
-            ctx.fillStyle = 'rgba(100,100,100,0.3)';
-            smokeParticles.forEach(s => {
-                ctx.globalAlpha = s.life / 40;
+            // Bonus food (star)
+            if (bonusFood) {
+                const bx = bonusFood.x * size + size/2;
+                const by = bonusFood.y * size + size/2;
+                ctx.fillStyle = `rgba(255,0,255,${0.5 + Math.sin(frame * 0.2) * 0.5})`;
                 ctx.beginPath();
-                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+                for (let i = 0; i < 5; i++) {
+                    const angle = (i * 4 * Math.PI / 5) - Math.PI / 2;
+                    const r = i % 2 === 0 ? size/2 : size/4;
+                    ctx.lineTo(bx + Math.cos(angle) * r, by + Math.sin(angle) * r);
+                }
+                ctx.closePath();
                 ctx.fill();
+            }
+
+            // Snake
+            snake.forEach((s, i) => {
+                const x = s.x * size;
+                const y = s.y * size;
+
+                if (i === 0) {
+                    // Head
+                    ctx.fillStyle = '#0f0';
+                    ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
+
+                    // Eyes
+                    ctx.fillStyle = '#000';
+                    const eyes = { '0,-1': [3, 5], '0,1': [3, 13], '-1,0': [5, 7], '1,0': [13, 7] };
+                    const key = `${dx},${dy}`;
+                    if (eyes[key]) {
+                        ctx.fillRect(x + eyes[key][0], y + eyes[key][1], 4, 4);
+                        ctx.fillRect(x + eyes[key][0] + 8, y + eyes[key][1], 4, 4);
+                    }
+                } else {
+                    // Body with gradient
+                    const grad = ctx.createLinearGradient(x, y, x + size, y + size);
+                    grad.addColorStop(0, '#0a0');
+                    grad.addColorStop(1, '#0f0');
+                    ctx.fillStyle = grad;
+                    ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
+                }
             });
-            ctx.globalAlpha = 1;
-
-            // Fires
-            fires.forEach(drawFire);
-
-            // Water drops
-            ctx.fillStyle = '#00aaff';
-            waterDrops.forEach(w => {
-                ctx.beginPath();
-                ctx.arc(w.x, w.y, 4, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            // Firefighter
-            drawFirefighter(player.x, player.y);
 
             // Watermark
-            ctx.font = '14px sans-serif';
+            ctx.font = '12px sans-serif';
             ctx.fillStyle = 'rgba(255,255,255,0.3)';
-            ctx.fillText('AI 自动化学习中...', 10, H - 10);
+            ctx.fillText('AI 自动化学习中...', 5, H - 5);
         }
 
         function loop() {
@@ -472,9 +452,6 @@
             draw();
             requestAnimationFrame(loop);
         }
-
-        player.x = W / 2;
-        player.y = H - 100;
 
         loop();
     </script>
