@@ -51,20 +51,25 @@ jobs:
             docker pull ${{ secrets.DOCKER_USERNAME }}/pier:latest
             docker stop pier || true
             docker rm pier || true
-            
-            # Create cert volume if not exists
             docker volume create pier-cert || true
-            
-            # Run certbot to get certificate (run once only)
-            docker run --rm -v pier-cert:/etc/letsencrypt \
-              -p 80:80 \
-              alpine certbot certonly --webroot -w /usr/share/nginx/html \
-              --email 296068994@qq.com \
-              --agree-tos --no-eff-email \
-              -d ailaopo.online -d www.ailaopo.online \
-              || echo "Certificate already exists or error"
-            
-            # Start container with certificate volume
             docker run -d -p 80:80 -p 443:443 \
               -v pier-cert:/etc/letsencrypt \
               --name pier ${{ secrets.DOCKER_USERNAME }}/pier:latest
+
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            sleep 5
+            CONTAINER_STATUS=$(docker inspect -f '{{.State.Running}}' pier 2>/dev/null)
+            if [ "$CONTAINER_STATUS" = "true" ]; then
+              echo "SUCCESS: Container is running"
+              exit 0
+            else
+              echo "FAILED: Container is not running"
+              docker logs pier
+              exit 1
+            fi
