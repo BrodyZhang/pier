@@ -3,35 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>太空射击</title>
+    <title>消防员</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             overflow: hidden;
             touch-action: none;
-            background: #0a0a1a;
+            background: #1a1a1a;
             font-family: sans-serif;
             user-select: none;
-            -webkit-user-select: none;
         }
         canvas { display: block; }
         #score {
             position: fixed;
             top: 15px;
             left: 20px;
-            font-size: 24px;
-            color: #0ff;
-            text-shadow: 0 0 10px #0ff;
+            font-size: 22px;
+            color: #fff;
+            text-shadow: 2px 2px 4px #000;
             z-index: 10;
         }
-        #health {
+        #water-bar {
             position: fixed;
             top: 15px;
             right: 20px;
-            font-size: 24px;
-            color: #f00;
-            text-shadow: 0 0 10px #f00;
+            width: 150px;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
             z-index: 10;
+        }
+        #water-level {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #00aaff, #00ffff);
+            transition: width 0.1s;
         }
         #start, #over {
             position: fixed;
@@ -44,34 +51,34 @@
             z-index: 20;
         }
         #over { display: none; }
-        h1 { font-size: 42px; color: #0ff; text-shadow: 0 0 20px #0ff; margin-bottom: 15px; }
-        p { font-size: 18px; color: #aaa; margin-bottom: 25px; }
+        h1 { font-size: 40px; color: #ff6600; text-shadow: 0 0 20px #ff6600; margin-bottom: 15px; }
+        p { font-size: 18px; color: #ccc; margin-bottom: 25px; }
         button {
             padding: 15px 50px;
-            font-size: 22px;
-            background: linear-gradient(180deg, #00ffff, #0088aa);
+            font-size: 20px;
+            background: linear-gradient(180deg, #ff6600, #cc3300);
             border: none;
             border-radius: 30px;
-            color: #000;
+            color: #fff;
             font-weight: bold;
             cursor: pointer;
-            box-shadow: 0 0 20px rgba(0,255,255,0.5);
+            box-shadow: 0 0 20px rgba(255,100,0,0.5);
         }
         button:active { transform: scale(0.95); }
     </style>
 </head>
 <body>
-    <div id="score">得分: 0</div>
-    <div id="health">❤️❤️❤️</div>
+    <div id="score">灭火: 0</div>
+    <div id="water-bar"><div id="water-level"></div></div>
     <div id="start">
-        <h1>🚀 太空射击</h1>
-        <p>拖动飞机移动，点击射击</p>
-        <button onclick="start()">开始游戏</button>
+        <h1>🚒 消防员</h1>
+        <p>拖动移动，点击喷水救火</p>
+        <button onclick="start()">开始行动</button>
     </div>
     <div id="over">
-        <h1>游戏结束</h1>
-        <p>最终得分: <span id="final">0</span></p>
-        <button onclick="start()">重新开始</button>
+        <h1>任务完成!</h1>
+        <p>灭火数量: <span id="final">0</span></p>
+        <button onclick="start()">再次出警</button>
     </div>
     <canvas id="c"></canvas>
     <script>
@@ -88,75 +95,87 @@
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        function playShoot() {
-            const osc = audioCtx.createOscillator();
+        function playWater() {
+            const noise = audioCtx.createBufferSource();
+            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.15, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < data.length; i++) {
+                data[i] = (Math.random() * 2 - 1) * 0.3;
+            }
+            noise.buffer = buffer;
             const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.05);
-            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.05);
-        }
-
-        function playExplode() {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.2);
-            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.2);
-        }
-
-        function playHit() {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.15);
+            noise.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start();
         }
+
+        function playFire() {
+            const noise = audioCtx.createBufferSource();
+            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < data.length; i++) {
+                data[i] = (Math.random() * 2 - 1) * 0.1;
+            }
+            noise.buffer = buffer;
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(800, audioCtx.currentTime);
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.loop = true;
+            noise.start();
+            return noise;
+        }
+
+        function playWin() {
+            const notes = [523, 659, 784, 1047];
+            notes.forEach((n, i) => {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.frequency.setValueAtTime(n, audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.3);
+                }, i * 150);
+            });
+        }
+
+        let bgm = null;
 
         let running = false;
         let score = 0;
-        let health = 3;
+        let water = 100;
         let frame = 0;
 
-        const player = { x: 0, y: 0, w: 50, h: 40 };
-        const bullets = [];
-        const enemies = [];
-        const particles = [];
-        const stars = [];
-
-        for (let i = 0; i < 100; i++) {
-            stars.push({
-                x: Math.random() * W,
-                y: Math.random() * H,
-                s: Math.random() * 2 + 0.5,
-                t: Math.random() * Math.PI * 2
-            });
-        }
+        const player = { x: 0, y: 0, w: 40, h: 60 };
+        const fires = [];
+        const waterDrops = [];
+        const smokeParticles = [];
 
         function reset() {
             player.x = W / 2;
             player.y = H - 100;
-            bullets.length = 0;
-            enemies.length = 0;
-            particles.length = 0;
+            fires.length = 0;
+            waterDrops.length = 0;
+            smokeParticles.length = 0;
             score = 0;
-            health = 3;
+            water = 100;
             frame = 0;
             updateUI();
+
+            // Generate initial fires
+            for (let i = 0; i < 5; i++) {
+                spawnFire();
+            }
         }
 
         function start() {
@@ -165,57 +184,54 @@
             if (audioCtx.state === 'suspended') audioCtx.resume();
             reset();
             running = true;
+            if (bgm) bgm.stop();
+            bgm = playFire();
         }
 
-        function updateUI() {
-            document.getElementById('score').innerText = '得分: ' + score;
-            document.getElementById('health').innerText = '❤️'.repeat(health);
-        }
-
-        let lastShoot = 0;
-        function shoot() {
-            if (!running) return;
-            const now = Date.now();
-            if (now - lastShoot < 150) return;
-            lastShoot = now;
-            bullets.push({ x: player.x, y: player.y - 20, v: -12 });
-            playShoot();
-        }
-
-        function spawnEnemy() {
-            enemies.push({
-                x: Math.random() * (W - 40) + 20,
-                y: -30,
-                w: 40,
-                h: 40,
-                v: 2 + Math.random() * 2 + score * 0.01
+        function spawnFire() {
+            fires.push({
+                x: 50 + Math.random() * (W - 100),
+                y: H - 80,
+                h: 40 + Math.random() * 30,
+                w: 30 + Math.random() * 20,
+                life: 100
             });
         }
 
-        function createExplode(x, y, color) {
-            for (let i = 0; i < 15; i++) {
-                particles.push({
-                    x, y,
-                    vx: (Math.random() - 0.5) * 10,
-                    vy: (Math.random() - 0.5) * 10,
-                    life: 30,
-                    color
-                });
-            }
+        function updateUI() {
+            document.getElementById('score').innerText = '灭火: ' + score;
+            document.getElementById('water-level').style.width = water + '%';
         }
 
-        let touchStartX = 0, touchStartY = 0;
-        let isTouching = false;
+        let lastWater = 0;
+        function spray() {
+            if (!running || water <= 0) return;
+            const now = Date.now();
+            if (now - lastWater < 80) return;
+            lastWater = now;
+
+            water = Math.max(0, water - 2);
+            updateUI();
+
+            waterDrops.push({
+                x: player.x,
+                y: player.y - 40,
+                vx: (Math.random() - 0.5) * 4,
+                vy: -8 - Math.random() * 4,
+                v: 0
+            });
+
+            playWater();
+        }
 
         c.ontouchstart = (e) => {
             e.preventDefault();
             const t = e.touches[0];
-            touchStartX = t.clientX;
-            touchStartY = t.clientY;
-            isTouching = true;
             if (t.clientY > H - 150) {
                 player.x = t.clientX;
                 player.y = Math.min(t.clientY, H - 60);
+            } else {
+                spray();
             }
         };
 
@@ -231,23 +247,20 @@
 
         c.ontouchend = (e) => {
             e.preventDefault();
-            if (isTouching && e.changedTouches[0].clientY < H - 150) {
-                shoot();
-            }
-            isTouching = false;
         };
 
         c.onmousedown = (e) => {
             if (e.clientY > H - 150) {
                 player.x = e.clientX;
             } else {
-                shoot();
+                spray();
             }
         };
 
         c.onmousemove = (e) => {
             if (e.buttons === 1 && e.clientY > H - 150) {
                 player.x = e.clientX;
+                player.y = Math.min(e.clientY, H - 60);
             }
         };
 
@@ -255,136 +268,203 @@
             if (!running) return;
             frame++;
 
-            if (frame % 60 === 0) spawnEnemy();
-
-            bullets.forEach(b => b.y += b.v);
-            bullets.forEach((b, i) => {
-                if (b.y < -20) bullets.splice(i, 1);
+            // Water drops physics
+            waterDrops.forEach(w => {
+                w.vy += 0.4;
+                w.x += w.vx;
+                w.y += w.vy;
             });
 
-            enemies.forEach(e => e.y += e.v);
+            // Check water hitting fire
+            waterDrops.forEach((w, wi) => {
+                if (w.y > H - 100) {
+                    waterDrops.splice(wi, 1);
+                } else {
+                    fires.forEach((f, fi) => {
+                        if (Math.abs(w.x - f.x) < f.w && w.y > f.y - f.h) {
+                            f.life -= 30;
+                            waterDrops.splice(wi, 1);
 
-            // Bullet hits enemy
-            bullets.forEach((b, bi) => {
-                enemies.forEach((e, ei) => {
-                    if (b.x > e.x - e.w/2 && b.x < e.x + e.w/2 &&
-                        b.y > e.y - e.h/2 && b.y < e.y + e.h/2) {
-                        bullets.splice(bi, 1);
-                        enemies.splice(ei, 1);
-                        score += 10;
-                        createExplode(e.x, e.y, '#ff0');
-                        playExplode();
-                        updateUI();
-                    }
-                });
-            });
+                            // Smoke
+                            for (let i = 0; i < 5; i++) {
+                                smokeParticles.push({
+                                    x: f.x + (Math.random() - 0.5) * f.w,
+                                    y: f.y - f.h + Math.random() * 20,
+                                    vy: -1 - Math.random(),
+                                    life: 40,
+                                    size: 10 + Math.random() * 15
+                                });
+                            }
 
-            // Enemy hits player
-            enemies.forEach((e, ei) => {
-                if (e.y > H + 50) {
-                    enemies.splice(ei, 1);
-                } else if (e.y + e.h/2 > player.y - player.h/2 &&
-                           e.x > player.x - player.w/2 &&
-                           e.x < player.x + player.w/2) {
-                    enemies.splice(ei, 1);
-                    health--;
-                    createExplode(player.x, player.y, '#f00');
-                    playHit();
-                    updateUI();
+                            if (f.life <= 0) {
+                                fires.splice(fi, 1);
+                                score++;
+                                updateUI();
 
-                    if (health <= 0) {
-                        running = false;
-                        document.getElementById('final').innerText = score;
-                        document.getElementById('over').style.display = 'flex';
-                    }
+                                if (score >= 10) {
+                                    running = false;
+                                    if (bgm) bgm.stop();
+                                    playWin();
+                                    document.getElementById('final').innerText = score;
+                                    document.getElementById('over').style.display = 'flex';
+                                } else {
+                                    setTimeout(spawnFire, 1000);
+                                }
+                            }
+                        }
+                    });
                 }
             });
 
-            particles.forEach(p => {
-                p.x += p.vx;
-                p.y += p.vy;
-                p.life--;
+            // Fire animation
+            fires.forEach(f => {
+                f.h = f.w + Math.sin(frame * 0.2) * 10;
             });
-            particles.forEach((p, i) => {
-                if (p.life <= 0) particles.splice(i, 1);
+
+            // Smoke
+            smokeParticles.forEach(s => {
+                s.y += s.vy;
+                s.x += Math.sin(frame * 0.1 + s.y * 0.01) * 0.5;
+                s.life--;
+                s.size += 0.3;
             });
+            smokeParticles.forEach((s, i) => {
+                if (s.life <= 0) smokeParticles.splice(i, 1);
+            });
+
+            // Refill water
+            if (frame % 60 === 0 && water < 100) {
+                water = Math.min(100, water + 5);
+                updateUI();
+            }
+        }
+
+        function drawFirefighter(x, y) {
+            // Body
+            ctx.fillStyle = '#cc2200';
+            ctx.fillRect(x - 15, y - 20, 30, 40);
+
+            // Helmet
+            ctx.fillStyle = '#ffaa00';
+            ctx.beginPath();
+            ctx.arc(x, y - 25, 15, Math.PI, 0);
+            ctx.fill();
+
+            // Face
+            ctx.fillStyle = '#ffdd88';
+            ctx.beginPath();
+            ctx.arc(x, y - 15, 10, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Eyes
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(x - 4, y - 15, 2, 0, Math.PI * 2);
+            ctx.arc(x + 4, y - 15, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Hose
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(x + 10, y);
+            ctx.quadraticCurveTo(x + 25, y - 20, x + 15, y - 35);
+            ctx.stroke();
+        }
+
+        function drawFire(f) {
+            // Base
+            ctx.fillStyle = '#8B0000';
+            ctx.fillRect(f.x - f.w/2, f.y, f.w, 10);
+
+            // Flames
+            for (let i = 0; i < 3; i++) {
+                const offset = (i - 1) * 10;
+                const flameH = f.h * (0.7 + Math.sin(frame * 0.3 + i) * 0.3);
+
+                const grad = ctx.createLinearGradient(f.x + offset, f.y, f.x + offset, f.y - flameH);
+                grad.addColorStop(0, '#ff4400');
+                grad.addColorStop(0.5, '#ff8800');
+                grad.addColorStop(1, '#ffff00');
+
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.moveTo(f.x + offset - 10, f.y);
+                ctx.quadraticCurveTo(f.x + offset - 5, f.y - flameH * 0.6, f.x + offset, f.y - flameH);
+                ctx.quadraticCurveTo(f.x + offset + 5, f.y - flameH * 0.6, f.x + offset + 10, f.y);
+                ctx.fill();
+            }
+
+            // Glow
+            ctx.fillStyle = 'rgba(255,100,0,0.2)';
+            ctx.beginPath();
+            ctx.arc(f.x, f.y - f.h/2, f.w + 20, 0, Math.PI * 2);
+            ctx.fill();
         }
 
         function draw() {
-            ctx.fillStyle = '#0a0a1a';
+            // Room background
+            ctx.fillStyle = '#2a2a2a';
             ctx.fillRect(0, 0, W, H);
 
-            // Stars
-            stars.forEach(s => {
-                s.t += 0.02;
-                const alpha = 0.5 + Math.sin(s.t) * 0.5;
-                ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+            // Floor
+            ctx.fillStyle = '#444';
+            ctx.fillRect(0, H - 80, W, 80);
+
+            // Wall pattern
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < W; i += 40) {
                 ctx.beginPath();
-                ctx.arc(s.x, s.y, s.s, 0, Math.PI * 2);
-                ctx.fill();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, H - 80);
+                ctx.stroke();
+            }
+
+            // Windows
+            ctx.fillStyle = '#1a3a5c';
+            ctx.fillRect(50, 100, 80, 100);
+            ctx.fillRect(W - 130, 100, 80, 100);
+            ctx.fillStyle = '#0a1a2c';
+            ctx.fillRect(60, 110, 25, 35);
+            ctx.fillRect(95, 110, 25, 35);
+            ctx.fillRect(W - 120, 110, 25, 35);
+            ctx.fillRect(W - 85, 110, 25, 35);
+
+            // Fire light effect
+            fires.forEach(f => {
+                ctx.fillStyle = `rgba(255,100,0,${0.1 + Math.sin(frame * 0.2) * 0.05})`;
+                ctx.fillRect(0, 0, W, H);
             });
 
-            // Player
-            const px = player.x, py = player.y;
-            ctx.fillStyle = '#00aaff';
-            ctx.beginPath();
-            ctx.moveTo(px, py - 25);
-            ctx.lineTo(px - 25, py + 15);
-            ctx.lineTo(px - 10, py + 10);
-            ctx.lineTo(px, py + 20);
-            ctx.lineTo(px + 10, py + 10);
-            ctx.lineTo(px + 25, py + 15);
-            ctx.closePath();
-            ctx.fill();
-
-            // Cockpit
-            ctx.fillStyle = '#00ffff';
-            ctx.beginPath();
-            ctx.arc(px, py - 5, 8, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Engine glow
-            ctx.fillStyle = `rgba(255,100,0,${0.5 + Math.random() * 0.5})`;
-            ctx.beginPath();
-            ctx.moveTo(px - 8, py + 12);
-            ctx.lineTo(px, py + 25 + Math.random() * 10);
-            ctx.lineTo(px + 8, py + 12);
-            ctx.fill();
-
-            // Bullets
-            ctx.fillStyle = '#ff0';
-            bullets.forEach(b => {
+            // Smoke
+            ctx.fillStyle = 'rgba(100,100,100,0.3)';
+            smokeParticles.forEach(s => {
+                ctx.globalAlpha = s.life / 40;
                 ctx.beginPath();
-                ctx.arc(b.x, b.y, 5, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            // Enemies
-            enemies.forEach(e => {
-                ctx.fillStyle = '#ff4444';
-                ctx.beginPath();
-                ctx.moveTo(e.x, e.y + 20);
-                ctx.lineTo(e.x - 20, e.y - 10);
-                ctx.lineTo(e.x, e.y - 20);
-                ctx.lineTo(e.x + 20, e.y - 10);
-                ctx.closePath();
-                ctx.fill();
-
-                ctx.fillStyle = '#ff8888';
-                ctx.beginPath();
-                ctx.arc(e.x, e.y, 8, 0, Math.PI * 2);
-                ctx.fill();
-            });
-
-            // Particles
-            particles.forEach(p => {
-                ctx.fillStyle = p.color;
-                ctx.globalAlpha = p.life / 30;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
                 ctx.fill();
             });
             ctx.globalAlpha = 1;
+
+            // Fires
+            fires.forEach(drawFire);
+
+            // Water drops
+            ctx.fillStyle = '#00aaff';
+            waterDrops.forEach(w => {
+                ctx.beginPath();
+                ctx.arc(w.x, w.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Firefighter
+            drawFirefighter(player.x, player.y);
+
+            // Watermark
+            ctx.font = '14px sans-serif';
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.fillText('AI 自动化学习中...', 10, H - 10);
         }
 
         function loop() {
@@ -392,6 +472,9 @@
             draw();
             requestAnimationFrame(loop);
         }
+
+        player.x = W / 2;
+        player.y = H - 100;
 
         loop();
     </script>
