@@ -52,8 +52,10 @@ jobs:
             docker stop pier || true
             docker rm pier || true
             docker volume create pier-cert || true
+            mkdir -p /var/www/html
             docker run -d -p 80:80 -p 443:443 \
               -v pier-cert:/etc/letsencrypt \
+              -v /var/www/html:/usr/share/nginx/html \
               --name pier ${{ secrets.DOCKER_USERNAME }}/pier:latest
 
       - name: Verify deployment
