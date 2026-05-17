@@ -1,38 +1,38 @@
 {
     "name": "pier",
-    "description": "一个自动化的静态网站部署项目，包含GitHub Actions自动化部署到Azure VPS，支持HTTPS/Nginx/Docker",
+    "description": "Automated static website deployment project with GitHub Actions CI/CD to Azure VPS, supports HTTPS/Nginx/Docker",
     "repository": "https://github.com/BrodyZhang/pier",
     "files": {
-        "src/index.html": "网站首页内容",
-        "Dockerfile": "Docker镜像构建配置",
-        "nginx.conf": "Nginx服务器配置",
-        "entrypoint.sh": "容器启动脚本，用于检测SSL证书并配置HTTPS",
-        ".github/workflows/deploy.yml": "GitHub Actions自动化部署工作流"
+        "src/index.html": "Website homepage content",
+        "Dockerfile": "Docker image build configuration",
+        "nginx.conf": "Nginx server configuration",
+        "entrypoint.sh": "Container startup script for SSL certificate detection and HTTPS configuration",
+        ".github/workflows/deploy.yml": "GitHub Actions automated deployment workflow"
     },
     "secrets": {
-        "DOCKER_USERNAME": "Docker Hub用户名",
-        "DOCKER_PASSWORD": "Docker Hub Access Token（需要repo权限）",
-        "VPS_HOST": "Azure VPS公网IP地址",
-        "VPS_USER": "SSH用户名（通常为root）",
-        "SSH_PRIVATE_KEY": "VPS SSH私钥"
+        "DOCKER_USERNAME": "Docker Hub username",
+        "DOCKER_PASSWORD": "Docker Hub Access Token (requires repo permission)",
+        "VPS_HOST": "Azure VPS public IP address",
+        "VPS_USER": "SSH username (usually root)",
+        "SSH_PRIVATE_KEY": "VPS SSH private key"
     },
     "architecture": {
-        "description": "代码push到master → GitHub Actions构建镜像 → 推送到Docker Hub → SSH到VPS重启容器",
+        "description": "Code push to master -> GitHub Actions builds image -> Push to Docker Hub -> SSH to VPS restart container",
         "flow": [
-            "1. 开发者push代码到GitHub master分支",
-            "2. GitHub Actions自动触发构建",
-            "3. 构建Docker镜像并推送到Docker Hub",
-            "4. SSH远程到VPS执行docker pull和docker run",
-            "5. 容器使用Let's Encrypt证书提供HTTPS服务"
+            "1. Developer push code to GitHub master branch",
+            "2. GitHub Actions automatically triggers build",
+            "3. Build Docker image and push to Docker Hub",
+            "4. SSH remote to VPS to execute docker pull and docker run",
+            "5. Container uses Let's Encrypt certificate to provide HTTPS service"
         ]
     },
     "deployment": {
-        "vps_port": "80和443",
+        "vps_port": "80 and 443",
         "domain": "ailaopo.online",
-        "auto_restart": "使用--restart=always策略，VPS重启后自动启动",
-        "ssl": "Let's Encrypt免费证书，位于/etc/letsencrypt"
+        "auto_restart": "Using --restart=always policy, auto start after VPS reboot",
+        "ssl": "Let's Encrypt free certificate, located at /etc/letsencrypt"
     },
     "instructions": {
-        "for_ai": "所有AI在这个项目上操作时需要遵循：1. 使用英文注释和提交信息 2. 修改HTML内容后要commit和push 3. workflow文件修改后会自动触发部署 4. 确保不泄露任何secret到代码中 5. 保持代码整洁"
+        "for_ai": "All AI operations on this project should follow: 1. Use English comments and commit messages 2. After modifying HTML content, commit and push 3. Workflow file modifications will automatically trigger deployment 4. Ensure no secrets are leaked to code 5. Keep code clean"
     }
 }
