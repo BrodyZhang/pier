@@ -3,6 +3,15 @@ import pool from '../services/db';
 
 const router = Router();
 
+// Helper: validate agent exists and is in ai-editable status
+async function getDevAgent(id: string): Promise<any> {
+  const result = await pool.query(
+    `SELECT id, unique_slug, status FROM agent_requests WHERE id = $1 AND status IN ('in_development', 'pending_review')`,
+    [id]
+  );
+  return result.rows[0] || null;
+}
+
 // GET /api/dev/agents — list agents needing AI development (requires DEV_API_KEY)
 router.get('/agents', async (req: Request, res: Response) => {
   try {
@@ -55,6 +64,37 @@ router.get('/rejected', async (req: Request, res: Response) => {
     res.json({ agents: result.rows });
   } catch (err) {
     console.error('Rejected API error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/dev/upload/:id — AI uploads developed HTML (requires DEV_API_KEY)
+router.post('/upload/:id', async (req: Request, res: Response) => {
+  try {
+    const agent = await getDevAgent(req.params.id);
+    if (!agent) {
+      return res.status(404).json({ error: 'Agent not found or not in development status' });
+    }
+
+    const { html } = req.body;
+    if (!html || typeof html !== 'string') {
+      return res.status(400).json({ error: 'html field (string) is required' });
+    }
+
+    await pool.query('DELETE FROM agent_files WHERE agent_id = $1', [req.params.id]);
+    await pool.query(
+      'INSERT INTO agent_files (agent_id, content) VALUES ($1, $2)',
+      [req.params.id, html]
+    );
+
+    await pool.query(
+      `UPDATE agent_requests SET status = 'dev_review', review_comments = NULL, updated_at = NOW() WHERE id = $1`,
+      [req.params.id]
+    );
+
+    res.json({ success: true, status: 'dev_review' });
+  } catch (err) {
+    console.error('Dev upload error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
