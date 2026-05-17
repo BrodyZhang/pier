@@ -11,8 +11,8 @@
 | Backend (TypeScript) | ✅ Complete | Express + routes (auth, dashboard, agent, admin) + services (db, mail) |
 | Views (EJS) | ✅ Complete | 12 templates: layout, index, auth, dashboard, agent, admin |
 | Database Schema | ✅ Complete | 5 tables: users, verification_codes, agent_requests, agent_versions, agent_shares |
-| Docker Infrastructure | ✅ Complete | Dockerfile (two-stage), docker-compose.yml, nginx config, entrypoint.sh |
-| CI/CD Pipeline | ✅ Complete | GitHub Actions: build → push → SSH → docker compose up |
+| Docker Infrastructure | ✅ Complete | Dockerfile (pure Node), Dockerfile.router (nginx), docker-compose.yml (4 services) |
+| CI/CD Pipeline | ✅ Complete | GitHub Actions: build → push → SSH → build router → pull app → up |
 | AI Config | ✅ Complete | opencode.json, AGENTS.md, REPO_INDEX.md, 3 skills |
 | Admin Seed | ✅ Complete | ADMIN_EMAIL env var auto-creates admin on startup |
 | Test Domain | ✅ Complete | nginx has separate HTTP-only server block for test.ailaopo.online |

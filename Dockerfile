@@ -6,15 +6,12 @@ COPY app/src ./src
 RUN npx tsc
 
 FROM node:20-alpine
-RUN apk add --no-cache nginx
 WORKDIR /app
+RUN mkdir -p /app/data/agents
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY app/views ./views
 COPY app/package.json ./
-COPY nginx/nginx.conf /etc/nginx/http.d/default.conf
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-EXPOSE 80 443
+EXPOSE 3000
 ENV NODE_ENV=production
-ENTRYPOINT ["/entrypoint.sh"]
+CMD ["node", "dist/server.js"]

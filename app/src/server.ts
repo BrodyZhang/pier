@@ -5,6 +5,7 @@ import express from 'express';
 import session from 'express-session';
 import fileUpload from 'express-fileupload';
 import path from 'path';
+import fs from 'fs';
 import expressLayouts from 'express-ejs-layouts';
 import pgSession from 'connect-pg-simple';
 import pool, { initDB } from './services/db';
@@ -15,6 +16,10 @@ import agentRoutes from './routes/agent';
 import adminRoutes from './routes/admin';
 
 const app = express();
+
+// Ensure data directory exists
+const dataDir = path.join(__dirname, '../data/agents');
+fs.mkdirSync(dataDir, { recursive: true });
 const PORT = parseInt(process.env.PORT || '3000');
 
 app.set('view engine', 'ejs');

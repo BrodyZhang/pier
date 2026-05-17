@@ -59,11 +59,11 @@ pier/
 │   └── STATUS.md                       # Product state, deployment, tasks, blockers, env vars
 │
 ├── nginx/
-│   └── nginx.conf                      # Reverse proxy: SSL termination → Node :3000
+│   └── router.conf                     # nginx routing config: test → app-test, prod → app-prod
 │
-├── Dockerfile                          # Two-stage: TypeScript build → node:20 + nginx
-├── docker-compose.yml                  # Services: app (Node+nginx) + db (PostgreSQL 16)
-├── entrypoint.sh                       # Start nginx + Node, auto-detect SSL certs
+├── Dockerfile                          # Two-stage: TypeScript build → node:20 (pure Node)
+├── Dockerfile.router                   # nginx:alpine image for domain-based reverse proxy
+├── docker-compose.yml                  # Services: router + app-test + app-prod + db (PostgreSQL)
 ├── opencode.json                       # AI config: instructions, skills paths, commands
 ├── AGENTS.md                           # AI behavior rules (0 manual code)
 ├── REPO_INDEX.md                       # THIS FILE — file index

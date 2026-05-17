@@ -1,6 +1,6 @@
 # Deployment Architecture
 
-> Actual deployed architecture. All infrastructure runs inside Docker containers on a single Azure VPS.
+> Actual deployed infrastructure. All components run inside Docker containers on a single Azure VPS.
 
 ---
 
@@ -14,304 +14,290 @@
        test.ailaopo.online    ailaopo.online
            (HTTP:80)         (HTTPS:443)
                  |                 |
-                 ▼                 ▼
-        ┌──────────────────────────────────┐
-        │   Azure VPS (Ubuntu 24.04)       │
-        │   Ports open: 80, 443            │
-        │                                  │
-        │   ┌──────────────────────────┐   │
-        │   │  docker compose           │   │
-        │   │                          │   │
-        │   │  ┌──────────────────┐    │   │
-        │   │  │  pier-app-1      │    │   │
-        │   │  │  ┌──────────┐    │    │   │
-        │   │  │  │  nginx    │◄──┼────┤   │
-        │   │  │  │  (80,443) │    │    │   │
-        │   │  │  └────┬─────┘    │    │   │
-        │   │  │       │          │    │   │
-        │   │  │  ┌────▼─────┐   │    │   │
-        │   │  │  │  Node.js  │   │    │   │
-        │   │  │  │  (:3000)  │   │    │   │
-        │   │  │  └──────────┘   │    │   │
-        │   │  └──────────────────┘    │   │
-        │   │                          │   │
-        │   │  ┌──────────────────┐    │   │
-        │   │  │  pier-db-1       │    │   │
-        │   │  │  PostgreSQL 16   │    │   │
-        │   │  │  (:5432)         │    │   │
-        │   │  └──────────────────┘    │   │
-        │   └──────────────────────────┘   │
-        └──────────────────────────────────┘
+                 └────────┬────────┘
+                          ▼
+        ┌─────────────────────────────────────────┐
+        │   Azure VPS (Ubuntu 24.04)              │
+        │   Ports open: 80, 443                   │
+        │                                         │
+        │   ┌─────────────────────────────────┐   │
+        │   │  docker compose (4 services)     │   │
+        │   │                                 │   │
+        │   │  ┌──────────┐                   │   │
+        │   │  │  router   │── nginx:alpine   │   │
+        │   │  │  :80, :443│   reverse proxy  │   │
+        │   │  └────┬─────┘                   │   │
+        │   │    ├────┴────┐                  │   │
+        │   │    ▼         ▼                  │   │
+        │   │  app-test   app-prod            │   │
+        │   │  :3000      :3000               │   │
+        │   │  :latest    :${PROD_VERSION}    │   │
+        │   │    │         │                  │   │
+        │   │    └────┬────┘                  │   │
+        │   │         ▼                       │   │
+        │   │  ┌──────────────┐               │   │
+        │   │  │  db          │               │   │
+        │   │  │  PostgreSQL  │               │   │
+        │   │  └──────────────┘               │   │
+        │   └─────────────────────────────────┘   │
+        └─────────────────────────────────────────┘
 ```
 
 ### Key Facts
 
 | Aspect | Detail |
 |--------|--------|
-| **Containers** | 2: `pier-app-1` (nginx + Node.js), `pier-db-1` (PostgreSQL 16) |
+| **Containers** | 4: `router`, `app-test`, `app-prod`, `db` |
 | **VPS** | Azure Ubuntu 24.04, 1 public IP |
 | **Firewall** | Only ports 80 and 443 open |
-| **Reboot** | Daily 03:00 UTC+8, containers restart via `restart: unless-stopped` |
-| **Image** | `brodyzhang2026/pier` on Docker Hub (public) |
-| **Deploy** | CI/CD via GitHub Actions (push to master → build → deploy) |
+| **Reboot** | Daily 03:00 UTC+8, `restart: unless-stopped` handles it |
+| **App Image** | `brodyzhang2026/pier` on Docker Hub (public) |
+| **Router Image** | Built locally from `Dockerfile.router` (nginx:alpine) |
+| **Deploy** | CI/CD via GitHub Actions |
 
 ---
 
-## 2. Container Topology
+## 2. Services
 
-### pier-app-1 (Application Container)
+### router (nginx:alpine)
 
-Two processes inside a single container, managed by `entrypoint.sh`:
+Routes traffic by domain name:
+
+| Domain | Destination |
+|--------|-------------|
+| `test.ailaopo.online:80` | `app-test:3000` (via Docker network) |
+| `ailaopo.online:80` | 301 redirect → HTTPS |
+| `ailaopo.online:443` | SSL terminate → `app-prod:3000` |
+
+- SSL certs mounted from host `/etc/letsencrypt` (read-only)
+- No Node.js, no dynamic config — pure nginx
+
+### app-test (Node.js 20)
+
+- **Image**: `brodyzhang2026/pier:latest` (always the most recent push)
+- **Purpose**: Test new deployments before promoting to production
+- No `ADMIN_EMAIL` env — test can run without admin seed
+- Separate volume `agent-data-test` for uploaded files
+
+### app-prod (Node.js 20)
+
+- **Image**: `brodyzhang2026/pier:${PROD_VERSION:-latest}` (pinned version)
+- **Purpose**: Stable production serving real users
+- Has `ADMIN_EMAIL` for admin user seeding
+- Separate volume `agent-data-prod` for uploaded files
+
+### db (PostgreSQL 16)
+
+- Shared database for both test and production
+- Health check with `pg_isready` before app containers start
+
+---
+
+## 3. Version Management
+
+**Key concept:** test always runs `:latest`, production runs a specific tag.
+
+### Workflow
 
 ```
-entrypoint.sh
-  ├── mkdir -p /var/www/html /app/data/agents
-  ├── [optional] rewrite nginx config if no SSL certs
-  ├── node dist/server.js &    ← background: Node.js on port 3000
-  └── nginx -g "daemon off;"  ← foreground: reverse proxy on ports 80, 443
+Git push → build → push :latest + :v20260517-42 to Docker Hub
+         → deploy.yml pulls :latest for app-test
+         → app-prod keeps running its pinned version
+         → test on test.ailaopo.online
+         → if passed → update PROD_VERSION → restart app-prod
 ```
 
-- **nginx**: reverse proxy, SSL termination, routes requests to localhost:3000
-- **Node.js**: Express web server, serves EJS views, handles auth/CRUD
-- Both communicate internally via `127.0.0.1:3000`
+### Promoting to Production
 
-### pier-db-1 (Database Container)
+Set the `PROD_VERSION` GitHub variable to a specific version tag (e.g. `v20260517-00000042`):
 
-- **Image**: `postgres:16-alpine`
-- **No host network exposure** — only accessible internally via Docker network
-- **Healthy check**: `pg_isready -U pier` every 5 seconds
-- App container waits for healthy DB before starting (`depends_on` + `condition: service_healthy`)
+```bash
+# Option 1: Via GitHub UI
+# Settings → Variables and secrets → Actions → PROD_VERSION
 
-### Docker Compose
+# Option 2: Via SSH (manual)
+cd ~/pier
+# Edit .env: PROD_VERSION=v20260517-00000042
+docker compose pull app-prod
+docker compose up -d app-prod
+
+# Option 3: Trigger promotion workflow (future)
+```
+
+Default: `PROD_VERSION=latest` (both test and prod run same version).
+
+---
+
+## 4. Request Flow
+
+### Production Domain (https://ailaopo.online)
+
+```
+Browser → https://ailaopo.online:443
+  ↓ VPS firewall → container router:443
+  ↓ nginx SSL terminate (/etc/letsencrypt)
+  ↓ proxy_pass http://app-prod:3000
+  ↓ app-prod (Node.js) renders response
+```
+
+HTTP redirect:
+```
+Browser → http://ailaopo.online:80
+  ↓ nginx → return 301 https://$host$request_uri
+```
+
+### Test Domain (http://test.ailaopo.online)
+
+```
+Browser → http://test.ailaopo.online:80
+  ↓ nginx → proxy_pass http://app-test:3000
+  ↓ app-test (Node.js) renders response
+```
+
+No SSL, no redirect for test domain.
+
+---
+
+## 5. Docker Compose
+
+Full configuration at `docker-compose.yml:1-68` — 4 services + 3 volumes.
 
 ```yaml
 services:
-  app:
+  router:
+    build:
+      context: .
+      dockerfile: Dockerfile.router
+    ports: ["80:80", "443:443"]
+    volumes: ["/etc/letsencrypt:/etc/letsencrypt:ro"]
+    depends_on: [app-test, app-prod]
+
+  app-test:
     image: brodyzhang2026/pier:latest
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-      - agent-data:/app/data
-    environment:
-      - DATABASE_URL=postgres://pier:pier@db:5432/pier
-      - SESSION_SECRET=${SESSION_SECRET}
-      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
-      - ADMIN_EMAIL=${ADMIN_EMAIL}
-      - NODE_ENV=production
+    volumes: ["agent-data-test:/app/data"]
     depends_on:
-      db:
-        condition: service_healthy
-    restart: unless-stopped
+      db: { condition: service_healthy }
+
+  app-prod:
+    image: brodyzhang2026/pier:${PROD_VERSION:-latest}
+    volumes: ["agent-data-prod:/app/data"]
+    environment: [ADMIN_EMAIL=${ADMIN_EMAIL}]
+    depends_on:
+      db: { condition: service_healthy }
 
   db:
     image: postgres:16-alpine
-    volumes:
-      - pg-data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: pier
-      POSTGRES_PASSWORD: pier
-      POSTGRES_DB: pier
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pier"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
+    volumes: ["pg-data:/var/lib/postgresql/data"]
 
 volumes:
   pg-data:
-  agent-data:
+  agent-data-test:
+  agent-data-prod:
 ```
 
 ---
 
-## 3. Request Flow
+## 6. Image Build
 
-### Production Domain (ailaopo.online)
+### App Image (`Dockerfile`)
 
-```
-Browser → https://ailaopo.online
-  ↓ DNS resolves to VPS IP
-  ↓ VPS firewall accepts on 443
-  ↓ Container port 443 → nginx
-  ↓ nginx terminates SSL (/etc/letsencrypt certs)
-  ↓ proxy_pass http://127.0.0.1:3000
-  ↓ Node.js renders EJS → response back through nginx
-```
+Two-stage build — pure Node.js (no nginx):
 
-HTTP (80) for ailaopo.online redirects to HTTPS (301):
+| Stage | Base | Steps |
+|-------|------|-------|
+| builder | `node:20-alpine` | `npm install` → `tsc` → `/app/dist` |
+| runtime | `node:20-alpine` | `mkdir /app/data/agents` → copy `dist/`, `views/` → `CMD ["node", "dist/server.js"]` |
 
-```
-Browser → http://ailaopo.online
-  ↓ nginx server block 1 (port 80, server_name ailaopo.online)
-  ↓ return 301 https://$host$request_uri
-```
+- Exposes port 3000 (internal only, not exposed to host)
+- No nginx, no entrypoint.sh
+- Data directory created at build time
 
-### Test Domain (test.ailaopo.online)
+### Router Image (`Dockerfile.router`)
 
-```
-Browser → http://test.ailaopo.online
-  ↓ DNS resolves to same VPS IP
-  ↓ VPS firewall accepts on 80
-  ↓ Container port 80 → nginx
-  ↓ nginx matches server block 2 (port 80, server_name test.ailaopo.online)
-  ↓ proxy_pass http://127.0.0.1:3000 (no SSL, no redirect)
-  ↓ Node.js renders EJS → response back
+```dockerfile
+FROM nginx:alpine
+COPY nginx/router.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80 443
 ```
 
-No SSL for test domain — HTTP only. No `/.well-known/acme-challenge/` route (not needed).
-
-### nginx Configuration (3 Server Blocks)
-
-| # | Port | server_name | Purpose |
-|---|------|-------------|---------|
-| 1 | 80 | ailaopo.online, www.ailaopo.online | HTTP → HTTPS redirect + ACME challenge |
-| 2 | 80 | test.ailaopo.online | Direct proxy to Node.js (no SSL) |
-| 3 | 443 | ailaopo.online, www.ailaopo.online | SSL termination + proxy to Node.js |
-
-Full config at `nginx/nginx.conf:1-53`.
-
-### Dynamic Config Fallback
-
-In `entrypoint.sh`, if Let's Encrypt certs are missing (first deploy / new domain), nginx config is rewritten to HTTP-only for all domains — needed for initial `certbot` setup.
+- Built locally on VPS during deploy (`docker compose build router`)
+- Router config baked in, no runtime modification needed
 
 ---
 
-## 4. CI/CD Pipeline
+## 7. CI/CD Pipeline
 
-Trigger: every push to `master` branch.
+Trigger: every push to `master`.
 
 ```mermaid
 sequenceDiagram
-  participant Dev as Developer (AI)
-  participant GH as GitHub
-  participant GHCR as GitHub Actions
-  participant DH as Docker Hub
-  participant VPS
-
-  Dev->>GH: git push origin master
-  GH->>GHCR: trigger deploy.yml
-  GHCR->>GHCR: job: build-and-push
-  GHCR->>GHCR: Build Docker image
-  GHCR->>DH: Push :latest + :YYYYMMDD-RUNNUMBER
-  GHCR->>GHCR: job: deploy (needs build-and-push)
-  GHCR->>VPS: SSH: git pull, .env, docker compose pull
-  GHCR->>VPS: SSH: docker compose up -d
-  GHCR->>VPS: SSH: verify containers + health check
-  GHCR->>GHCR: Smoke test: curl test.ailaopo.online
+  Dev->>GitHub: git push origin master
+  GitHub->>Actions: trigger deploy.yml
+  Actions->>Actions: Build + push :latest + :vYYYYMMDD-RUN
+  Actions->>VPS: SSH: git pull, .env, docker compose build router
+  Actions->>VPS: SSH: docker compose pull app-test app-prod
+  Actions->>VPS: SSH: docker compose up -d
+  Actions->>VPS: SSH: verify containers
+  Actions->>Actions: curl test.ailaopo.online
 ```
 
-### Deploy Steps (SSH Script)
+### Deploy Steps
 
-Executed via `appleboy/ssh-action@v1.0.0`:
-
-1. **Clone/Update repo** — `git pull origin master` in `~/pier`
-2. **Write .env** — injects `SESSION_SECRET`, `SENDGRID_API_KEY`, `ADMIN_EMAIL`
-3. **Stop old containers** — `docker stop/rm pier-app-1 pier-db-1` (frees ports 80, 443)
-4. **Docker login** — authenticates to Docker Hub
-5. **Pull new image** — `docker compose pull` (gets `brodyzhang2026/pier:latest`)
-6. **Start** — `docker compose up -d` (uses pulled image, respects `depends_on` health check)
-7. **Verify** — `docker compose ps`, curl internal health endpoints
-8. **Smoke test** — curl `http://test.ailaopo.online/`
-
-Workflow at `.github/workflows/deploy.yml:1-110`.
+1. `git pull origin master` — updates docker-compose.yml, router config
+2. Write `.env` — `SESSION_SECRET`, `SENDGRID_API_KEY`, `ADMIN_EMAIL`, `PROD_VERSION`
+3. `docker compose build router` — rebuilds nginx from `Dockerfile.router`
+4. `docker compose pull app-test` — pulls `:latest`
+5. `docker compose pull app-prod` — pulls `${PROD_VERSION}` tag
+6. `docker compose up -d` — starts/restarts all services
+7. Verify — check `docker compose ps`, container logs
+8. Smoke test — curl `http://test.ailaopo.online/`
 
 ---
 
-## 5. Image Build
+## 8. Environment & Secrets
 
-Dockerfile (`Dockerfile:1-20`) — two-stage build:
-
-**Stage 1 — builder (node:20-alpine):**
-```
-npm install → tsc compile → /app/dist
-```
-
-**Stage 2 — runtime (node:20-alpine + nginx):**
-```
-apk add nginx
-COPY dist/ views/ nginx.conf entrypoint.sh
-EXPOSE 80 443
-ENTRYPOINT ["/entrypoint.sh"]
-```
-
-**Key points:**
-- nginx is installed inside the app container (`apk add nginx`), NOT on VPS host
-- nginx.conf is baked into the image at build time (static config), but can be overridden at runtime by entrypoint.sh
-- All TypeScript is compiled to JS at build time — no runtime compilation
-
----
-
-## 6. Environment & Secrets
-
-| Variable | Source | Purpose |
+| Variable | Source | Used By |
 |----------|--------|---------|
-| `DATABASE_URL` | docker-compose.yml (hardcoded) | PostgreSQL connection string |
-| `SESSION_SECRET` | GitHub secret → VPS .env → container | Encrypts session cookies |
-| `SENDGRID_API_KEY` | GitHub secret → VPS .env → container | SendGrid email API (optional, dev fallback) |
-| `ADMIN_EMAIL` | GitHub secret → VPS .env → container | Seeds first admin user on DB init |
-| `NODE_ENV` | docker-compose.yml (`production`) | Express production mode |
+| `DATABASE_URL` | docker-compose.yml | app-test, app-prod |
+| `SESSION_SECRET` | GitHub secret → VPS .env → container | app-test, app-prod |
+| `SENDGRID_API_KEY` | GitHub secret → VPS .env → container | app-test, app-prod |
+| `ADMIN_EMAIL` | GitHub secret → VPS .env → container | app-prod only |
+| `NODE_ENV=production` | docker-compose.yml | app-test, app-prod |
+| `PROD_VERSION` | GitHub variable → VPS .env | app-prod image tag |
 
-**Flow:** GitHub Secrets → deploy.yml SSH script writes `.env` → docker-compose reads `.env` → container receives env vars.
+**Examples:**
 
----
-
-## 7. Volumes & Persistence
-
-| Volume | Mount | Contents |
-|--------|-------|----------|
-| `pg-data` | `/var/lib/postgresql/data` | PostgreSQL database files |
-| `agent-data` | `/app/data` | Uploaded agent HTML files |
-| Host bind: `/etc/letsencrypt` | `/etc/letsencrypt:ro` | SSL certificates (read-only) |
-
-Volumes survive container restarts and image updates. Host SSL certs are mounted read-only — container cannot modify them.
-
----
-
-## 8. Database Connection
-
-Node.js connects to PostgreSQL using `DATABASE_URL`:
-
-```
-postgres://pier:pier@db:5432/pier
+```bash
+# VPS .env
+SESSION_SECRET=<random>
+SENDGRID_API_KEY=<key>
+ADMIN_EMAIL=admin@example.com
+PROD_VERSION=v20260517-00000042
 ```
 
-- Hostname `db` resolves via Docker Compose internal network to `pier-db-1`
-- No host port mapping for PostgreSQL (not exposed outside Docker network)
-- Connection uses `pg.Pool` with `connectionString` (see `app/src/services/db.ts:3-19`)
+---
+
+## 9. Volumes & Persistence
+
+| Volume | Mount | Used By |
+|--------|-------|---------|
+| `pg-data` | `/var/lib/postgresql/data` | db (PostgreSQL) |
+| `agent-data-test` | `/app/data` | app-test |
+| `agent-data-prod` | `/app/data` | app-prod |
+| Host: `/etc/letsencrypt` | `/etc/letsencrypt:ro` | router |
+
+Test and prod have **separate volumes** — uploaded agent HTML files don't mix.
 
 ---
 
-## 9. Startup Sequence
+## 10. Startup Sequence
 
-1. Docker Compose creates Docker network
-2. `pier-db-1` starts, runs health check (`pg_isready`)
-3. `pier-app-1` waits for DB health check (`depends_on.condition: service_healthy`)
-4. `entrypoint.sh` runs inside `pier-app-1`:
-   - Creates directories
-   - Checks SSL certs, optionally rewrites nginx config
-   - Starts `node dist/server.js` in background
-   - Starts `nginx -g "daemon off;"` in foreground
-5. Node.js `initDB()` runs schema creation + admin seed
-6. App is ready — nginx proxies requests to localhost:3000
-
-If Node.js crashes, the container still runs (nginx stays up) — user sees nginx error. Hosting process in background means only `set -e` failures cause full container restart.
-
----
-
-## 10. Domain & DNS
-
-| Domain | Type | Target |
-|--------|------|--------|
-| `ailaopo.online` | A record | VPS IP |
-| `www.ailaopo.online` | CNAME | ailaopo.online |
-| `test.ailaopo.online` | A record | VPS IP |
-
-- `ailaopo.online` + `www.ailaopo.online`: SSL via Let's Encrypt (ports 80 + 443)
-- `test.ailaopo.online`: HTTP only, no SSL (port 80 only)
-- SSL certs stored at `/etc/letsencrypt/live/ailaopo.online/` on VPS host
+1. Docker Compose creates internal network
+2. `pier-db-1` starts, runs `pg_isready` health check
+3. `pier-app-test-1` + `pier-app-prod-1` wait for DB health
+4. `pier-router-1` starts (no dependency on DB, nginx only)
+5. Each Node.js app runs `initDB()` — schema + admin seed (prod only)
+6. Router proxies: `test.ailaopo.online` → `app-test`, `ailaopo.online` → `app-prod`
 
 ---
 
@@ -319,24 +305,26 @@ If Node.js crashes, the container still runs (nginx stays up) — user sees ngin
 
 **Never install anything on the VPS host directly.**
 
-| Component | Location | Managed By |
-|-----------|----------|------------|
-| nginx (reverse proxy) | `pier-app-1` | `apk add nginx` in Dockerfile, started by entrypoint.sh |
-| Node.js (Express) | `pier-app-1` | `node dist/server.js` started by entrypoint.sh |
-| PostgreSQL | `pier-db-1` | `postgres:16-alpine` image |
-| User HTML agents | `pier-app-1:/app/data/agents/` | Docker volume `agent-data` |
+| Component | Container | Managed By |
+|-----------|-----------|------------|
+| nginx (reverse proxy) | `pier-router-1` | `Dockerfile.router` |
+| Node.js (test) | `pier-app-test-1` | `Dockerfile` → Docker Hub image |
+| Node.js (prod) | `pier-app-prod-1` | `Dockerfile` → Docker Hub image |
+| PostgreSQL | `pier-db-1` | `postgres:16-alpine` |
 
 **VPS host has only:**
 - Docker Engine + docker-compose plugin
 - SSH server (for CI/CD deploy)
 - Let's Encrypt SSL certs at `/etc/letsencrypt`
-- The `~/pier` directory (git clone for docker-compose.yml and .env)
+- The `~/pier` directory (git clone for docker-compose.yml, .env, router config)
 
-**All debugging:**
+**Debugging:**
 ```bash
-sudo docker logs pier-app-1     # View app logs
-sudo docker exec -it pier-app-1 sh   # Interactive shell inside container
-sudo docker compose ps           # Container status
+sudo docker compose ps                          # All services
+sudo docker logs pier-app-test-1 --tail 20      # Test app logs
+sudo docker logs pier-app-prod-1 --tail 20      # Prod app logs
+sudo docker logs pier-router-1                  # Router/nginx logs
+sudo docker exec -it pier-app-test-1 sh         # Shell inside test container
 ```
 
 ---
@@ -345,10 +333,10 @@ sudo docker compose ps           # Container status
 
 | File | Purpose |
 |------|---------|
-| `docker-compose.yml` | 2-service orchestration (app + db) |
-| `Dockerfile` | Two-stage image build (TypeScript → nginx + Node) |
-| `entrypoint.sh` | Container startup script (nginx + Node.js) |
-| `nginx/nginx.conf` | nginx reverse proxy config (3 server blocks) |
+| `docker-compose.yml` | 4-service orchestration (router, app-test, app-prod, db) |
+| `Dockerfile` | Two-stage Node.js image build |
+| `Dockerfile.router` | nginx:alpine image for routing |
+| `nginx/router.conf` | nginx config — 3 server blocks routing test/prod |
 | `.github/workflows/deploy.yml` | CI/CD pipeline definition |
 | `app/src/server.ts` | Express entry point (port 3000) |
 | `app/src/services/db.ts` | Database pool + schema init + admin seed |
