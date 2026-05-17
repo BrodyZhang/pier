@@ -166,6 +166,26 @@ router.post('/:slug/share', requireAuth, async (req: Request, res: Response) => 
   }
 });
 
+router.post('/:slug/delete', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const agent = await pool.query(
+      `SELECT id FROM agent_requests
+       WHERE unique_slug = $1::uuid AND user_id = $2`,
+      [req.params.slug, req.session.userId]
+    );
+
+    if (agent.rows.length === 0) {
+      return res.status(404).send('Agent not found');
+    }
+
+    await pool.query('DELETE FROM agent_requests WHERE id = $1', [agent.rows[0].id]);
+    res.redirect('/dashboard');
+  } catch (err) {
+    console.error('Agent delete error:', err);
+    res.status(500).send('Server error');
+  }
+});
+
 router.post('/:slug/unshare', requireAuth, async (req: Request, res: Response) => {
   try {
     const agent = await pool.query(

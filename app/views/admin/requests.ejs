@@ -125,12 +125,9 @@
                         </div>
                         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
                             <a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">预览</a>
+                            <a href="/admin/requests/<%= a.id %>" class="btn btn-primary btn-sm">审核详情</a>
                             <form method="POST" action="/admin/requests/<%= a.id %>/approve-dev" style="display:inline;">
                                 <button type="submit" class="btn btn-success btn-sm">通过</button>
-                            </form>
-                            <form method="POST" action="/admin/requests/<%= a.id %>/reject-dev" style="display:inline-flex;align-items:center;gap:6px;">
-                                <textarea name="review_comments" rows="1" placeholder="修改建议..." required style="width:140px;padding:6px 10px;font-size:13px;min-height:32px;display:inline-block;"></textarea>
-                                <button type="submit" class="btn btn-danger btn-sm">退回</button>
                             </form>
                             <form method="POST" action="/admin/requests/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除？');">
                                 <button type="submit" class="btn btn-danger btn-sm" style="background:rgba(255,255,255,0.1);">删除</button>
@@ -138,10 +135,21 @@
                         </div>
                     </div>
                     <% if (a.review_notes) { %>
-                        <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,0.5);background:rgba(102,126,234,0.1);padding:8px 12px;border-radius:8px;">
-                            AI 说明: <%= a.review_notes %>
+                        <div style="margin-top:10px;font-size:13px;color:rgba(255,255,255,0.5);background:rgba(56,239,125,0.06);padding:8px 12px;border-radius:8px;border:1px solid rgba(56,239,125,0.1);">
+                            <span style="color:#38efd7;">审核说明:</span> <%= a.review_notes %>
                         </div>
                     <% } %>
+                    <% if (a.review_comments) { %>
+                        <div style="margin-top:8px;font-size:13px;color:rgba(255,165,0,0.9);background:rgba(255,165,0,0.06);padding:8px 12px;border-radius:8px;border:1px solid rgba(255,165,0,0.1);">
+                            <span style="color:#ffa500;">上次退回意见:</span> <%= a.review_comments %>
+                        </div>
+                    <% } %>
+                    <div style="margin-top:10px;">
+                        <form method="POST" action="/admin/requests/<%= a.id %>/reject-dev" style="display:flex;gap:8px;align-items:flex-start;">
+                            <textarea name="review_comments" rows="2" required placeholder="请详细描述需要修改的地方..." style="flex:1;padding:8px 12px;font-size:13px;min-height:50px;"><%= a.review_comments || '' %></textarea>
+                            <button type="submit" class="btn btn-danger btn-sm" style="white-space:nowrap;align-self:flex-end;">退回修改</button>
+                        </form>
+                    </div>
                 </div>
             <% }) %>
         <% } %>

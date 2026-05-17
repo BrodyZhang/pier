@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS agent_requests (
 
 ALTER TABLE agent_requests ADD COLUMN IF NOT EXISTS review_notes TEXT;
 ALTER TABLE agent_requests ADD COLUMN IF NOT EXISTS review_comments TEXT;
+ALTER TABLE agent_requests ADD COLUMN IF NOT EXISTS review_log JSONB DEFAULT '[]'::jsonb;
 
 CREATE TABLE IF NOT EXISTS agent_versions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

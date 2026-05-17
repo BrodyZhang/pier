@@ -33,6 +33,9 @@
                             <% if (a.status === 'rejected' && a.rejection_reason) { %>
                                 <span style="font-size:13px;color:#ff6b6b;padding:4px 0;"><%= a.rejection_reason %></span>
                             <% } %>
+                            <form method="POST" action="/agent/<%= a.unique_slug %>/delete" style="display:inline;" onsubmit="return confirm('确定删除「<%= a.name %>」？此操作不可恢复。');">
+                                <button type="submit" class="btn btn-danger btn-sm" style="background:rgba(255,255,255,0.1);">删除</button>
+                            </form>
                         </div>
                     </td>
                 </tr>

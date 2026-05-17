@@ -67,7 +67,9 @@ router.post('/requests/:id/approve', async (req: Request, res: Response) => {
 
     await pool.query(
       `UPDATE agent_requests
-       SET status = 'in_development', unique_slug = $1, review_notes = $2, updated_at = NOW()
+       SET status = 'in_development', unique_slug = $1, review_notes = $2,
+           review_log = review_log || jsonb_build_array(jsonb_build_object('action','approved','notes',$2,'timestamp',NOW())),
+           updated_at = NOW()
        WHERE id = $3`,
       [slug, review_notes || null, req.params.id]
     );
@@ -90,7 +92,9 @@ router.post('/requests/:id/reject', async (req: Request, res: Response) => {
   try {
     await pool.query(
       `UPDATE agent_requests
-       SET status = 'rejected', rejection_reason = $1, updated_at = NOW()
+       SET status = 'rejected', rejection_reason = $1,
+           review_log = review_log || jsonb_build_array(jsonb_build_object('action','rejected','reason',$1,'timestamp',NOW())),
+           updated_at = NOW()
        WHERE id = $2`,
       [reason || 'No reason provided', req.params.id]
     );
@@ -126,7 +130,9 @@ router.post('/requests/:id/upload', async (req: Request, res: Response) => {
     );
 
     await pool.query(
-      `UPDATE agent_requests SET status = 'dev_review', review_comments = NULL, updated_at = NOW() WHERE id = $1`,
+      `UPDATE agent_requests SET status = 'dev_review', review_comments = NULL,
+           review_log = review_log || jsonb_build_array(jsonb_build_object('action','uploaded','timestamp',NOW())),
+           updated_at = NOW() WHERE id = $1`,
       [req.params.id]
     );
 
@@ -140,7 +146,9 @@ router.post('/requests/:id/upload', async (req: Request, res: Response) => {
 router.post('/requests/:id/approve-dev', async (req: Request, res: Response) => {
   try {
     await pool.query(
-      `UPDATE agent_requests SET status = 'completed', updated_at = NOW() WHERE id = $1`,
+      `UPDATE agent_requests SET status = 'completed',
+           review_log = review_log || jsonb_build_array(jsonb_build_object('action','approved_dev','timestamp',NOW())),
+           updated_at = NOW() WHERE id = $1`,
       [req.params.id]
     );
     res.redirect('/admin/requests');
@@ -154,7 +162,9 @@ router.post('/requests/:id/reject-dev', async (req: Request, res: Response) => {
   try {
     const { review_comments } = req.body;
     await pool.query(
-      `UPDATE agent_requests SET status = 'in_development', review_comments = $1, updated_at = NOW() WHERE id = $2`,
+      `UPDATE agent_requests SET status = 'in_development', review_comments = $1,
+           review_log = review_log || jsonb_build_array(jsonb_build_object('action','rejected_dev','comments',$1,'timestamp',NOW())),
+           updated_at = NOW() WHERE id = $2`,
       [review_comments || null, req.params.id]
     );
     res.redirect('/admin/requests');

@@ -32,8 +32,8 @@
 | VPS | Azure Ubuntu 24.04 |
 | Method | docker compose (4 services: router, app-test, app-prod, db) |
 | Image | `brodyzhang2026/pier` (Docker Hub) |
-| **Status** | ✅ Deployed (build #66 prod, #69 test) |
-| Last Deploy | 2026-05-17 08:35 UTC |
+| **Status** | ✅ Deployed (build #71 prod, #71 test) |
+| Last Deploy | 2026-05-17 13:30 UTC |
 | Prod Version File | `PROD_VERSION` — push changes to auto-promote via deploy-prod.yml |
 
 ## Development Tasks
@@ -74,6 +74,10 @@
 - [x] Admin backend UI redesign: dark glass-morphism theme across all views (layout, admin, dashboard, auth, agent)
 - [x] Auto prod promote: PROD_VERSION file + deploy-prod.yml workflow (push file to promote)
 - [x] Dragon game v4: fix flickering, more bees, dragon grows, 100pt victory
+- [x] Consistent v prefix for version tags (deploy.yml + PROD_VERSION + deploy-prod.yml)
+- [x] Review history log (JSONB review_log column, full audit trail on admin review page)
+- [x] User self-delete agents (delete button on dashboard for own agents)
+- [x] Improved review comment UI (show history, better textarea in dev review, review notes/comments displayed clearly)
 
 ### Next (Priority Order)
 1. ✅ ~~Register/login flow~~ (tested on test.ailaopo.online)
@@ -113,6 +117,6 @@
 | `SMTP_PASS` | ✅ | GitHub secret — Resend API key |
 | `SMTP_FROM` | ✅ | GitHub secret — `noreply@ailaopo.online` |
 | `DEV_API_KEY` | ✅ | GitHub secret — Bearer token for AI dev API |
-| `PROD_VERSION` | ✅ | File in repo — `20260517-00000066` (no `v` prefix) |
+| `PROD_VERSION` | ✅ | File in repo — `v20260517-00000071` (with `v` prefix) |
 
 **Format note:** Docker Hub password/token is passed via stdin in the SSH script (line in deploy.yml). Consider using a read-only token for pull-only operations to minimize risk.
