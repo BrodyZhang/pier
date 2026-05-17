@@ -55,13 +55,14 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Clone repo if not exists (first-time setup)
+            # Clone or update repo
             PIER_DIR=~/pier
             if [ ! -d "$PIER_DIR" ]; then
               git clone https://github.com/BrodyZhang/pier "$PIER_DIR"
             fi
 
             cd "$PIER_DIR"
+            git pull origin master
 
             # Create/update .env with secrets
             cat > .env << ENVEOF

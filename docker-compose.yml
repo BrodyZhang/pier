@@ -1,6 +1,6 @@
 services:
   app:
-    build: .
+    image: brodyzhang2026/pier:latest
     ports:
       - "80:80"
       - "443:443"
