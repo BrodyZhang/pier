@@ -57,7 +57,7 @@ jobs:
             docker pull ${{ secrets.DOCKER_USERNAME }}/pier:latest
             docker stop pier || true
             docker rm pier || true
-            docker run -d -p 80:80 -p 443:443 \
+            docker run -d --restart=always -p 80:80 -p 443:443 \
               -v /etc/letsencrypt:/etc/letsencrypt \
               --name pier ${{ secrets.DOCKER_USERNAME }}/pier:latest
 
