@@ -1,22 +1,22 @@
 <div class="card" style="max-width:450px;margin:40px auto;">
-    <h1>Login</h1>
+    <h1>登录</h1>
     <% if (typeof error !== 'undefined' && error) { %>
         <div class="error"><%= error %></div>
     <% } %>
     <% if (sent) { %>
-        <div class="success">Code sent to <strong><%= email %></strong>.</div>
+        <div class="success">验证码已发送至 <strong><%= email %></strong></div>
         <form method="POST" action="/auth/login/verify">
             <input type="hidden" name="email" value="<%= email %>">
-            <label>Verification Code</label>
-            <input type="text" name="code" maxlength="6" required placeholder="Enter 6-digit code">
-            <button type="submit" class="btn btn-primary" style="margin-top:20px;">Verify & Login</button>
+            <label>验证码</label>
+            <input type="text" name="code" maxlength="6" required placeholder="输入6位验证码">
+            <button type="submit" class="btn btn-primary" style="margin-top:20px;">验证并登录</button>
         </form>
     <% } else { %>
         <form method="POST">
-            <label>Email</label>
+            <label>邮箱</label>
             <input type="email" name="email" required placeholder="you@example.com" value="<%= typeof email !== 'undefined' ? email : '' %>">
-            <button type="submit" class="btn btn-primary" style="margin-top:20px;">Send Code</button>
+            <button type="submit" class="btn btn-primary" style="margin-top:20px;">发送验证码</button>
         </form>
-        <p style="margin-top:20px;color:#666;">Don't have an account? <a href="/auth/register">Register</a></p>
+        <p style="margin-top:20px;color:#666;">还没有账号？<a href="/auth/register">立即注册</a></p>
     <% } %>
 </div>

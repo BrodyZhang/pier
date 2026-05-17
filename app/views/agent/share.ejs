@@ -1,6 +1,6 @@
 <div class="card" style="max-width:500px;margin:40px auto;">
-    <h1>Share Agent</h1>
-    <p style="color:#666;">Agent: <strong><%= agent.name %></strong></p>
+    <h1>分享告白页</h1>
+    <p style="color:#666;">告白页：<strong><%= agent.name %></strong></p>
 
     <% if (typeof error !== 'undefined' && error) { %>
         <div class="error"><%= error %></div>
@@ -10,20 +10,20 @@
     <% } %>
 
     <% if (share) { %>
-        <p style="margin:20px 0;">Shared with: <strong><%= share.partner_email %></strong></p>
+        <p style="margin:20px 0;">已分享给：<strong><%= share.partner_email %></strong></p>
         <form method="POST" action="/agent/<%= agent.unique_slug %>/unshare">
-            <button type="submit" class="btn btn-danger">Unshare</button>
+            <button type="submit" class="btn btn-danger">取消分享</button>
         </form>
     <% } else { %>
-        <p style="margin:20px 0;">Share this agent with your partner. Only you two will be able to see it.</p>
+        <p style="margin:20px 0;">将告白页分享给另一半，只有你们两人可以查看。</p>
         <form method="POST">
-            <label>Partner's Email</label>
+            <label>对方的邮箱</label>
             <input type="email" name="partnerEmail" required placeholder="partner@example.com">
-            <button type="submit" class="btn btn-primary" style="margin-top:20px;">Share</button>
+            <button type="submit" class="btn btn-primary" style="margin-top:20px;">分享</button>
         </form>
     <% } %>
 
     <% if (agent.unique_slug) { %>
-        <p style="margin-top:20px;color:#666;">Agent URL: <a href="/agent/<%= agent.unique_slug %>">/agent/<%= agent.unique_slug %></a></p>
+        <p style="margin-top:20px;color:#666;">页面链接：<a href="/agent/<%= agent.unique_slug %>">/agent/<%= agent.unique_slug %></a></p>
     <% } %>
 </div>

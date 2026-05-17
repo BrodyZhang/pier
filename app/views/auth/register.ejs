@@ -1,25 +1,30 @@
 <div class="card" style="max-width:450px;margin:40px auto;">
-    <h1>Register</h1>
+    <h1>注册</h1>
     <div class="disclaimer">
-        This is a learning project. Data may be cleared at any time. Must be 18+.
+        本项目为学习项目，数据可能随时被清除。需年满18岁。
     </div>
+    <% if (typeof remainingSlots !== 'undefined') { %>
+        <p style="text-align:center;font-size:14px;color:#666;margin-bottom:15px;">
+            今日剩余注册名额：<strong style="color:#667eea;"><%= remainingSlots %></strong> / 100
+        </p>
+    <% } %>
     <% if (typeof error !== 'undefined' && error) { %>
         <div class="error"><%= error %></div>
     <% } %>
     <% if (sent) { %>
-        <div class="success">Verification code sent to <strong><%= email %></strong>. Check your email (or console in dev mode).</div>
+        <div class="success">验证码已发送至 <strong><%= email %></strong>（开发模式请查看控制台输出）</div>
         <form method="POST" action="/auth/register/verify">
             <input type="hidden" name="email" value="<%= email %>">
-            <label>Verification Code</label>
-            <input type="text" name="code" maxlength="6" required placeholder="Enter 6-digit code">
-            <button type="submit" class="btn btn-primary" style="margin-top:20px;">Verify & Register</button>
+            <label>验证码</label>
+            <input type="text" name="code" maxlength="6" required placeholder="输入6位验证码">
+            <button type="submit" class="btn btn-primary" style="margin-top:20px;">验证并注册</button>
         </form>
     <% } else { %>
         <form method="POST">
-            <label>Email</label>
+            <label>邮箱</label>
             <input type="email" name="email" required placeholder="you@example.com" value="<%= typeof email !== 'undefined' ? email : '' %>">
-            <button type="submit" class="btn btn-primary" style="margin-top:20px;">Send Code</button>
+            <button type="submit" class="btn btn-primary" style="margin-top:20px;">发送验证码</button>
         </form>
-        <p style="margin-top:20px;color:#666;">Already have an account? <a href="/auth/login">Login</a></p>
+        <p style="margin-top:20px;color:#666;">已有账号？<a href="/auth/login">立即登录</a></p>
     <% } %>
 </div>

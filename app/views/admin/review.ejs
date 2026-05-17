@@ -1,52 +1,52 @@
 <div class="card" style="max-width:700px;margin:40px auto;">
-    <h1>Review Request #<%= agent.id %></h1>
-    <p><strong>Name:</strong> <%= agent.name %></p>
-    <p><strong>User:</strong> <%= agent.user_email %></p>
-    <p><strong>Submitted:</strong> <%= new Date(agent.created_at).toLocaleString() %></p>
-    <p><strong>Description:</strong></p>
+    <h1>审核请求 #<%= agent.id %></h1>
+    <p><strong>名称：</strong> <%= agent.name %></p>
+    <p><strong>用户：</strong> <%= agent.user_email %></p>
+    <p><strong>提交时间：</strong> <%= new Date(agent.created_at).toLocaleString() %></p>
+    <p><strong>描述内容：</strong></p>
     <div style="background:#f8f9fa;padding:15px;border-radius:8px;white-space:pre-wrap;"><%= agent.description %></div>
-    <p><strong>Status:</strong>
+    <p><strong>状态：</strong>
         <span class="status status-<%= agent.status === 'pending_review' ? 'pending' : agent.status === 'in_development' ? 'dev' : agent.status === 'completed' ? 'done' : 'rejected' %>">
-            <%= agent.status.replace(/_/g, ' ') %>
+            <% if (agent.status === 'pending_review') { %>待审核<% } else if (agent.status === 'in_development') { %>开发中<% } else if (agent.status === 'completed') { %>已完成<% } else { %>已拒绝<% } %>
         </span>
     </p>
 </div>
 
 <% if (agent.status === 'pending_review') { %>
 <div class="card" style="max-width:700px;margin:20px auto;">
-    <h2>Approve</h2>
-    <p style="color:#666;">Begin development on this agent.</p>
+    <h2>批准</h2>
+    <p style="color:#666;">开始为此告白页进行开发。</p>
     <form method="POST" action="/admin/requests/<%= agent.id %>/approve">
-        <button type="submit" class="btn btn-primary">Approve & Start Development</button>
+        <button type="submit" class="btn btn-primary">批准并开始开发</button>
     </form>
 </div>
 
 <div class="card" style="max-width:700px;margin:20px auto;">
-    <h2>Reject</h2>
+    <h2>拒绝</h2>
     <form method="POST" action="/admin/requests/<%= agent.id %>/reject">
-        <label>Rejection Reason</label>
-        <textarea name="reason" rows="3" required placeholder="Why was this rejected?"></textarea>
-        <button type="submit" class="btn btn-danger" style="margin-top:10px;">Reject</button>
+        <label>拒绝原因</label>
+        <textarea name="reason" rows="3" required placeholder="请填写拒绝原因"></textarea>
+        <button type="submit" class="btn btn-danger" style="margin-top:10px;">拒绝</button>
     </form>
 </div>
 <% } %>
 
 <% if (agent.status === 'in_development') { %>
 <div class="card" style="max-width:700px;margin:20px auto;">
-    <h2>Upload HTML</h2>
+    <h2>上传 HTML</h2>
     <form method="POST" action="/admin/requests/<%= agent.id %>/upload" enctype="multipart/form-data">
-        <label>HTML File</label>
+        <label>HTML 文件</label>
         <input type="file" name="html" accept=".html" required>
-        <p style="font-size:13px;color:#666;">Upload the rendered agent page HTML.</p>
-        <button type="submit" class="btn btn-primary" style="margin-top:10px;">Upload & Mark Complete</button>
+        <p style="font-size:13px;color:#666;">上传制作完成的告白页 HTML 文件。</p>
+        <button type="submit" class="btn btn-primary" style="margin-top:10px;">上传并标记完成</button>
     </form>
 </div>
 <% } %>
 
 <% if (agent.status === 'completed' && agent.unique_slug) { %>
 <div class="card" style="max-width:700px;margin:20px auto;">
-    <h2>Completed</h2>
-    <p>Slug: <code><%= agent.unique_slug %></code></p>
-    <p><a href="/agent/<%= agent.unique_slug %>" class="btn btn-outline">View Agent Page</a></p>
+    <h2>已完成</h2>
+    <p>短链接：<code><%= agent.unique_slug %></code></p>
+    <p><a href="/agent/<%= agent.unique_slug %>" class="btn btn-outline">查看告白页</a></p>
 </div>
 <% } %>

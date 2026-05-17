@@ -1,30 +1,30 @@
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h1>My Agents</h1>
-        <a href="/agent/new" class="btn btn-primary">New Request</a>
+        <h1>我的告白页</h1>
+        <a href="/agent/new" class="btn btn-primary">新建请求</a>
     </div>
 </div>
 
 <div class="card">
-    <h2>My Requests</h2>
+    <h2>我的请求</h2>
     <% if (agents.length === 0) { %>
-        <p style="color:#666;padding:20px 0;">No requests yet. <a href="/agent/new">Create your first one!</a></p>
+        <p style="color:#666;padding:20px 0;">还没有请求。<a href="/agent/new">创建第一个吧！</a></p>
     <% } else { %>
         <table>
-            <tr><th>Name</th><th>Status</th><th>Created</th><th></th></tr>
+            <tr><th>名称</th><th>状态</th><th>创建时间</th><th></th></tr>
             <% agents.forEach(function(a) { %>
                 <tr>
                     <td><%= a.name %></td>
                     <td>
                         <span class="status status-<%= a.status === 'pending_review' ? 'pending' : a.status === 'in_development' ? 'dev' : a.status === 'completed' ? 'done' : 'rejected' %>">
-                            <%= a.status.replace(/_/g, ' ') %>
+                            <% if (a.status === 'pending_review') { %>待审核<% } else if (a.status === 'in_development') { %>开发中<% } else if (a.status === 'completed') { %>已完成<% } else { %>已拒绝<% } %>
                         </span>
                     </td>
                     <td style="font-size:14px;color:#666;"><%= new Date(a.created_at).toLocaleDateString() %></td>
                     <td>
                         <% if (a.status === 'completed' && a.unique_slug) { %>
-                            <a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">View</a>
-                            <a href="/agent/<%= a.unique_slug %>/share" class="btn btn-outline btn-sm">Share</a>
+                            <a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">查看</a>
+                            <a href="/agent/<%= a.unique_slug %>/share" class="btn btn-outline btn-sm">分享</a>
                         <% } %>
                         <% if (a.status === 'rejected' && a.rejection_reason) { %>
                             <span style="font-size:13px;color:#e74c3c;"><%= a.rejection_reason %></span>
@@ -38,16 +38,16 @@
 
 <% if (sharedAgents.length > 0) { %>
 <div class="card">
-    <h2>Shared With Me</h2>
+    <h2>分享给我的</h2>
     <table>
-        <tr><th>Name</th><th>Created by</th><th></th></tr>
+        <tr><th>名称</th><th>创建者</th><th></th></tr>
         <% sharedAgents.forEach(function(a) { %>
             <tr>
                 <td><%= a.name %></td>
                 <td><%= a.creator_email %></td>
                 <td>
                     <% if (a.unique_slug) { %>
-                        <a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">View</a>
+                        <a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">查看</a>
                     <% } %>
                 </td>
             </tr>
