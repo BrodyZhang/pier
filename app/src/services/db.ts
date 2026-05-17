@@ -1,12 +1,17 @@
 import { Pool } from 'pg';
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  user: process.env.DB_USER || 'pier',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'pier',
-});
+let pool: Pool;
+if (process.env.DATABASE_URL) {
+  pool = new Pool({ connectionString: process.env.DATABASE_URL });
+} else {
+  pool = new Pool({
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '5432'),
+    user: process.env.DB_USER || 'pier',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'pier',
+  });
+}
 
 export default pool;
 
