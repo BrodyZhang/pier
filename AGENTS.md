@@ -30,7 +30,8 @@ Use `.\scripts\poll-tasks.ps1 -Continuous` to continuously poll for pending/reje
 - **New models**: Add SQL to `initDB()` in `db.ts`. Create model file.
 - **New views**: Follow `layout.ejs` pattern. Include disclaimers where needed.
 - **Docker**: After changing Dockerfile/docker-compose, note that image rebuild is needed.
-- **Deploy**: After push, monitor via CI monitor skill. Wait for build, check status, verify website.
+- **Deploy (test)**: After push, monitor via CI monitor skill. Wait for build, check status, verify website.
+- **Deploy (prod)**: Update `PROD_VERSION` file with the build number (e.g. `20260517-00000069`), commit, push. `deploy-prod.yml` handles the rest.
 
 ## Manual Steps Reference
 

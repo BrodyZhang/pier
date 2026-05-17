@@ -124,6 +124,7 @@ Defined in `app/src/services/db.ts:initDB()`:
 | `SMTP_FROM` | No | `noreply@ailaopo.online` | GitHub secret |
 | `ADMIN_EMAIL` | No | (none) | GitHub secret — seeds admin user on startup |
 | `DEV_API_KEY` | Yes (for AI) | (none) | GitHub secret — Bearer token for `/api/dev/*` |
+| `PROD_VERSION` | Yes (for prod) | (none) | File `PROD_VERSION` — build version for prod deploy |
 | `NODE_ENV` | No | production | docker-compose |
 
 ## Automation Files
@@ -133,4 +134,6 @@ Defined in `app/src/services/db.ts:initDB()`:
 | `.opencode/skills/auto-task-worker/SKILL.md` | Skill for continuous task polling and processing |
 | `scripts/poll-tasks.ps1` | PowerShell script: `.\scripts\poll-tasks.ps1` (single) or `-Continuous` (loop every N seconds) |
 | `.github/workflows/task-monitor.yml` | Scheduled GitHub Action — checks for tasks every 30 min, reports in Actions tab |
+| `PROD_VERSION` | File containing current prod build version (e.g. `20260517-00000066`). Push changes → auto-promote prod |
+| `.github/workflows/deploy-prod.yml` | Triggered by PROD_VERSION changes. SSHes to VPS, updates .env, pulls image, restarts app-prod |
 

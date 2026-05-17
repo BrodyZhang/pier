@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - master
+    paths-ignore:
+      - 'PROD_VERSION'
 
 jobs:
   build-and-push:
@@ -74,7 +76,7 @@ jobs:
             SMTP_FROM=${{ secrets.SMTP_FROM }}
             ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
             DEV_API_KEY=${{ secrets.DEV_API_KEY }}
-            PROD_VERSION=${{ vars.PROD_VERSION || 'latest' }}
+            PROD_VERSION=$(cat PROD_VERSION | tr -d ' \n\r')
             ENVEOF
 
             # Stop old containers from previous architecture (cleanup)

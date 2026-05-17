@@ -1,0 +1,77 @@
+name: Deploy Prod
+
+on:
+  push:
+    branches: [master]
+    paths: ['PROD_VERSION']
+  workflow_dispatch:
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Read PROD_VERSION
+        id: version
+        run: |
+          VER=$(cat PROD_VERSION | tr -d ' \n\r')
+          echo "VERSION=v$VER" >> $GITHUB_OUTPUT
+          echo "Found version: v$VER"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Promote prod on VPS
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            PIER_DIR=~/pier
+            cd "$PIER_DIR"
+
+            # Pull the repo (to get latest docker-compose.yml, router config, etc.)
+            git pull origin master
+
+            # Read version from the file in the repo
+            PROD_VER="${{ steps.version.outputs.VERSION }}"
+
+            echo "=== Promoting prod to $PROD_VER ==="
+
+            # Write new PROD_VERSION to .env
+            if grep -q '^PROD_VERSION=' .env; then
+              sed -i "s/^PROD_VERSION=.*/PROD_VERSION=$PROD_VER/" .env
+            else
+              echo "PROD_VERSION=$PROD_VER" >> .env
+            fi
+
+            # Pull the specific version
+            docker compose pull app-prod
+
+            # Restart only app-prod
+            docker compose up -d app-prod
+
+            echo "=== Prod promoted to $PROD_VER ==="
+
+      - name: Verify prod
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            sleep 10
+            cd ~/pier && docker compose ps
+            echo "---"
+            echo "Checking app-prod logs..."
+            docker logs pier-app-prod-1 --tail 3
+            echo "---"
+            echo "Checking HTTPS..."
+            curl -s -o /dev/null -w "HTTP %{http_code}" https://ailaopo.online/ || echo " (check failed)"

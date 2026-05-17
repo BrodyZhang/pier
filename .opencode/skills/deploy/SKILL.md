@@ -64,28 +64,47 @@ git push origin master
 
 **Only after you confirm test is working:**
 
+### Automated (Recommended)
+
+1. Update `PROD_VERSION` file in repo root with the build number (e.g. `20260517-00000069`)
+2. Commit and push
+3. `deploy-prod.yml` workflow auto-triggers, SSHes to VPS, updates `.env`, pulls image, restarts app-prod
+
 ```bash
-# Via SSH:
-# 1. Pull the specific version that was tested (from GitHub Actions build output)
-ssh azureuser@<VPS_IP>
-cd ~/pier
-docker compose pull app-prod    # pulls :${PROD_VERSION} or :latest
-docker compose up -d app-prod
+echo "20260517-00000069" > PROD_VERSION
+git add PROD_VERSION && git commit -m "prod: promote to build #69" && git push
 ```
 
-Or to pin a specific version:
+This is the **only approved method**. It ensures the version is tracked in git and deployment is auditable.
+
+### Manual (Fallback — only if workflow fails)
 
 ```bash
-# 1. Edit .env on VPS
-echo 'PROD_VERSION=v20260517-00000042' >> ~/pier/.env
-
-# 2. Pull and restart prod
+ssh azureuser@<VPS_IP>
 cd ~/pier
+git pull origin master
+# Update .env
+sed -i 's/^PROD_VERSION=.*/PROD_VERSION=v20260517-00000069/' .env
 docker compose pull app-prod
 docker compose up -d app-prod
 ```
 
-**To revert:** change `PROD_VERSION` back to `latest` and `docker compose up -d app-prod`
+### Revert
+
+```bash
+# 1. Update PROD_VERSION file to a previous known-good version
+echo "20260517-00000042" > PROD_VERSION
+git add PROD_VERSION && git commit -m "prod: revert to build #42" && git push
+# deploy-prod.yml will handle the revert automatically
+```
+
+Or to pin to `latest` for emergency rollback:
+
+```bash
+# SSH to VPS and edit .env manually
+sed -i 's/^PROD_VERSION=.*/PROD_VERSION=latest/' ~/pier/.env
+cd ~/pier && docker compose pull app-prod && docker compose up -d app-prod
+```
 
 ## Deploy to an Empty VPS (First Time)
 
@@ -105,4 +124,5 @@ docker compose up -d app-prod
 ### 3. GitHub Secrets & Variables
 [MANUAL] The human must set these in GitHub repo Settings → Secrets and variables → Actions:
 - **Secrets**: DOCKER_USERNAME, DOCKER_PASSWORD, VPS_HOST, VPS_USER, SSH_PRIVATE_KEY, SESSION_SECRET, ADMIN_EMAIL
-- **Variables**: PROD_VERSION (default: `latest`)
+- **Variables**: (none required — npm build args, etc.)
+- **PROD_VERSION**: managed via `PROD_VERSION` file in repo root (no separate variable needed)

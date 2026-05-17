@@ -14,3 +14,5 @@ test5.html
 admin_check.html
 robot_love.html
 dragon_game.html
+# task polling state (local machine specific)
+.task-state.json

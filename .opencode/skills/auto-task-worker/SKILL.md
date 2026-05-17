@@ -86,14 +86,61 @@ When an agent appears in `/api/dev/rejected`:
 - Re-upload to same agent ID
 - Status goes back to `dev_review` for admin to re-review
 
-## Polling Loop Instructions
+## Auto-Pilot Mode (Continuous Loop)
 
-When the user invokes this skill, run a continuous loop:
+When the user says "auto" or "开始工作" or "continuous", enter a **self-sustaining loop** within this opencode session:
 
-1. Poll both test and prod `/api/dev/pending`
-2. If any `pending > 0` or `/api/dev/rejected` has agents, process them
-3. If no work, wait 120 seconds and poll again
-4. Report status to the user every cycle
+```
+loop:
+  poll all envs (prod + test) for tasks
+  if work found:
+    for each in_development agent:
+      read description + review_notes
+      develop HTML content
+      upload via POST /api/dev/upload/:id
+    for each rejected agent:
+      read review_comments
+      fix HTML
+      re-upload
+  wait 120 seconds
+  goto loop
+```
+
+The loop runs **until the terminal is closed**. Steps to implement:
+
+### 1. Fetch Agents
+```powershell
+$tmp=[System.IO.Path]::GetTempFileName(); curl.exe -k -s -o $tmp "https://ailaopo.online/api/dev/agents" -H "Authorization: Bearer gE9Jupab3NW/H6/2QxkwMsD5lq7pRFWk+2lLGuAX3FQ="; $content=Get-Content $tmp -Raw -Encoding UTF8 | ConvertFrom-Json; Remove-Item $tmp
+```
+
+### 2. Process New Tasks (in_development)
+For each agent with `status: "in_development"`:
+- Use `review_notes` as primary requirements
+- Use `description` as secondary reference
+- Create a full HTML single-file page
+- Upload using Dev API
+
+### 3. Handle Rejected Tasks
+For each rejected agent (check `/api/dev/rejected`):
+- Read `review_comments` carefully
+- Update existing HTML file with fixes
+- Re-upload to same agent ID
+
+### 4. Upload
+```powershell
+$json = @{ html = $html } | ConvertTo-Json -Depth 1
+Set-Content -Path "upload.json" -Value $json
+curl.exe -k -s -X POST "https://ailaopo.online/api/dev/upload/<AGENT_ID>" `
+  -H "Authorization: Bearer gE9Jupab3NW/H6/2QxkwMsD5lq7pRFWk+2lLGuAX3FQ=" `
+  -H "Content-Type: application/json" `
+  -d "@upload.json"
+```
+
+### 5. Logging
+After each cycle, print:
+```
+[auto-worker] YYYY-MM-DD HH:MM:SS — processed X tasks, uploaded Y agents, next check in 120s
+```
 
 ## Design Principles for Agent Development
 
