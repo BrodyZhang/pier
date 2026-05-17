@@ -9,9 +9,24 @@ description: Use when the user asks you to deploy, push, or release the project.
 
 - GitHub Actions workflow at `.github/workflows/deploy.yml`
 - Secrets set in GitHub: DOCKER_USERNAME, DOCKER_PASSWORD, VPS_HOST, VPS_USER, SSH_PRIVATE_KEY
-- VPS has Docker and docker-compose installed
+- VPS has Docker and docker-compose installed (only requirements on VPS host)
 - Domain ailaopo.online points to VPS IP
 - Let's Encrypt certs exist on VPS at /etc/letsencrypt
+
+## Everything Runs Inside Docker
+
+**Never install anything on the VPS host directly.** Every component runs inside a container:
+
+| Component | Container | Notes |
+|-----------|-----------|-------|
+| nginx (reverse proxy) | `pier-app-1` | Built from Dockerfile, managed by entrypoint.sh |
+| Node.js (Express) | `pier-app-1` | Started in background by entrypoint.sh |
+| PostgreSQL | `pier-db-1` | `postgres:16-alpine` image |
+| User HTML agents | `pier-app-1` | Stored at `/app/data/agents/` (Docker volume) |
+
+- No nginx, Node.js, or PostgreSQL installed on VPS host
+- All debugging: `sudo docker exec -it pier-app-1 sh` or `sudo docker logs pier-app-1`
+- All config changes: modify files in repo, rebuild and redeploy via GitHub Actions
 
 ## Steps
 

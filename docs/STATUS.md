@@ -26,7 +26,8 @@
 | VPS | Azure Ubuntu 24.04 |
 | Method | docker compose (app + PostgreSQL 16) |
 | Image | `brodyzhang2026/pier` (Docker Hub) |
-| **Status** | ⏳ Partially deployed — containers created, app port 80 conflict (old container not stopped) |
+| **Status** | ✅ Deployed (build #41, image tag 20260517-00000041) |
+| Last Deploy | 2026-05-17 04:09 UTC |
 
 ## Development Tasks
 

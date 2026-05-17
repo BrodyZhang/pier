@@ -4,12 +4,8 @@ set -e
 # Create required directories
 mkdir -p /var/www/html /app/data/agents
 
-# If Let's Encrypt certs exist, configure SSL
-if [ -f "/etc/letsencrypt/live/ailaopo.online/fullchain.pem" ]; then
-    # Copy the static nginx config (already has SSL configured)
-    cp /etc/nginx/http.d/default.conf /etc/nginx/http.d/default.conf
-else
-    # Use a simple HTTP-only config (for initial cert setup)
+# If Let's Encrypt certs are missing, use HTTP-only config for cert setup
+if [ ! -f "/etc/letsencrypt/live/ailaopo.online/fullchain.pem" ]; then
     cat > /etc/nginx/http.d/default.conf << 'EOF'
 server {
     listen 80;
