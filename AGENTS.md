@@ -26,7 +26,7 @@ All changes must be made by AI agents. You (the AI) are the sole developer.
 - **New models**: Add SQL to `initDB()` in `db.ts`. Create model file.
 - **New views**: Follow `layout.ejs` pattern. Include disclaimers where needed.
 - **Docker**: After changing Dockerfile/docker-compose, note that image rebuild is needed.
-- **Deploy**: After push, GitHub Actions auto-deploys. Check the Actions tab for status.
+- **Deploy**: After push, monitor via CI monitor skill. Wait for build, check status, verify website.
 
 ## Manual Steps Reference
 

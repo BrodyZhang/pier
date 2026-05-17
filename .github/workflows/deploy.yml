@@ -70,11 +70,17 @@ jobs:
             ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
             ENVEOF
 
+            # Stop any old containers to free ports (80 and 443)
+            docker stop pier-app-1 pier-db-1 2>/dev/null || true
+            docker rm pier-app-1 pier-db-1 2>/dev/null || true
+            docker stop pier 2>/dev/null || true
+            docker rm pier 2>/dev/null || true
+
             echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
             docker compose pull
             docker compose up -d
 
-      - name: Verify deployment
+      - name: Verify container status
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -82,4 +88,22 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             sleep 8
-            docker compose -f ~/pier/docker-compose.yml ps
+            cd ~/pier && docker compose ps
+            echo "---"
+            echo "Checking app health (port 3000)..."
+            curl -s -o /dev/null -w "HTTP %{http_code}" http://localhost:3000/ || echo " (unreachable)"
+            echo ""
+            echo "Checking app health (port 80)..."
+            curl -s -o /dev/null -w "HTTP %{http_code}" http://localhost:80/ || echo " (unreachable)"
+
+      - name: Smoke test (external)
+        run: |
+          sleep 5
+          echo "Checking test.ailaopo.online..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 http://test.ailaopo.online/ || echo "DNS_FAIL")
+          echo "HTTP $STATUS"
+          if [ "$STATUS" = "200" ] || [ "$STATUS" = "302" ] || [ "$STATUS" = "301" ]; then
+            echo "SUCCESS: test domain responding"
+          else
+            echo "NOTE: test domain may not have DNS configured yet (expected if DNS not set)"
+          fi

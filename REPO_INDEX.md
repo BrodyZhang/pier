@@ -14,6 +14,7 @@ pier/
 │   └── skills/
 │       ├── repo-index/SKILL.md         # Skill: maintain REPO_INDEX.md
 │       ├── deploy/SKILL.md             # Skill: deployment workflow
+│       ├── ci-monitor/SKILL.md         # Skill: monitor CI/CD, verify website
 │       └── code-style/SKILL.md         # Skill: code conventions
 │
 ├── app/                                # Node.js + TypeScript application

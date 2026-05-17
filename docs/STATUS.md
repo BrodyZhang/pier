@@ -26,7 +26,7 @@
 | VPS | Azure Ubuntu 24.04 |
 | Method | docker compose (app + PostgreSQL 16) |
 | Image | `brodyzhang2026/pier` (Docker Hub) |
-| **Status** | ⏳ Not yet deployed (waiting for VPS SSH key setup + first deploy) |
+| **Status** | ⏳ Partially deployed — containers created, app port 80 conflict (old container not stopped) |
 
 ## Development Tasks
 
@@ -41,9 +41,10 @@
 - [x] Admin seed: ADMIN_EMAIL env var
 - [x] Test domain: test.ailaopo.online HTTP support
 - [x] Status tracking: docs/STATUS.md created
+- [x] CI monitor skill: .opencode/skills/ci-monitor/SKILL.md
 
 ### In Progress
-- [ ] 🔄 GitHub Actions build + first deploy (pending push trigger)
+- [ ] 🔄 Build #41 — fix port conflict, verify deploy
 
 ### Next (Priority Order)
 1. ✅ ~~Push code to GitHub~~ (done)
@@ -68,9 +69,9 @@
 
 | # | Issue | Status |
 |---|-------|--------|
-| 1 | TypeScript not yet compiled (no local node, need Docker build) | ⏳ Will verify via GitHub Actions |
-| 2 | VPS SSH key not set up | ✅ Done |
-| 3 | GitHub secrets not set | ✅ Done |
+| 1 | TypeScript compilation | ✅ Passed in build #40 |
+| 2 | Docker image build & push | ✅ Passed in build #40 |
+| 3 | Deploy step — port 80 conflict (old container) | 🔴 Fix: added stop/rm old containers in deploy.yml |
 | 4 | test.ailaopo.online DNS not configured | 🔴 Blocking test access |
 
 ## Environment Variables
