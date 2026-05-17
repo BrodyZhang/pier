@@ -21,10 +21,11 @@ router.get('/requests', async (_req: Request, res: Response) => {
     const all = result.rows;
     const pending = all.filter((r: any) => r.status === 'pending_review');
     const dev = all.filter((r: any) => r.status === 'in_development');
+    const devReview = all.filter((r: any) => r.status === 'dev_review');
     const completed = all.filter((r: any) => r.status === 'completed');
     const rejected = all.filter((r: any) => r.status === 'rejected');
 
-    res.render('admin/requests', { title: 'Admin - Requests', pending, dev, completed, rejected });
+    res.render('admin/requests', { title: 'Admin - Requests', pending, dev, devReview, completed, rejected });
   } catch (err) {
     console.error('Admin requests error:', err);
     res.status(500).send('Server error');
@@ -143,13 +144,39 @@ router.post('/requests/:id/upload', async (req: Request, res: Response) => {
     fs.writeFileSync(destPath, file.data);
 
     await pool.query(
-      `UPDATE agent_requests SET status = 'completed', updated_at = NOW() WHERE id = $1`,
+      `UPDATE agent_requests SET status = 'dev_review', updated_at = NOW() WHERE id = $1`,
       [req.params.id]
     );
 
     res.redirect('/admin/requests');
   } catch (err) {
     console.error('Upload error:', err);
+    res.status(500).send('Server error');
+  }
+});
+
+router.post('/requests/:id/approve-dev', async (req: Request, res: Response) => {
+  try {
+    await pool.query(
+      `UPDATE agent_requests SET status = 'completed', updated_at = NOW() WHERE id = $1`,
+      [req.params.id]
+    );
+    res.redirect('/admin/requests');
+  } catch (err) {
+    console.error('Approve dev error:', err);
+    res.status(500).send('Server error');
+  }
+});
+
+router.post('/requests/:id/reject-dev', async (req: Request, res: Response) => {
+  try {
+    await pool.query(
+      `UPDATE agent_requests SET status = 'in_development', updated_at = NOW() WHERE id = $1`,
+      [req.params.id]
+    );
+    res.redirect('/admin/requests');
+  } catch (err) {
+    console.error('Reject dev error:', err);
     res.status(500).send('Server error');
   }
 });

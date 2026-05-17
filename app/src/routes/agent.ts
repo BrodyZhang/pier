@@ -40,7 +40,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
     const agent = await pool.query(
       `SELECT ar.*, u.email as creator_email FROM agent_requests ar
        JOIN users u ON u.id = ar.user_id
-       WHERE ar.unique_slug = $1::uuid AND ar.status = 'completed'`,
+       WHERE ar.unique_slug = $1::uuid AND (ar.status = 'completed' OR ar.status = 'dev_review')`,
       [req.params.slug]
     );
 

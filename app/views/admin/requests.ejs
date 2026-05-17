@@ -51,6 +51,33 @@
 </div>
 
 <div class="card">
+    <h2>待审核（AI 开发完成）</h2>
+    <% if (devReview.length === 0) { %>
+        <p style="color:#666;">暂无待审核的开发结果。</p>
+    <% } else { %>
+        <table>
+            <tr><th>名称</th><th>用户</th><th>日期</th><th></th></tr>
+            <% devReview.forEach(function(a) { %>
+                <tr>
+                    <td><%= a.name %></td>
+                    <td><%= a.user_email %></td>
+                    <td style="font-size:14px;color:#666;"><%= new Date(a.created_at).toLocaleDateString() %></td>
+                    <td>
+                        <a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">预览</a>
+                        <form method="POST" action="/admin/requests/<%= a.id %>/approve-dev" style="display:inline;">
+                            <button type="submit" class="btn btn-primary btn-sm" style="margin-left:5px;">通过</button>
+                        </form>
+                        <form method="POST" action="/admin/requests/<%= a.id %>/reject-dev" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm" style="margin-left:5px;">退回</button>
+                        </form>
+                    </td>
+                </tr>
+            <% }) %>
+        </table>
+    <% } %>
+</div>
+
+<div class="card">
     <h2>已完成</h2>
     <% if (completed.length === 0) { %>
         <p style="color:#666;">暂无完成的请求。</p>
