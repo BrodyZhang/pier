@@ -1,5 +1,9 @@
 <div class="card">
     <h1>🛠️ 告白请求管理</h1>
+    <p style="margin-top:10px;font-size:14px;color:#666;">
+        AI 开发接口：<code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;">GET /api/dev/agents</code>
+        — 返回待开发列表（JSON），AI 取走后生成 HTML 并上传。
+    </p>
 </div>
 
 <div class="card">
@@ -34,7 +38,12 @@
                     <td><%= a.name %></td>
                     <td><%= a.user_email %></td>
                     <td style="font-size:14px;color:#666;"><%= new Date(a.created_at).toLocaleDateString() %></td>
-                    <td><a href="/admin/requests/<%= a.id %>" class="btn btn-primary btn-sm">管理</a></td>
+                    <td>
+                        <a href="/admin/requests/<%= a.id %>" class="btn btn-primary btn-sm">管理</a>
+                        <% if (a.unique_slug) { %>
+                            <a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm" style="margin-left:5px;">查看</a>
+                        <% } %>
+                    </td>
                 </tr>
             <% }) %>
         </table>

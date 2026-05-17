@@ -49,6 +49,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
     }
 
     const a = agent.rows[0];
+    const isAdmin = req.session.role === 'admin';
     const isCreator = a.user_id === userId;
 
     const share = await pool.query(
@@ -57,7 +58,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
     );
     const isPartner = share.rows.length > 0 && share.rows[0].partner_user_id === userId;
 
-    if (!isCreator && !isPartner) {
+    if (!isCreator && !isPartner && !isAdmin) {
       return res.status(403).send('Access denied. This agent is not shared with you.');
     }
 

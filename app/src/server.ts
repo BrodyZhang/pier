@@ -14,6 +14,7 @@ import authRoutes from './routes/auth';
 import dashboardRoutes from './routes/dashboard';
 import agentRoutes from './routes/agent';
 import adminRoutes from './routes/admin';
+import devRoutes from './routes/dev';
 
 const app = express();
 
@@ -61,6 +62,7 @@ app.use('/auth', authRoutes);
 app.use('/dashboard', requireAuth, dashboardRoutes);
 app.use('/agent', agentRoutes);
 app.use('/admin', requireAuth, requireAdmin, adminRoutes);
+app.use('/api/dev', requireAuth, requireAdmin, devRoutes);
 
 app.get('/', (_req, res) => {
   res.render('index', { user: null });
