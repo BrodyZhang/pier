@@ -21,4 +21,24 @@ router.get('/agents', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/dev/pending — pending task counts for AI to check
+router.get('/pending', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      `SELECT status, COUNT(*)::int as count
+       FROM agent_requests
+       WHERE status IN ('pending_review', 'in_development', 'dev_review')
+       GROUP BY status`
+    );
+    const counts: Record<string, number> = { pending_review: 0, in_development: 0, dev_review: 0 };
+    result.rows.forEach((r: any) => { counts[r.status] = r.count; });
+    res.json({ counts, total: Object.values(counts).reduce((a: number, b: number) => a + b, 0) });
+  } catch (err) {
+    console.error('Pending API error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+export default router;
+
 export default router;

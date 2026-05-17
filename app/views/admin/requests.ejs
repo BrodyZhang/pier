@@ -1,8 +1,11 @@
 <div class="card">
     <h1>🛠️ 告白请求管理</h1>
     <p style="margin-top:10px;font-size:14px;color:#666;">
-        AI 开发接口：<code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;">GET /api/dev/agents</code>
-        — 返回待开发列表（JSON），AI 取走后生成 HTML 并上传。
+        AI 接口：
+        <code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;">GET /api/dev/agents</code>
+        — 待开发列表 |
+        <code style="background:#f0f0f0;padding:2px 6px;border-radius:4px;">GET /api/dev/pending</code>
+        — 待办统计
     </p>
 </div>
 
@@ -19,7 +22,12 @@
                     <td><%= a.user_email %></td>
                     <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><%= a.description %></td>
                     <td style="font-size:14px;color:#666;"><%= new Date(a.created_at).toLocaleDateString() %></td>
-                    <td><a href="/admin/requests/<%= a.id %>" class="btn btn-primary btn-sm">审核</a></td>
+                    <td>
+                        <a href="/admin/requests/<%= a.id %>" class="btn btn-primary btn-sm">审核</a>
+                        <form method="POST" action="/admin/requests/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除该请求？');">
+                            <button type="submit" class="btn btn-danger btn-sm" style="margin-left:5px;">删除</button>
+                        </form>
+                    </td>
                 </tr>
             <% }) %>
         </table>
@@ -43,6 +51,9 @@
                         <% if (a.unique_slug) { %>
                             <a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm" style="margin-left:5px;">查看</a>
                         <% } %>
+                        <form method="POST" action="/admin/requests/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除？');">
+                            <button type="submit" class="btn btn-danger btn-sm" style="margin-left:5px;">删除</button>
+                        </form>
                     </td>
                 </tr>
             <% }) %>
@@ -70,6 +81,9 @@
                         <form method="POST" action="/admin/requests/<%= a.id %>/reject-dev" style="display:inline;">
                             <button type="submit" class="btn btn-danger btn-sm" style="margin-left:5px;">退回</button>
                         </form>
+                        <form method="POST" action="/admin/requests/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除？');">
+                            <button type="submit" class="btn btn-danger btn-sm" style="margin-left:5px;">删除</button>
+                        </form>
                     </td>
                 </tr>
             <% }) %>
@@ -89,7 +103,12 @@
                     <td><%= a.name %></td>
                     <td><%= a.user_email %></td>
                     <td><code><%= a.unique_slug %></code></td>
-                    <td><a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">查看</a></td>
+                    <td>
+                        <a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">查看</a>
+                        <form method="POST" action="/admin/requests/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除？');">
+                            <button type="submit" class="btn btn-danger btn-sm" style="margin-left:5px;">删除</button>
+                        </form>
+                    </td>
                 </tr>
             <% }) %>
         </table>
@@ -108,7 +127,12 @@
                     <td><%= a.name %></td>
                     <td><%= a.user_email %></td>
                     <td style="color:#e74c3c;"><%= a.rejection_reason %></td>
-                    <td><a href="/admin/requests/<%= a.id %>" class="btn btn-outline btn-sm">查看</a></td>
+                    <td>
+                        <a href="/admin/requests/<%= a.id %>" class="btn btn-outline btn-sm">查看</a>
+                        <form method="POST" action="/admin/requests/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除？');">
+                            <button type="submit" class="btn btn-danger btn-sm" style="margin-left:5px;">删除</button>
+                        </form>
+                    </td>
                 </tr>
             <% }) %>
         </table>

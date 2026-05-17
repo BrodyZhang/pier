@@ -181,4 +181,23 @@ router.post('/requests/:id/reject-dev', async (req: Request, res: Response) => {
   }
 });
 
+router.post('/requests/:id/delete', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      'SELECT unique_slug, created_at FROM agent_requests WHERE id = $1',
+      [req.params.id]
+    );
+    if (result.rows.length > 0 && result.rows[0].unique_slug) {
+      const dateStr = new Date(result.rows[0].created_at).toISOString().split('T')[0];
+      const dir = path.join(__dirname, '../../data/agents', dateStr, result.rows[0].unique_slug);
+      if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
+    }
+    await pool.query('DELETE FROM agent_requests WHERE id = $1', [req.params.id]);
+    res.redirect('/admin/requests');
+  } catch (err) {
+    console.error('Delete error:', err);
+    res.status(500).send('Server error');
+  }
+});
+
 export default router;
