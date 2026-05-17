@@ -8,6 +8,8 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
 
     steps:
       - name: Checkout code
@@ -54,12 +56,12 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
-            docker pull ${{ secrets.DOCKER_USERNAME }}/pier:latest
+            docker pull ${{ secrets.DOCKER_USERNAME }}/pier:${{ needs.build-and-push.outputs.version }}
             docker stop pier || true
             docker rm pier || true
             docker run -d --restart=always -p 80:80 -p 443:443 \
               -v /etc/letsencrypt:/etc/letsencrypt \
-              --name pier ${{ secrets.DOCKER_USERNAME }}/pier:latest
+              --name pier ${{ secrets.DOCKER_USERNAME }}/pier:${{ needs.build-and-push.outputs.version }}
 
       - name: Verify deployment
         uses: appleboy/ssh-action@v1.0.0
