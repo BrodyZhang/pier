@@ -5,11 +5,10 @@ import express from 'express';
 import session from 'express-session';
 import fileUpload from 'express-fileupload';
 import path from 'path';
-import fs from 'fs';
 import expressLayouts from 'express-ejs-layouts';
 import pgSession from 'connect-pg-simple';
 import pool, { initDB } from './services/db';
-import { requireAuth, requireAdmin } from './middleware/auth';
+import { requireAuth, requireAdmin, requireDevApiKey } from './middleware/auth';
 import authRoutes from './routes/auth';
 import dashboardRoutes from './routes/dashboard';
 import agentRoutes from './routes/agent';
@@ -18,9 +17,6 @@ import devRoutes from './routes/dev';
 
 const app = express();
 
-// Ensure data directory exists
-const dataDir = path.join(__dirname, '../data/agents');
-fs.mkdirSync(dataDir, { recursive: true });
 const PORT = parseInt(process.env.PORT || '3000');
 
 app.set('view engine', 'ejs');
@@ -62,7 +58,7 @@ app.use('/auth', authRoutes);
 app.use('/dashboard', requireAuth, dashboardRoutes);
 app.use('/agent', agentRoutes);
 app.use('/admin', requireAuth, requireAdmin, adminRoutes);
-app.use('/api/dev', requireAuth, requireAdmin, devRoutes);
+app.use('/api/dev', requireDevApiKey, devRoutes);
 
 app.get('/', (_req, res) => {
   res.render('index', { user: null });

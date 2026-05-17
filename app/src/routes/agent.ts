@@ -1,6 +1,4 @@
 import { Router, Request, Response } from 'express';
-import path from 'path';
-import fs from 'fs';
 import pool from '../services/db';
 import { requireAuth } from '../middleware/auth';
 
@@ -62,14 +60,16 @@ router.get('/:slug', async (req: Request, res: Response) => {
       return res.status(403).send('Access denied. This agent is not shared with you.');
     }
 
-    const dateStr = new Date(a.created_at).toISOString().split('T')[0];
-    const htmlPath = path.join(__dirname, '../../data/agents', dateStr, req.params.slug, 'index.html');
+    const file = await pool.query(
+      'SELECT content FROM agent_files WHERE agent_id = $1 ORDER BY created_at DESC LIMIT 1',
+      [a.id]
+    );
 
-    if (!fs.existsSync(htmlPath)) {
+    if (file.rows.length === 0) {
       return res.render('agent/not-ready', { title: a.name, name: a.name });
     }
 
-    let html = fs.readFileSync(htmlPath, 'utf-8');
+    let html = file.rows[0].content;
     const disclaimer = `<div style="position:fixed;bottom:10px;right:10px;font-size:12px;color:rgba(255,255,255,0.3);z-index:9999;pointer-events:none;">AI 自动化学习中...</div>
 <div style="position:fixed;bottom:10px;left:10px;font-size:11px;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;">This page is for demonstration purposes only.</div>`;
     html = html.replace('</body>', `${disclaimer}</body>`);

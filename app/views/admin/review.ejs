@@ -15,9 +15,11 @@
 <% if (agent.status === 'pending_review') { %>
 <div class="card" style="max-width:700px;margin:20px auto;">
     <h2>批准</h2>
-    <p style="color:#666;">开始为此告白页进行开发。</p>
+    <p style="color:#666;">审批通过后，AI 将根据以下审核信息进行开发。</p>
     <form method="POST" action="/admin/requests/<%= agent.id %>/approve">
-        <button type="submit" class="btn btn-primary">批准并开始开发</button>
+        <label>审核信息（AI 开发优先级规则）</label>
+        <textarea name="review_notes" rows="5" placeholder="请填写审核信息，AI 将以此作为最高优先级规则进行开发..."></textarea>
+        <button type="submit" class="btn btn-primary" style="margin-top:10px;">批准并开始开发</button>
     </form>
 </div>
 

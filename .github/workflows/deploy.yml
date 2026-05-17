@@ -69,6 +69,7 @@ jobs:
             SESSION_SECRET=${{ secrets.SESSION_SECRET }}
             SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }}
             ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
+            DEV_API_KEY=${{ secrets.DEV_API_KEY }}
             PROD_VERSION=${{ vars.PROD_VERSION || 'latest' }}
             ENVEOF
 

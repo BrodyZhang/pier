@@ -15,3 +15,17 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction): v
   }
   next();
 }
+
+export function requireDevApiKey(req: Request, res: Response, next: NextFunction): void {
+  const authHeader = req.headers.authorization;
+  const expectedKey = process.env.DEV_API_KEY;
+  if (!expectedKey) {
+    res.status(500).json({ error: 'DEV_API_KEY not configured' });
+    return;
+  }
+  if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.slice(7) !== expectedKey) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  next();
+}

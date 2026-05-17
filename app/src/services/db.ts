@@ -45,10 +45,15 @@ CREATE TABLE IF NOT EXISTS agent_requests (
     description TEXT NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'pending_review',
     rejection_reason TEXT,
+    review_notes TEXT,
+    review_comments TEXT,
     unique_slug UUID UNIQUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE agent_requests ADD COLUMN IF NOT EXISTS review_notes TEXT;
+ALTER TABLE agent_requests ADD COLUMN IF NOT EXISTS review_comments TEXT;
 
 CREATE TABLE IF NOT EXISTS agent_versions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -56,6 +61,13 @@ CREATE TABLE IF NOT EXISTS agent_versions (
     version_number INT NOT NULL,
     request_description TEXT NOT NULL,
     html_file_path TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS agent_files (
+    id SERIAL PRIMARY KEY,
+    agent_id UUID NOT NULL REFERENCES agent_requests(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

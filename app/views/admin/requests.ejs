@@ -79,6 +79,7 @@
                             <button type="submit" class="btn btn-primary btn-sm" style="margin-left:5px;">通过</button>
                         </form>
                         <form method="POST" action="/admin/requests/<%= a.id %>/reject-dev" style="display:inline;">
+                            <textarea name="review_comments" rows="2" placeholder="退回原因及修改建议..." required style="vertical-align:middle;font-size:13px;"></textarea>
                             <button type="submit" class="btn btn-danger btn-sm" style="margin-left:5px;">退回</button>
                         </form>
                         <form method="POST" action="/admin/requests/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除？');">

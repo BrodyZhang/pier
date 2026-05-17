@@ -7,7 +7,6 @@ RUN npx tsc
 
 FROM node:20-alpine
 WORKDIR /app
-RUN mkdir -p /app/data/agents
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY app/views ./views

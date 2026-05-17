@@ -17,13 +17,12 @@ services:
   # Test environment — always runs :latest
   app-test:
     image: brodyzhang2026/pier:latest
-    volumes:
-      - agent-data-test:/app/data
     environment:
       - DATABASE_URL=postgres://pier:pier@db:5432/pier_test
       - SESSION_SECRET=${SESSION_SECRET:-change-me}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - DEV_API_KEY=${DEV_API_KEY:-}
       - NODE_ENV=production
     depends_on:
       db:
@@ -33,13 +32,12 @@ services:
   # Production environment — controlled by PROD_VERSION tag
   app-prod:
     image: brodyzhang2026/pier:${PROD_VERSION:-latest}
-    volumes:
-      - agent-data-prod:/app/data
     environment:
       - DATABASE_URL=postgres://pier:pier@db:5432/pier_prod
       - SESSION_SECRET=${SESSION_SECRET:-change-me}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - DEV_API_KEY=${DEV_API_KEY:-}
       - NODE_ENV=production
     depends_on:
       db:
@@ -63,5 +61,3 @@ services:
 
 volumes:
   pg-data:
-  agent-data-test:
-  agent-data-prod:
