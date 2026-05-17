@@ -67,7 +67,11 @@ jobs:
             # Create/update .env with secrets
             cat > .env << ENVEOF
             SESSION_SECRET=${{ secrets.SESSION_SECRET }}
-            SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }}
+            SMTP_HOST=${{ secrets.SMTP_HOST }}
+            SMTP_PORT=${{ secrets.SMTP_PORT }}
+            SMTP_USER=${{ secrets.SMTP_USER }}
+            SMTP_PASS=${{ secrets.SMTP_PASS }}
+            SMTP_FROM=${{ secrets.SMTP_FROM }}
             ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
             DEV_API_KEY=${{ secrets.DEV_API_KEY }}
             PROD_VERSION=${{ vars.PROD_VERSION || 'latest' }}
