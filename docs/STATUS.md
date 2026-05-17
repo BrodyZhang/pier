@@ -43,8 +43,7 @@
 - [x] Status tracking: docs/STATUS.md created
 
 ### In Progress
-- [ ] First deploy to VPS (blocked on SSH key setup)
-- [ ] GitHub Actions build verification
+- [ ] 🔄 GitHub Actions build + first deploy (pending push trigger)
 
 ### Next (Priority Order)
 1. ✅ ~~Push code to GitHub~~ (done)
@@ -69,22 +68,22 @@
 
 | # | Issue | Status |
 |---|-------|--------|
-| 1 | TypeScript not yet compiled (no local node, need Docker build) | ⏳ Waiting for GitHub Actions |
-| 2 | VPS SSH key not set up | 🔴 Blocking deploy |
-| 3 | GitHub secrets not set | 🔴 Blocking deploy |
+| 1 | TypeScript not yet compiled (no local node, need Docker build) | ⏳ Will verify via GitHub Actions |
+| 2 | VPS SSH key not set up | ✅ Done |
+| 3 | GitHub secrets not set | ✅ Done |
 | 4 | test.ailaopo.online DNS not configured | 🔴 Blocking test access |
 
 ## Environment Variables
 
 | Var | Set? | Where |
 |-----|------|-------|
-| `DOCKER_USERNAME` | ❌ | GitHub secret |
-| `DOCKER_PASSWORD` | ❌ | GitHub secret |
-| `VPS_HOST` | ❌ | GitHub secret |
-| `VPS_USER` | ❌ | GitHub secret |
-| `SSH_PRIVATE_KEY` | ❌ | GitHub secret |
-| `SESSION_SECRET` | ❌ | GitHub secret + VPS `.env` |
-| `ADMIN_EMAIL` | ❌ | GitHub secret + VPS `.env` |
+| `DOCKER_USERNAME` | ✅ | GitHub secret |
+| `DOCKER_PASSWORD` | ✅ | GitHub secret |
+| `VPS_HOST` | ✅ | GitHub secret |
+| `VPS_USER` | ✅ | GitHub secret |
+| `SSH_PRIVATE_KEY` | ✅ | GitHub secret |
+| `SESSION_SECRET` | ✅ | GitHub secret + VPS `.env` |
+| `ADMIN_EMAIL` | ✅ | GitHub secret + VPS `.env` |
 | `SENDGRID_API_KEY` | ❌ (optional) | GitHub secret |
 
 **Format note:** Docker Hub password/token is passed via stdin in the SSH script (line in deploy.yml). Consider using a read-only token for pull-only operations to minimize risk.
