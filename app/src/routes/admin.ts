@@ -64,8 +64,9 @@ router.get('/requests/:id', async (req: Request, res: Response) => {
 router.post('/requests/:id/approve', async (req: Request, res: Response) => {
   try {
     const slug = crypto.randomUUID();
+    const dateStr = new Date().toISOString().split('T')[0];
 
-    const agentDir = path.join(__dirname, '../../data/agents', slug);
+    const agentDir = path.join(__dirname, '../../data/agents', dateStr, slug);
     fs.mkdirSync(agentDir, { recursive: true });
 
     const placeholderHTML = `<!DOCTYPE html>
@@ -128,7 +129,7 @@ router.post('/requests/:id/upload', async (req: Request, res: Response) => {
 
   try {
     const agent = await pool.query(
-      'SELECT unique_slug FROM agent_requests WHERE id = $1',
+      'SELECT unique_slug, created_at FROM agent_requests WHERE id = $1',
       [req.params.id]
     );
 
@@ -137,7 +138,8 @@ router.post('/requests/:id/upload', async (req: Request, res: Response) => {
     }
 
     const slug = agent.rows[0].unique_slug;
-    const destPath = path.join(__dirname, '../../data/agents', slug, 'index.html');
+    const dateStr = new Date(agent.rows[0].created_at).toISOString().split('T')[0];
+    const destPath = path.join(__dirname, '../../data/agents', dateStr, slug, 'index.html');
     fs.writeFileSync(destPath, file.data);
 
     await pool.query(

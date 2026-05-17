@@ -61,7 +61,8 @@ router.get('/:slug', async (req: Request, res: Response) => {
       return res.status(403).send('Access denied. This agent is not shared with you.');
     }
 
-    const htmlPath = path.join(__dirname, '../../data/agents', req.params.slug, 'index.html');
+    const dateStr = new Date(a.created_at).toISOString().split('T')[0];
+    const htmlPath = path.join(__dirname, '../../data/agents', dateStr, req.params.slug, 'index.html');
 
     if (!fs.existsSync(htmlPath)) {
       return res.render('agent/not-ready', { title: a.name, name: a.name });

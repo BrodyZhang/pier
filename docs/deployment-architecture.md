@@ -65,9 +65,12 @@ Routes traffic by domain name:
 
 | Domain | Destination |
 |--------|-------------|
-| `test.ailaopo.online:80` | `app-test:3000` (via Docker network) |
-| `ailaopo.online:80` | 301 redirect → HTTPS |
+| `test.ailaopo.online:80` | `.well-known/acme-challenge/` (cert renewal), else 301 → HTTPS |
+| `test.ailaopo.online:443` | SSL terminate → `app-test:3000` |
+| `ailaopo.online:80` | `.well-known/acme-challenge/` (cert renewal), else 301 → HTTPS |
 | `ailaopo.online:443` | SSL terminate → `app-prod:3000` |
+
+Both domains have SSL certs at `/etc/letsencrypt/live/` mounted read-only into the router container.
 
 - SSL certs mounted from host `/etc/letsencrypt` (read-only)
 - No Node.js, no dynamic config — pure nginx
@@ -135,15 +138,21 @@ Browser → http://ailaopo.online:80
   ↓ nginx → return 301 https://$host$request_uri
 ```
 
-### Test Domain (http://test.ailaopo.online)
+### Test Domain (https://test.ailaopo.online)
 
 ```
-Browser → http://test.ailaopo.online:80
-  ↓ nginx → proxy_pass http://app-test:3000
+Browser → https://test.ailaopo.online:443
+  ↓ VPS firewall → container router:443
+  ↓ nginx SSL terminate (/etc/letsencrypt/live/test.ailaopo.online/)
+  ↓ proxy_pass http://app-test:3000
   ↓ app-test (Node.js) renders response
 ```
 
-No SSL, no redirect for test domain.
+HTTP → HTTPS redirect:
+```
+Browser → http://test.ailaopo.online:80
+  ↓ nginx → return 301 https://$host$request_uri
+```
 
 ---
 
@@ -282,7 +291,41 @@ PROD_VERSION=v20260517-00000042
 
 ---
 
-## 9. Volumes & Persistence
+## 9. Agent HTML Storage
+
+Agent HTML files are stored in date-based subdirectories:
+
+```
+/app/data/agents/          ← Docker volume mount point
+├── 2026-05-17/            ← date of approval
+│   ├── {uuid-slug}/
+│   │   ├── index.html     ← uploaded by admin
+│   │   └── placeholder-pls-replace.html
+│   └── {other-slug}/
+│       └── index.html
+└── 2026-05-18/
+    └── ...
+```
+
+- Date derived from `agent_requests.created_at` (DB column)
+- Slug is a UUID, used in the public URL: `/agent/{slug}`
+- Separate volumes for test and prod (`agent-data-test`, `agent-data-prod`)
+- Directory created dynamically by `fs.mkdirSync` in `admin.ts` approve handler
+- View handler reads from `{date}/{slug}/index.html`
+
+---
+
+## 10. Session & Cookie Configuration
+
+Since the app runs behind nginx reverse proxy:
+
+- `app.set('trust proxy', 1)` — Express trusts `X-Forwarded-Proto` from nginx
+- `cookie.secure: 'auto'` — cookie secure flag auto-detects HTTPS vs HTTP
+- Without these: session cookie with `secure: true` would NOT be set over the internal HTTP connection between nginx and Node
+
+---
+
+## 11. Volumes & Persistence
 
 | Volume | Mount | Used By |
 |--------|-------|---------|
@@ -295,7 +338,7 @@ Test and prod have **separate volumes** — uploaded agent HTML files don't mix.
 
 ---
 
-## 10. Startup Sequence
+## 12. Startup Sequence
 
 1. Docker Compose creates internal network
 2. `pier-db-1` starts, runs `pg_isready` health check
@@ -308,7 +351,7 @@ Test and prod have **separate volumes** — uploaded agent HTML files don't mix.
 
 ---
 
-## 11. Everything Runs Inside Docker
+## 13. Everything Runs Inside Docker
 
 **Never install anything on the VPS host directly.**
 
@@ -336,14 +379,16 @@ sudo docker exec -it pier-app-test-1 sh         # Shell inside test container
 
 ---
 
-## 12. Key Files Reference
+## 14. Key Files Reference
 
 | File | Purpose |
 |------|---------|
 | `docker-compose.yml` | 4-service orchestration (router, app-test, app-prod, db) |
 | `Dockerfile` | Two-stage Node.js image build |
 | `Dockerfile.router` | nginx:alpine image for routing |
-| `nginx/router.conf` | nginx config — 3 server blocks routing test/prod |
+| `nginx/router.conf` | nginx config — 4 server blocks (HTTP+HTTPS for test, HTTP+HTTPS for prod) |
 | `.github/workflows/deploy.yml` | CI/CD pipeline definition |
 | `app/src/server.ts` | Express entry point (port 3000) |
 | `app/src/services/db.ts` | Database pool + schema init + admin seed |
+| `app/src/routes/admin.ts` | Admin approve/upload handlers (date-based dirs) |
+| `app/src/routes/agent.ts` | Agent view handler (reads from date-based dirs) |

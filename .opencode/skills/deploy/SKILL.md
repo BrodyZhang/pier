@@ -29,22 +29,17 @@ description: Use when the user asks you to deploy, push, or release the project.
 - All debugging via `sudo docker logs <container>` or `sudo docker exec -it <container> sh`
 - All config changes: modify files in repo, rebuild and redeploy via GitHub Actions
 
-## CRITICAL: Test-First Deploy
+## Architecture: 3 Environments
 
-**Push to master NEVER touches production.** The flow is:
-
-```
-push → build :latest → deploy to app-test only (test.ailaopo.online)
-      ↓
-      user tests on http://test.ailaopo.online/
-      ↓
-      if OK → manually promote to production
-      ↓
-      if not OK → fix + push again (still only affects test)
-```
+| Environment | Domain | DB | Deploy Trigger |
+|-------------|--------|----|----------------|
+| **Dev** | Local machine | `pier_dev` | Manual `npm run dev` |
+| **Test** | `test.ailaopo.online` (HTTPS) | `pier_test` | Git push → CI/CD (auto) |
+| **Prod** | `ailaopo.online` (HTTPS) | `pier_prod` | Manual SSH promote (only after test confirmed) |
 
 - `app-test` always runs `:latest` (every push redeploys it)
 - `app-prod` is NEVER restarted by push deploy
+- Databases auto-created by `initDB()` in `db.ts`
 
 ## Steps
 
@@ -62,7 +57,7 @@ git push origin master
 
 ### 3. Verify on Test
 - Check GitHub Actions tab for green checkmark
-- Open `http://test.ailaopo.online/` to verify test deployment
+- Open `https://test.ailaopo.online/` to verify test deployment
 - Test all features: register, login, submit agent, admin flows
 
 ## Production Promotion
@@ -103,7 +98,9 @@ docker compose up -d app-prod
 
 ### 2. SSL Certificate
 [MANUAL] The human must:
-- On VPS: `certbot --nginx -d ailaopo.online -d www.ailaopo.online`
+- On VPS: `certbot certonly --standalone -d ailaopo.online -d www.ailaopo.online` (stop router first)
+- For test domain: `certbot certonly --standalone -d test.ailaopo.online` (stop router first)
+- Certs at `/etc/letsencrypt/live/` are mounted read-only into router container
 
 ### 3. GitHub Secrets & Variables
 [MANUAL] The human must set these in GitHub repo Settings → Secrets and variables → Actions:

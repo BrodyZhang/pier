@@ -23,6 +23,7 @@ services:
       - DATABASE_URL=postgres://pier:pier@db:5432/pier_test
       - SESSION_SECRET=${SESSION_SECRET:-change-me}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - NODE_ENV=production
     depends_on:
       db:
