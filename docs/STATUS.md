@@ -32,7 +32,7 @@
 ## Development Tasks
 
 ### Completed
-- [x] Project structure & docs (architecture, requirements, tech-design)
+- [x] Project structure & docs (architecture, requirements, tech-design, deployment-architecture)
 - [x] Backend: server.ts, types, middleware, all routes, all services
 - [x] Views: all 12 EJS templates
 - [x] Docker: two-stage build, compose with postgres, nginx reverse proxy
@@ -43,20 +43,18 @@
 - [x] Test domain: test.ailaopo.online HTTP support
 - [x] Status tracking: docs/STATUS.md created
 - [x] CI monitor skill: .opencode/skills/ci-monitor/SKILL.md
-
-### In Progress
-- [ ] 🔄 Build #41 — fix port conflict, verify deploy
+- [x] Deployment architecture doc: docs/deployment-architecture.md
 
 ### Next (Priority Order)
-1. ✅ ~~Push code to GitHub~~ (done)
-2. 🔲 Manual: VPS SSH public key setup (instructions below)
-3. 🔲 Manual: Set GitHub secrets
-4. 🔲 GitHub Actions: first build & deploy
-5. 🔲 Test: access test.ailaopo.online, register/login flow
-6. 🔲 Fix: TypeScript compilation errors (if any, from Docker build log)
-7. 🔲 Test: admin approve/reject/upload flow
-8. 🔲 Test: agent page view & share flow
-9. 🔲 Optional: SSL for test.ailaopo.online via certbot
+1. ✅ ~~DNS configured for test.ailaopo.online~~ (done)
+2. ✅ ~~Container debug: cp crash loop fix~~ (done)
+3. ✅ ~~Image pull fix: use pre-built image from Docker Hub~~ (done)
+4. ✅ ~~DB connection fix: DATABASE_URL not used by db.ts~~ (done)
+5. 🔲 Test: register/login flow on test.ailaopo.online
+6. 🔲 Test: admin approve/reject/upload flow
+7. 🔲 Test: agent page view & share flow
+8. 🔲 Optional: SSL for test.ailaopo.online via certbot
+9. 🔲 Optional: SendGrid integration for email verification
 
 ### Future (Backlog)
 - [ ] Email notifications (SendGrid integration)
@@ -70,10 +68,7 @@
 
 | # | Issue | Status |
 |---|-------|--------|
-| 1 | TypeScript compilation | ✅ Passed in build #40 |
-| 2 | Docker image build & push | ✅ Passed in build #40 |
-| 3 | Deploy step — port 80 conflict (old container) | 🔴 Fix: added stop/rm old containers in deploy.yml |
-| 4 | test.ailaopo.online DNS not configured | 🔴 Blocking test access |
+| 1 | None currently | ✅ All resolved |
 
 ## Environment Variables
 

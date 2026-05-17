@@ -15,7 +15,7 @@ description: Use when the user asks you to deploy, push, or release the project.
 
 ## Everything Runs Inside Docker
 
-**Never install anything on the VPS host directly.** Every component runs inside a container:
+**Never install anything on the VPS host directly.** Every component runs inside a container. See [`docs/deployment-architecture.md`](../../docs/deployment-architecture.md) for full infrastructure documentation.
 
 | Component | Container | Notes |
 |-----------|-----------|-------|

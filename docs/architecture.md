@@ -1,45 +1,39 @@
 # Architecture Overview
 
+> **Note:** For the current deployed infrastructure (containers, networking, CI/CD), see [`deployment-architecture.md`](./deployment-architecture.md). This doc covers application-level architecture and user flows.
+
 ## System Context
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    Internet                              │
-└──────────┬──────────────────────────┬───────────────────┘
+┌──────────────────────────────────────────────────────┐
+│                    Internet                            │
+└──────────┬──────────────────────────┬─────────────────┘
            │                          │
            ▼                          ▼
-    ailaopo.online:443         mail.ailaopo.online
+    ailaopo.online             test.ailaopo.online
+    (443 HTTPS)                 (80 HTTP)
            │                          │
-           ▼                          ▼
-    ┌──────────────────────────────────────────────┐
-    │         Azure VPS (Ubuntu 24.04)              │
-    │                                               │
-    │  ┌─────────────────────────────────────────┐  │
-    │  │         Docker Compose                   │  │
-    │  │                                          │  │
-    │  │  ┌──────┐    ┌──────────┐               │  │
-    │  │  │nginx ├────►  webapp  │               │  │
-    │  │  │:80   │    │ (Node.js │               │  │
-    │  │  │:443  │◄───│ + TS)    │               │  │
-    │  │  └──┬───┘    └────┬─────┘               │  │
-    │  │     │             │                      │  │
-    │  │     │      ┌──────▼───────┐              │  │
-    │  │     └──────►  PostgreSQL  │              │  │
-    │  │            └──────────────┘              │  │
-    │  │                                          │  │
-    │  └──────────────────────────────────────────┘  │
-    │                                               │
-    │  Data: /data/agents/<uuid>/index.html          │
-    │  SSL: /etc/letsencrypt (host mount)            │
-    │                                               │
-    └───────────────────────────────────────────────┘
-           │
-           ▼
-    ┌──────────────────────┐
-    │    SendGrid API      │  ← Email verification codes
-    │    (cloud, no VPS)   │     (no mail server on VPS)
-    └──────────────────────┘
+           └──────────┬───────────────┘
+                      ▼
+        ┌────────────────────────────────────┐
+        │   Azure VPS (Ubuntu 24.04)         │
+        │                                    │
+        │   ┌────────────────────────────┐   │
+        │   │  pier-app-1 (nginx+Node)    │   │
+        │   │  Ports 80,443 → nginx      │   │
+        │   │  → proxy to :3000 (Node)   │   │
+        │   └──────────┬─────────────────┘   │
+        │              │                      │
+        │   ┌──────────▼──────────────────┐   │
+        │   │  pier-db-1 (PostgreSQL 16)  │   │
+        │   └─────────────────────────────┘   │
+        │                                    │
+        │  SSL: /etc/letsencrypt (host mount) │
+        │  Data: agent-data volume            │
+        └────────────────────────────────────┘
 ```
+
+> For detailed deployment architecture, see [`deployment-architecture.md`](./deployment-architecture.md).
 
 ## User Flow
 
@@ -99,35 +93,29 @@ Visitor ──► Homepage (disclaimer)
 | **Email** | SendGrid API (cloud) | No mail server containers needed |
 | **Agent pages** | Static .html files on disk | Simple, fast, versionable |
 | **Access control** | Middleware per route | Simple enforcement |
-| **Deploy** | Manual docker-compose | Phase 1: simple. Phase 2: CI/CD |
+| **Deploy** | CI/CD via GitHub Actions | Push to master → build → deploy |
 
 ## Container Boundaries
 
 ```
-         ┌─────────────────────────────────┐
-         │           nginx:alpine           │
-         │  Ports: 80→443                   │
-         │  SSL terminator                  │
-         │  Proxies /api/* to webapp        │
-         │  Serves /agent/<slug> → file     │
-         └────────────┬────────────────────┘
-                      │
-         ┌────────────▼────────────────────┐
-         │        webapp (Node.js + TS)     │
-         │  Port: 3000                      │
-         │  Auth, CRUD, review flow         │
-         │  Disclaimer injection            │
-         └────────────┬────────────────────┘
-                      │
-         ┌────────────▼────────────────────┐
-         │     postgres:16-alpine           │
-         │  Port: 5432                      │
-         │  Persistent volume: pgdata       │
-         └─────────────────────────────────┘
-
-Volumes:
-  pgdata     → PostgreSQL data
-  agent_data → Static agent HTML files
+┌──────────────────────────────────────────────────┐
+│  pier-app-1 (single container)                    │
+│                                                   │
+│  ┌──────────────┐     ┌──────────────────────┐   │
+│  │   nginx       │────►  Node.js (Express)    │   │
+│  │   Ports       │     │  Port 3000           │   │
+│  │   80, 443     │◄────│  Auth, CRUD, views   │   │
+│  │   SSL term    │     │  Disclaimer inject   │   │
+│  └──────────────┘     └──────────────────────┘   │
+│         │                    │                    │
+│         │         ┌──────────▼────────────────┐   │
+│         └─────────►  pier-db-1 (PostgreSQL)   │   │
+│                   │  Port 5432 (internal)     │   │
+│                   │  Volume: pg-data          │   │
+│                   └───────────────────────────┘   │
+│                                                   │
+│  Volume: agent-data           SSL: host mount     │
+└──────────────────────────────────────────────────┘
 ```
 
 ## Security Perimeter

@@ -25,7 +25,7 @@ pier/
 │   │   ├── types/
 │   │   │   └── index.ts                # Session augmentation, shared interfaces
 │   │   ├── middleware/
-│   │   │   └── auth.ts                 # requireAuth, requireAdmin middleware
+│   │   │   └── auth.ts                 # requireAuth, requireAdmin middleware (merged)
 │   │   ├── routes/
 │   │   │   ├── auth.ts                 # Register/login with email + 6-digit code
 │   │   │   ├── dashboard.ts            # GET /dashboard — user's agents & shared
@@ -52,9 +52,10 @@ pier/
 │           └── review.ejs              # Review/approve/reject/upload HTML
 │
 ├── docs/
-│   ├── architecture.md                 # System context, user flow, security perimeter
+│   ├── architecture.md                 # App-level architecture, user flow, security
+│   ├── deployment-architecture.md      # Infrastructure, containers, CI/CD, networking
 │   ├── requirements.md                 # Feature spec, legal disclaimers, priorities
-│   ├── tech-design.md                  # Schema, routes, stack, deployment plan
+│   ├── tech-design.md                  # Schema, routes, stack, implementation notes
 │   └── STATUS.md                       # Product state, deployment, tasks, blockers, env vars
 │
 ├── nginx/

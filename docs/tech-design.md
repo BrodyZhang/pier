@@ -1,19 +1,8 @@
 # Technical Design Document
 
-## 1. Architecture
+> **Note:** Deployment infrastructure (containers, networking, CI/CD) documented in [`deployment-architecture.md`](./deployment-architecture.md). This doc covers the application design.
 
-```
-User Browser (https://ailaopo.online)
-    ↓
-Azure VPS (Ubuntu 24.04) → Docker Compose
-    │
-    ├── nginx [:80 → :443]  (SSL termination, reverse proxy)
-    ├── webapp [:3000]      (Node.js + TypeScript + Express)
-    │       │                (EJS templates, SendGrid API)
-    │       └── reads from /data/agents/<uuid>/index.html
-    │
-    └── postgres [:5432]    (PostgreSQL 16, persistent volume)
-```
+## 1. Architecture
 
 ## 2. Technology Stack
 
@@ -30,65 +19,7 @@ Azure VPS (Ubuntu 24.04) → Docker Compose
 | **Build** | `tsc` (TypeScript compiler) | .ts → .js at build time |
 | **Process** | Docker restart policy | Crash recovery + daily reboot |
 
-## 3. Directory Structure
-
-```
-pier/
-├── docker-compose.yml          # Multi-container setup
-├── Dockerfile                  # Node.js + TypeScript build
-├── nginx/
-│   ├── nginx.conf
-│   └── entrypoint.sh
-├── app/
-│   ├── package.json
-│   ├── tsconfig.json           # TS compiler config
-│   ├── src/                    # TypeScript source
-│   │   ├── server.ts           # Entry point
-│   │   ├── routes/
-│   │   │   ├── auth.ts
-│   │   │   ├── dashboard.ts
-│   │   │   ├── agent.ts
-│   │   │   └── admin.ts
-│   │   ├── models/
-│   │   │   ├── user.ts
-│   │   │   ├── agent.ts
-│   │   │   ├── version.ts
-│   │   │   ├── share.ts
-│   │   │   └── verification.ts
-│   │   ├── middleware/
-│   │   │   ├── auth.ts
-│   │   │   └── admin.ts
-│   │   ├── services/
-│   │   │   └── mail.ts
-│   │   └── types/
-│   │       └── index.ts        # Shared type definitions
-│   ├── views/                  # EJS templates (unchanged)
-│   │   ├── layout.ejs
-│   │   ├── index.ejs
-│   │   ├── auth/
-│   │   │   ├── login.ejs
-│   │   │   └── register.ejs
-│   │   ├── dashboard.ejs
-│   │   ├── agent/
-│   │   │   ├── new.ejs
-│   │   │   └── detail.ejs
-│   │   └── admin/
-│   │       ├── requests.ejs
-│   │       └── review.ejs
-│   └── dist/                   # Compiled JS output (gitignored)
-├── data/
-│   └── agents/                 # Agent static HTML files
-│       └── <uuid>/
-│           ├── index.html
-│           └── v1.html
-├── docs/
-│   ├── architecture.md         # High-level overview
-│   ├── requirements.md         # Feature requirements
-│   └── tech-design.md          # This document
-├── .env                        # Secrets (not committed)
-├── .gitignore
-└── opencode.json
-```
+> For current file layout, see [`REPO_INDEX.md`](../REPO_INDEX.md).
 
 ## 4. Database Schema
 
@@ -213,81 +144,7 @@ When an agent is `completed`:
 }
 ```
 
-```dockerfile
-# Dockerfile
-FROM node:20-alpine AS builder
-WORKDIR /app
-COPY package.json tsconfig.json ./
-RUN npm ci
-COPY src/ ./src/
-RUN npm run build
-
-FROM node:20-alpine AS runner
-WORKDIR /app
-COPY package.json ./
-RUN npm ci --production
-COPY --from=builder /app/dist ./dist
-COPY views/ ./views/
-EXPOSE 3000
-CMD ["node", "dist/server.js"]
-```
-
-## 7. Docker Compose
-
-```yaml
-version: '3.8'
-
-services:
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: pier
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: pier
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    restart: always
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U pier"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  app:
-    build: .
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      NODE_ENV: production
-      PORT: 3000
-      DB_HOST: postgres
-      DB_USER: pier
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: pier
-      SESSION_SECRET: ${SESSION_SECRET}
-      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
-      SITE_URL: https://ailaopo.online
-    volumes:
-      - agent_data:/app/data/agents
-    restart: always
-
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
-      - /etc/letsencrypt:/etc/letsencrypt:ro
-    depends_on:
-      - app
-    restart: always
-
-volumes:
-  pgdata:
-  agent_data:
-```
+> See [`deployment-architecture.md`](./deployment-architecture.md) for the current Dockerfile, docker-compose, and deployment pipeline.
 
 ## 8. Email (SendGrid Integration)
 
@@ -313,21 +170,9 @@ export async function sendVerificationCode(
 
 Setup (one-time): register on SendGrid, create API key, verify sender.
 
-## 9. Deployment
+> See [`deployment-architecture.md`](./deployment-architecture.md) for CI/CD pipeline and deployment details.
 
-### Phase 1 (manual)
-```bash
-# On VPS
-git pull origin master
-docker compose up -d --build
-```
-
-### Key `docker compose up -d --build`
-- `--build` recompiles TypeScript inside the Dockerfile
-- `-d` runs in background
-- Containers auto-restart on reboot (restart: always)
-
-## 10. Key Implementation Notes
+## 9. Key Implementation Notes
 
 ### Disclaimer Injection
 Agent pages are served **through** Node so it can inject the disclaimer. The flow: authenticate → authorize → read file → inject footer → respond.
@@ -367,23 +212,9 @@ export function requireAdmin(req: Request, res: Response, next: NextFunction) {
 }
 ```
 
-## 11. .env File Format
+> See [`deployment-architecture.md`](./deployment-architecture.md#6-environment--secrets) for current env var reference.
 
-```bash
-# Required (create on VPS, never commit)
-DB_PASSWORD=<random_strong_password>
-SESSION_SECRET=<random_string>
-SENDGRID_API_KEY=<sendgrid_api_key>
-
-# Optional with defaults
-PORT=3000
-DB_HOST=postgres
-DB_USER=pier
-DB_NAME=pier
-SITE_URL=https://ailaopo.online
-```
-
-## 12. Open Technical Questions
+## 10. Open Technical Questions
 
 | # | Question |
 |---|----------|
