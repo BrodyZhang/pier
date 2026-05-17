@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 
 let transporter: nodemailer.Transporter | null = null;
-let transporterPromise: Promise<void> | null = null;
+let transporterReady = false;
 
 function getSmtpConfig(): {
   host: string; port: number; user: string; pass: string; from: string;
@@ -15,13 +15,20 @@ function getSmtpConfig(): {
   return { host, port, user, pass, from };
 }
 
-function initTransporter(): void {
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`timeout ${ms}ms`)), ms)),
+  ]);
+}
+
+async function initTransporter(): Promise<void> {
   const cfg = getSmtpConfig();
   if (!cfg) {
     console.warn('SMTP not configured, using dev mode (console.log)');
     return;
   }
-  transporterPromise = new Promise<void>((resolve) => {
+  try {
     const t = nodemailer.createTransport({
       host: cfg.host,
       port: cfg.port,
@@ -31,30 +38,33 @@ function initTransporter(): void {
       socketTimeout: 5000,
       auth: { user: cfg.user, pass: cfg.pass },
     });
-    t.verify().then(() => {
-      transporter = t;
-      console.log(`SMTP ready: ${cfg.host}:${cfg.port}`);
-    }).catch((err: any) => {
-      console.warn('SMTP verify failed, using dev mode:', err.message);
-      transporter = null;
-    }).finally(() => resolve());
-  });
+    await withTimeout(t.verify(), 8000);
+    transporter = t;
+    console.log(`SMTP ready: ${cfg.host}:${cfg.port}`);
+  } catch (err: any) {
+    console.warn('SMTP verify failed, using dev mode:', err.message);
+    transporter = null;
+  } finally {
+    transporterReady = true;
+  }
 }
+
+const initPromise = initTransporter();
 
 export async function sendVerificationCode(
   email: string,
   code: string
 ): Promise<void> {
-  if (transporterPromise) await transporterPromise;
+  await initPromise;
 
-  if (!transporter) {
-    console.log(`[DEV MAIL] To: ${email} | Code: ${code}`);
-    return;
-  }
+  // Always log to console so user can find code in Docker logs
+  console.log(`[MAIL] To: ${email} | Code: ${code}`);
+
+  if (!transporter) return;
 
   const cfg = getSmtpConfig()!;
   try {
-    await transporter.sendMail({
+    await withTimeout(transporter.sendMail({
       from: cfg.from,
       to: email,
       subject: '验证码 | ailaopo.online',
@@ -65,12 +75,9 @@ export async function sendVerificationCode(
         </p>
         <p style="color:#999;font-size:13px;">有效期 10 分钟。如果不是本人操作请忽略。</p>
       </div>`,
-    });
+    }), 10000);
     console.log(`Email sent to ${email}`);
   } catch (err: any) {
-    console.error(`SMTP send failed for ${email}:`, err.message);
-    console.log(`[FALLBACK MAIL] To: ${email} | Code: ${code}`);
+    console.error(`SMTP failed for ${email}:`, err.message);
   }
 }
-
-initTransporter();
