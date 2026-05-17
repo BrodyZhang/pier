@@ -107,7 +107,7 @@ router.post('/login', async (req: Request, res: Response) => {
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existing.rows.length === 0) {
       return res.render('auth/login', {
-        title: 'Login',         title: 'Login', error: 'Email not registered. Please register first.',
+        title: 'Login', error: 'Email not registered. Please register first.',
         email, sent: false,
       });
     }
