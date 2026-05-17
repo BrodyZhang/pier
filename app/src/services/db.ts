@@ -66,6 +66,15 @@ CREATE TABLE IF NOT EXISTS agent_shares (
     partner_user_id UUID REFERENCES users(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Session store for connect-pg-simple
+CREATE TABLE IF NOT EXISTS user_sessions (
+    sid VARCHAR NOT NULL COLLATE "default",
+    sess JSON NOT NULL,
+    expire TIMESTAMP(6) NOT NULL
+);
+ALTER TABLE user_sessions ADD CONSTRAINT user_sessions_pkey PRIMARY KEY (sid);
+CREATE INDEX IF NOT EXISTS idx_user_sessions_expire ON user_sessions (expire);
 `;
 
 export async function initDB(): Promise<void> {
