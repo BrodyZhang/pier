@@ -126,3 +126,11 @@ Defined in `app/src/services/db.ts:initDB()`:
 | `DEV_API_KEY` | Yes (for AI) | (none) | GitHub secret — Bearer token for `/api/dev/*` |
 | `NODE_ENV` | No | production | docker-compose |
 
+## Automation Files
+
+| File | Purpose |
+|------|---------|
+| `.opencode/skills/auto-task-worker/SKILL.md` | Skill for continuous task polling and processing |
+| `scripts/poll-tasks.ps1` | PowerShell script: `.\scripts\poll-tasks.ps1` (single) or `-Continuous` (loop every N seconds) |
+| `.github/workflows/task-monitor.yml` | Scheduled GitHub Action — checks for tasks every 30 min, reports in Actions tab |
+

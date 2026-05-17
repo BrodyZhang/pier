@@ -20,6 +20,10 @@ All changes must be made by AI agents. You (the AI) are the sole developer.
 4. Always verify: TypeScript compiles (via Docker build since no local node).
 5. Commit with clear messages. Push to trigger deploy.
 
+## Auto Task Worker
+
+Use `.\scripts\poll-tasks.ps1 -Continuous` to continuously poll for pending/rejected tasks on both test and prod. When work is found, load the `auto-task-worker` skill to process tasks. The GitHub Actions `task-monitor` workflow also checks every 30 min and reports in the Actions tab.
+
 ## When Making Changes
 
 - **New routes**: Use `/add-routes` command pattern. Register in server.ts.

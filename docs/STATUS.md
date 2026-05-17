@@ -63,19 +63,29 @@
 - [x] POST /api/dev/upload/:id for AI HTML upload
 - [x] Email via Resend HTTPS API (port 443, no SMTP), fallback to console.log
 - [x] Resend domain verification + DKIM
+- [x] Promote to production: build #66 (v20260517-00000066) pinned via PROD_VERSION
+- [x] Agent "小飞龙" dragão game: HTML5 Canvas mobile game, uploaded to prod
+- [x] Dashboard dev_review bug: fixed showing "已拒绝" → "开发中" (build #67)
+- [x] Agent "小飞龙" UX v2: 20 flowers (up from 12), 4 butterflies (+2pts), 3 bees (+3pts)
+- [x] Auto task worker skill: .opencode/skills/auto-task-worker/SKILL.md
+- [x] Polling script: scripts/poll-tasks.ps1 (single check or -Continuous loop)
+- [x] Task monitor workflow: .github/workflows/task-monitor.yml (scheduled every 30min)
+- [x] Admin backend UI redesign: dark glass-morphism theme across all views (layout, admin, dashboard, auth, agent)
 
 ### Next (Priority Order)
 1. ✅ ~~Register/login flow~~ (tested on test.ailaopo.online)
 2. ✅ ~~Admin approve/reject/upload flow~~ (tested)
 3. ✅ ~~Agent page view & share flow~~ (tested)
 4. ✅ ~~SSL for test.ailaopo.online~~ (certbot done)
-5. ✅ ~~Email verification~~ (Resend HTTPS API, working) |
+5. ✅ ~~Email verification~~ (Resend HTTPS API, working)
+6. ✅ ~~Promote to production~~ (build #66 on ailaopo.online)
 
 ### Future (Backlog)
 - [ ] Rate limiting on auth endpoints
 - [ ] Database migration strategy
 - [ ] Backup strategy
-- [ ] Promote to production
+- [ ] Auto-reply to rejected tasks (webhook/action to auto-fix + re-upload)
+- [ ] Windows Scheduled Task for polling script (runs outside opencode session)
 
 ## Known Issues / Blockers
 

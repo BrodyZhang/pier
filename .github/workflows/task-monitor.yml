@@ -1,0 +1,54 @@
+name: Task Monitor
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # every 30 minutes
+  workflow_dispatch:         # manual trigger
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check prod pending
+        id: prod
+        run: |
+          RESP=$(curl -sk "https://ailaopo.online/api/dev/pending" \
+            -H "Authorization: Bearer ${{ secrets.DEV_API_KEY }}" 2>/dev/null)
+          echo "prod_response=$RESP" >> $GITHUB_OUTPUT
+          PENDING=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('pending',0))" 2>/dev/null || echo 0)
+          echo "prod_pending=$PENDING" >> $GITHUB_OUTPUT
+
+      - name: Check prod rejected
+        id: prod-rejected
+        run: |
+          RESP=$(curl -sk "https://ailaopo.online/api/dev/rejected" \
+            -H "Authorization: Bearer ${{ secrets.DEV_API_KEY }}" 2>/dev/null)
+          COUNT=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d.get('agents',[])))" 2>/dev/null || echo 0)
+          echo "prod_rejected=$COUNT" >> $GITHUB_OUTPUT
+
+      - name: Check test pending
+        id: test
+        run: |
+          RESP=$(curl -sk "https://test.ailaopo.online/api/dev/pending" \
+            -H "Authorization: Bearer ${{ secrets.DEV_API_KEY }}" 2>/dev/null)
+          PENDING=$(echo "$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('pending',0))" 2>/dev/null || echo 0)
+          echo "test_pending=$PENDING" >> $GITHUB_OUTPUT
+
+      - name: Summary
+        run: |
+          echo "## Task Monitor Summary $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | Pending | Rejected |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| prod | ${{ steps.prod.outputs.prod_pending }} | ${{ steps.prod-rejected.outputs.prod_rejected }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| test | ${{ steps.test.outputs.test_pending }} | - |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Alert on pending work
+        if: steps.prod.outputs.prod_pending != '0' || steps.prod-rejected.outputs.prod_rejected != '0' || steps.test.outputs.test_pending != '0'
+        run: |
+          echo "⚠️ Tasks waiting!" >> $GITHUB_STEP_SUMMARY
+          echo "Prod pending: ${{ steps.prod.outputs.prod_pending }}" >> $GITHUB_STEP_SUMMARY
+          echo "Prod rejected: ${{ steps.prod-rejected.outputs.prod_rejected }}" >> $GITHUB_STEP_SUMMARY
+          echo "Test pending: ${{ steps.test.outputs.test_pending }}" >> $GITHUB_STEP_SUMMARY
+          echo "Run the auto-task-worker skill in opencode to process." >> $GITHUB_STEP_SUMMARY

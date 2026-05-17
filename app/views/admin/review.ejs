@@ -1,54 +1,86 @@
-<div class="card" style="max-width:700px;margin:40px auto;">
-    <h1>审核请求 #<%= agent.id %></h1>
-    <p><strong>名称：</strong> <%= agent.name %></p>
-    <p><strong>用户：</strong> <%= agent.user_email %></p>
-    <p><strong>提交时间：</strong> <%= new Date(agent.created_at).toLocaleString() %></p>
-    <p><strong>描述内容：</strong></p>
-    <div style="background:#f8f9fa;padding:15px;border-radius:8px;white-space:pre-wrap;"><%= agent.description %></div>
-    <p><strong>状态：</strong>
-        <span class="status status-<%= agent.status === 'pending_review' ? 'pending' : agent.status === 'in_development' ? 'dev' : agent.status === 'completed' ? 'done' : 'rejected' %>">
-            <% if (agent.status === 'pending_review') { %>待审核<% } else if (agent.status === 'in_development') { %>开发中<% } else if (agent.status === 'completed') { %>已完成<% } else { %>已拒绝<% } %>
-        </span>
-    </p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+    <div class="card">
+        <h2>请求详情</h2>
+        <div style="margin-top:16px;">
+            <div style="margin-bottom:14px;">
+                <span style="font-size:12px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;">名称</span>
+                <div style="font-size:18px;font-weight:600;margin-top:3px;"><%= agent.name %></div>
+            </div>
+            <div style="margin-bottom:14px;">
+                <span style="font-size:12px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;">用户</span>
+                <div style="font-size:14px;margin-top:3px;color:rgba(255,255,255,0.6);"><%= agent.user_email %></div>
+            </div>
+            <div style="margin-bottom:14px;">
+                <span style="font-size:12px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;">提交时间</span>
+                <div style="font-size:14px;margin-top:3px;color:rgba(255,255,255,0.6);"><%= new Date(agent.created_at).toLocaleString() %></div>
+            </div>
+            <div style="margin-bottom:14px;">
+                <span style="font-size:12px;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;">状态</span>
+                <div style="margin-top:6px;">
+                    <span class="status status-<%= agent.status === 'pending_review' ? 'pending' : agent.status === 'in_development' ? 'dev' : agent.status === 'completed' ? 'done' : 'rejected' %>">
+                        <% if (agent.status === 'pending_review') { %>待审核<% } else if (agent.status === 'in_development') { %>开发中<% } else if (agent.status === 'completed') { %>已完成<% } else { %>已拒绝<% } %>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>描述内容</h2>
+        <div style="margin-top:16px;background:rgba(255,255,255,0.04);padding:16px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);white-space:pre-wrap;font-size:14px;line-height:1.7;color:rgba(255,255,255,0.7);"><%= agent.description %></div>
+    </div>
 </div>
 
 <% if (agent.status === 'pending_review') { %>
-<div class="card" style="max-width:700px;margin:20px auto;">
-    <h2>批准</h2>
-    <p style="color:#666;">审批通过后，AI 将根据以下审核信息进行开发。</p>
-    <form method="POST" action="/admin/requests/<%= agent.id %>/approve">
-        <label>审核信息（AI 开发优先级规则）</label>
-        <textarea name="review_notes" rows="5" placeholder="请填写审核信息，AI 将以此作为最高优先级规则进行开发..."></textarea>
-        <button type="submit" class="btn btn-primary" style="margin-top:10px;">批准并开始开发</button>
-    </form>
-</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:4px;">
+    <div class="card" style="border-left:3px solid #38ef7d;">
+        <h2 style="color:#38ef7d;">批准</h2>
+        <p style="font-size:14px;color:rgba(255,255,255,0.5);margin-bottom:16px;">审批通过后，AI 将根据审核信息进行开发。</p>
+        <form method="POST" action="/admin/requests/<%= agent.id %>/approve">
+            <label>审核信息（AI 开发优先级规则）</label>
+            <textarea name="review_notes" rows="4" placeholder="请填写审核信息，AI 将以此作为最高优先级规则进行开发..."></textarea>
+            <button type="submit" class="btn btn-success" style="margin-top:14px;width:100%;justify-content:center;">批准并开始开发</button>
+        </form>
+    </div>
 
-<div class="card" style="max-width:700px;margin:20px auto;">
-    <h2>拒绝</h2>
-    <form method="POST" action="/admin/requests/<%= agent.id %>/reject">
-        <label>拒绝原因</label>
-        <textarea name="reason" rows="3" required placeholder="请填写拒绝原因"></textarea>
-        <button type="submit" class="btn btn-danger" style="margin-top:10px;">拒绝</button>
-    </form>
+    <div class="card" style="border-left:3px solid #ff6b6b;">
+        <h2 style="color:#ff6b6b;">拒绝</h2>
+        <form method="POST" action="/admin/requests/<%= agent.id %>/reject">
+            <label>拒绝原因</label>
+            <textarea name="reason" rows="4" required placeholder="请填写拒绝原因"></textarea>
+            <button type="submit" class="btn btn-danger" style="margin-top:14px;width:100%;justify-content:center;">拒绝请求</button>
+        </form>
+    </div>
 </div>
 <% } %>
 
 <% if (agent.status === 'in_development') { %>
-<div class="card" style="max-width:700px;margin:20px auto;">
+<div class="card" style="border-left:3px solid #667eea;margin-top:4px;">
     <h2>上传 HTML</h2>
-    <form method="POST" action="/admin/requests/<%= agent.id %>/upload" enctype="multipart/form-data">
-        <label>HTML 文件</label>
-        <input type="file" name="html" accept=".html" required>
-        <p style="font-size:13px;color:#666;">上传制作完成的告白页 HTML 文件。</p>
-        <button type="submit" class="btn btn-primary" style="margin-top:10px;">上传并标记完成</button>
-    </form>
+    <div style="margin-top:16px;">
+        <form method="POST" action="/admin/requests/<%= agent.id %>/upload" enctype="multipart/form-data">
+            <label>HTML 文件</label>
+            <input type="file" name="html" accept=".html" required style="padding:10px;">
+            <p style="font-size:13px;color:rgba(255,255,255,0.4);margin-top:8px;">上传制作完成的告白页 HTML 文件。</p>
+            <button type="submit" class="btn btn-primary" style="margin-top:14px;">上传并标记完成</button>
+        </form>
+    </div>
 </div>
 <% } %>
 
 <% if (agent.status === 'completed' && agent.unique_slug) { %>
-<div class="card" style="max-width:700px;margin:20px auto;">
-    <h2>已完成</h2>
-    <p>短链接：<code><%= agent.unique_slug %></code></p>
-    <p><a href="/agent/<%= agent.unique_slug %>" class="btn btn-outline">查看告白页</a></p>
+<div class="card" style="border-left:3px solid #38ef7d;margin-top:4px;">
+    <h2 style="color:#38ef7d;">已完成</h2>
+    <div style="margin-top:16px;">
+        <p style="font-size:14px;color:rgba(255,255,255,0.6);">短链接：<code><%= agent.unique_slug %></code></p>
+        <a href="/agent/<%= agent.unique_slug %>" class="btn btn-outline" style="margin-top:12px;">查看告白页</a>
+    </div>
+</div>
+<% } %>
+
+<% if (agent.status === 'rejected') { %>
+<div class="card" style="border-left:3px solid #ff6b6b;margin-top:4px;">
+    <h2 style="color:#ff6b6b;">已拒绝</h2>
+    <p style="font-size:14px;color:rgba(255,255,255,0.5);margin-top:8px;">拒绝原因：<span style="color:#ff6b6b;"><%= agent.rejection_reason %></span></p>
 </div>
 <% } %>
