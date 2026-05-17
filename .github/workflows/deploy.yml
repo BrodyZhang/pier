@@ -56,11 +56,12 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             # Clone repo if not exists (first-time setup)
-            if [ ! -d /root/pier ]; then
-              git clone https://github.com/BrodyZhang/pier /root/pier
+            PIER_DIR=~/pier
+            if [ ! -d "$PIER_DIR" ]; then
+              git clone https://github.com/BrodyZhang/pier "$PIER_DIR"
             fi
 
-            cd /root/pier
+            cd "$PIER_DIR"
 
             # Create/update .env with secrets
             cat > .env << ENVEOF
@@ -81,4 +82,4 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             sleep 8
-            docker compose -f /root/pier/docker-compose.yml ps
+            docker compose -f ~/pier/docker-compose.yml ps

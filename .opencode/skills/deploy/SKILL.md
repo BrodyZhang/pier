@@ -29,7 +29,7 @@ git push origin master
 
 ### 3. Verify
 - Check GitHub Actions tab for green checkmark
-- Or SSH to VPS: `docker compose -f /root/pier/docker-compose.yml ps`
+- Or SSH to VPS: `cd ~/pier && docker compose ps`
 
 ## Deploy to an Empty VPS (First Time)
 
@@ -37,8 +37,8 @@ git push origin master
 [MANUAL] The human must:
 - `ssh root@<VPS_IP>`
 - Install Docker
-- Clone repo: `git clone https://github.com/BrodyZhang/pier /root/pier`
-- Run: `docker compose -f /root/pier/docker-compose.yml up -d`
+- Clone repo: `git clone https://github.com/BrodyZhang/pier ~/pier`
+- Run: `cd ~/pier && docker compose up -d`
 
 ### 2. SSL Certificate
 [MANUAL] The human must:
