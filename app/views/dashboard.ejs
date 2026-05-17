@@ -16,8 +16,8 @@
                 <tr>
                     <td><%= a.name %></td>
                     <td>
-                        <span class="status status-<%= a.status === 'pending_review' ? 'pending' : a.status === 'in_development' ? 'dev' : a.status === 'completed' ? 'done' : 'rejected' %>">
-                            <% if (a.status === 'pending_review') { %>待审核<% } else if (a.status === 'in_development') { %>开发中<% } else if (a.status === 'completed') { %>已完成<% } else { %>已拒绝<% } %>
+                        <span class="status status-<%= a.status === 'pending_review' ? 'pending' : a.status === 'in_development' ? 'dev' : a.status === 'dev_review' ? 'dev' : a.status === 'completed' ? 'done' : 'rejected' %>">
+                            <% if (a.status === 'pending_review') { %>待审核<% } else if (a.status === 'in_development' || a.status === 'dev_review') { %>开发中<% } else if (a.status === 'completed') { %>已完成<% } else { %>已拒绝<% } %>
                         </span>
                     </td>
                     <td style="font-size:14px;color:#666;"><%= new Date(a.created_at).toLocaleDateString() %></td>
