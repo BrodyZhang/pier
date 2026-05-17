@@ -6,3 +6,6 @@ ssl/
 # opencode session state (user-specific, not shared)
 .opencode/session/
 .opencode/*.json
+
+# test artifacts
+*.txt
