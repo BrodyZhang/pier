@@ -5,63 +5,66 @@
 ```
 User Browser (https://ailaopo.online)
     ↓
-Cloudflare / DNS → Azure VPS (Ubuntu 24.04)
-    ↓
-Nginx (port 80 → 443, Let's Encrypt)
-    ↓
-Docker Compose
-    ├── webapp (Node.js + Express)  :3000
-    ├── postgres (PostgreSQL 16)    :5432
-    └── nginx                       :80, 443
+Azure VPS (Ubuntu 24.04) → Docker Compose
+    │
+    ├── nginx [:80 → :443]  (SSL termination, reverse proxy)
+    ├── webapp [:3000]      (Node.js + TypeScript + Express)
+    │       │                (EJS templates, SendGrid API)
+    │       └── reads from /data/agents/<uuid>/index.html
+    │
+    └── postgres [:5432]    (PostgreSQL 16, persistent volume)
 ```
 
-### Phase 1 (Current)
-```
-Same host, docker-compose up, one machine:
-- Node.js serves both API + static pages
-- PostgreSQL as Docker container
-- nginx as reverse proxy (single container or host nginx)
-- Static agent HTML files stored on host filesystem
-- SendGrid via HTTPS API (no mail server container)
-```
+## 2. Technology Stack
 
-## 2. Technology Choices & Rationale
-
-| Layer | Choice | Why |
-|-------|--------|-----|
+| Layer | Choice | Purpose |
+|-------|--------|---------|
+| **Language** | TypeScript 5.x | Type safety, cleaner code |
 | **Runtime** | Node.js 20 LTS | Per user request |
-| **Framework** | Express.js | Simple, well-known, minimal abstraction |
-| **Template Engine** | EJS | Server-side rendering (no SPA complexity needed) |
-| **Database** | PostgreSQL 16 | Docker container, reliable, JSON support |
-| **Database Driver** | `pg` (node-postgres) | Native PostgreSQL driver |
-| **Session** | `express-session` + `connect-pg-simple` | Server-side sessions in PostgreSQL |
-| **Email** | SendGrid Web API v3 | Free tier (100/day), HTTPS API (no SMTP containers) |
-| **Auth Codes** | `crypto` (built-in) | Generate secure 6-digit codes, stored in DB |
-| **CSS** | Minimal custom CSS | No framework dependency for MVP |
-| **Process Manager** | Docker native | Restart policy handles crashes |
+| **Web Framework** | Express.js 4.x | Minimal, well-known |
+| **Template Engine** | EJS | Server-side render (no SPA) |
+| **Database** | PostgreSQL 16 in Docker | Reltable, JSON support |
+| **DB Driver** | `pg` + `@types/pg` | Native PostgreSQL for TS |
+| **Session** | `express-session` + `connect-pg-simple` | Server-side sessions |
+| **Email** | SendGrid Web API v3 | 100 free emails/day |
+| **Build** | `tsc` (TypeScript compiler) | .ts → .js at build time |
+| **Process** | Docker restart policy | Crash recovery + daily reboot |
 
 ## 3. Directory Structure
 
 ```
 pier/
 ├── docker-compose.yml          # Multi-container setup
-├── Dockerfile                  # Node.js app container
-├── nginx/                      # Nginx configs
+├── Dockerfile                  # Node.js + TypeScript build
+├── nginx/
 │   ├── nginx.conf
 │   └── entrypoint.sh
-├── src/
-│   └── index.html              # Old static homepage (to be replaced)
-├── app/                        # Node.js application
+├── app/
 │   ├── package.json
-│   ├── server.js               # Entry point
-│   ├── routes/
-│   │   ├── auth.js             # Register/Login/Verify
-│   │   ├── dashboard.js        # User dashboard
-│   │   ├── agent.js            # Agent CRUD
-│   │   └── admin.js            # Admin review panel
-│   ├── views/
-│   │   ├── layout.ejs          # Base layout (includes disclaimer + watermark)
-│   │   ├── index.ejs           # Homepage
+│   ├── tsconfig.json           # TS compiler config
+│   ├── src/                    # TypeScript source
+│   │   ├── server.ts           # Entry point
+│   │   ├── routes/
+│   │   │   ├── auth.ts
+│   │   │   ├── dashboard.ts
+│   │   │   ├── agent.ts
+│   │   │   └── admin.ts
+│   │   ├── models/
+│   │   │   ├── user.ts
+│   │   │   ├── agent.ts
+│   │   │   ├── version.ts
+│   │   │   ├── share.ts
+│   │   │   └── verification.ts
+│   │   ├── middleware/
+│   │   │   ├── auth.ts
+│   │   │   └── admin.ts
+│   │   ├── services/
+│   │   │   └── mail.ts
+│   │   └── types/
+│   │       └── index.ts        # Shared type definitions
+│   ├── views/                  # EJS templates (unchanged)
+│   │   ├── layout.ejs
+│   │   ├── index.ejs
 │   │   ├── auth/
 │   │   │   ├── login.ejs
 │   │   │   └── register.ejs
@@ -72,27 +75,18 @@ pier/
 │   │   └── admin/
 │   │       ├── requests.ejs
 │   │       └── review.ejs
-│   ├── models/
-│   │   ├── user.js
-│   │   ├── agent.js
-│   │   ├── version.js
-│   │   ├── share.js
-│   │   └── verification.js
-│   ├── middleware/
-│   │   ├── auth.js             # Session/auth middleware
-│   │   └── admin.js            # Admin role check
-│   └── services/
-│       ├── mail.js             # SendGrid integration
-│       └── registration.js     # Daily cap logic
+│   └── dist/                   # Compiled JS output (gitignored)
 ├── data/
-│   └── agents/                 # Static HTML files
+│   └── agents/                 # Agent static HTML files
 │       └── <uuid>/
 │           ├── index.html
-│           └── v1.html         # Version archives
+│           └── v1.html
 ├── docs/
-│   ├── requirements.md
-│   └── tech-design.md
-├── .env                        # Not committed (secrets)
+│   ├── architecture.md         # High-level overview
+│   ├── requirements.md         # Feature requirements
+│   └── tech-design.md          # This document
+├── .env                        # Secrets (not committed)
+├── .gitignore
 └── opencode.json
 ```
 
@@ -124,7 +118,7 @@ CREATE TABLE agent_requests (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'pending_review',  -- pending_review | in_development | completed | rejected
+    status VARCHAR(20) NOT NULL DEFAULT 'pending_review',
     rejection_reason TEXT,
     unique_slug UUID UNIQUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -149,58 +143,96 @@ CREATE TABLE agent_shares (
 );
 ```
 
-## 5. API / Route Design
+## 5. Route / API Design
 
-### Auth Routes (`/auth`)
+### Public Routes
 
-| Method | Path | Description |
-|--------|------|-------------|
+| Method | Path | Action |
+|--------|------|--------|
+| GET | `/` | Render homepage |
 | GET | `/auth/register` | Show register form |
 | POST | `/auth/register` | Send verification code |
-| POST | `/auth/register/verify` | Submit code to complete registration |
+| POST | `/auth/register/verify` | Submit code → create user |
 | GET | `/auth/login` | Show login form |
 | POST | `/auth/login` | Send verification code |
-| POST | `/auth/login/verify` | Submit code to login |
-| POST | `/auth/logout` | Logout |
+| POST | `/auth/login/verify` | Submit code → start session |
+| POST | `/auth/logout` | Destroy session |
 
-### Dashboard Routes
+### User Routes (auth required)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/dashboard` | User dashboard |
+| Method | Path | Action |
+|--------|------|--------|
+| GET | `/dashboard` | List user's agent requests |
+| GET | `/agent/new` | Show submission form |
+| POST | `/agent/new` | Submit new request |
+| GET | `/agent/:slug` | View agent page (auth + permission) |
+| GET | `/agent/:slug/edit` | Request edit form |
+| POST | `/agent/:slug/edit` | Submit edit request |
+| GET | `/agent/:slug/share` | Share management |
+| POST | `/agent/:slug/share` | Share with partner email |
+| POST | `/agent/:slug/unshare` | Revoke share |
 
-### Agent Routes
+### Admin Routes (auth + admin role)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/agent/new` | New request form |
-| POST | `/agent/new` | Submit request |
-| GET | `/agent/<slug>` | View agent page (requires auth + access) |
-| GET | `/agent/<slug>/edit` | Request edit form |
-| POST | `/agent/<slug>/edit` | Submit edit request |
-| GET | `/agent/<slug>/share` | Share management page |
-| POST | `/agent/<slug>/share` | Share with partner email |
-| POST | `/agent/<slug>/unshare` | Revoke share |
-
-### Admin Routes
-
-| Method | Path | Description |
-|--------|------|-------------|
+| Method | Path | Action |
+|--------|------|--------|
 | GET | `/admin` | Admin dashboard |
-| GET | `/admin/requests` | All requests queue |
-| GET | `/admin/requests/<id>` | Review specific request |
-| POST | `/admin/requests/<id>/review` | Approve/reject with optional reason |
-| POST | `/admin/requests/<id>/complete` | Mark as completed (after deploying HTML) |
+| GET | `/admin/requests` | Queue of all pending requests |
+| GET | `/admin/requests/:id` | Review specific request |
+| POST | `/admin/requests/:id/review` | Approve or reject |
+| POST | `/admin/requests/:id/complete` | Mark as completed (after deploying HTML) |
 
-### Serving Agent Pages
+### Agent Page Serving
 
-When an agent is `completed`, the static HTML at `data/agents/<uuid>/index.html` is served at `/agent/<slug>`. The Node.js app:
-1. Verifies auth + access permission
-2. Reads the `.html` file from disk
-3. Injects the disclaimer footer
-4. Serves the modified HTML to the user
+When an agent is `completed`:
+1. User requests `GET /agent/:slug`
+2. Middleware checks: logged-in + (user is creator or partner)
+3. If authorized, read `data/agents/<uuid>/index.html` from disk
+4. Inject disclaimer footer into the HTML
+5. Return the modified HTML
 
-## 6. Docker Compose Setup
+## 6. TypeScript Configuration
+
+```json
+// tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+```dockerfile
+# Dockerfile
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package.json tsconfig.json ./
+RUN npm ci
+COPY src/ ./src/
+RUN npm run build
+
+FROM node:20-alpine AS runner
+WORKDIR /app
+COPY package.json ./
+RUN npm ci --production
+COPY --from=builder /app/dist ./dist
+COPY views/ ./views/
+EXPOSE 3000
+CMD ["node", "dist/server.js"]
+```
+
+## 7. Docker Compose
 
 ```yaml
 version: '3.8'
@@ -248,7 +280,6 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
       - /etc/letsencrypt:/etc/letsencrypt:ro
-      - agent_data:/usr/share/nginx/agents:ro
     depends_on:
       - app
     restart: always
@@ -258,93 +289,104 @@ volumes:
   agent_data:
 ```
 
-## 7. Email (SendGrid)
+## 8. Email (SendGrid Integration)
 
-### Setup Steps (done once)
+```typescript
+// app/src/services/mail.ts
+import sgMail from '@sendgrid/mail';
 
-1. Register at https://sendgrid.com (free tier)
-2. Create API Key with "Mail Send" permission
-3. Verify sender email or domain
-4. Add DNS record in ailaopo.online domain settings
+sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 
-### Integration
-
-```javascript
-// services/mail.js
-const sgMail = require('@sendgrid/mail');
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
-async function sendCode(email, code) {
+export async function sendVerificationCode(
+  email: string,
+  code: string
+): Promise<void> {
   await sgMail.send({
     to: email,
     from: 'noreply@ailaopo.online',
     subject: '你的验证码 / Your Verification Code',
-    html: `<p>你的验证码是: <b>${code}</b></p>`
+    html: `<p>你的验证码是: <b>${code}</b></p>
+           <p>有效期10分钟 / Valid for 10 minutes</p>`,
   });
 }
 ```
 
-> No SMTP containers needed. No mail server on VPS. Just an HTTPS API call.
+Setup (one-time): register on SendGrid, create API key, verify sender.
 
-## 8. Deployment Strategy
+## 9. Deployment
 
-### Phase 1 (Current)
-```
-1. VPS has Docker + docker-compose
-2. SSH into VPS
-3. git clone/pull on VPS
-4. docker-compose up -d
-5. Nginx terminates SSL, proxies to Node app
-```
-
-### Phase 2 (Future - GitHub Actions CD)
-```
-1. Push to master → build Docker image → push to registry
-2. SSH to VPS → docker-compose pull && docker-compose up -d
-```
-
-For now, Phase 1 keeps things simple.
-
-## 9. Initial Setup (One-Time)
-
+### Phase 1 (manual)
 ```bash
-# 1. Install Docker + docker-compose (if not already)
-sudo apt update && sudo apt install docker.io docker-compose-v2
-
-# 2. Clone repo on VPS
-git clone https://github.com/BrodyZhang/pier.git /opt/pier
-cd /opt/pier
-
-# 3. Create .env file
-cat > .env << 'EOF'
-DB_PASSWORD=generate_a_strong_password
-SESSION_SECRET=generate_a_random_secret
-SENDGRID_API_KEY=your_sendgrid_api_key
-EOF
-
-# 4. Setup Let's Encrypt (already done for ailaopo.online)
-
-# 5. Start services
-docker compose up -d
+# On VPS
+git pull origin master
+docker compose up -d --build
 ```
 
-## 10. Important Development Notes
+### Key `docker compose up -d --build`
+- `--build` recompiles TypeScript inside the Dockerfile
+- `-d` runs in background
+- Containers auto-restart on reboot (restart: always)
+
+## 10. Key Implementation Notes
 
 ### Disclaimer Injection
-Agent pages should have the disclaimer injected programmatically, not manually added to each HTML file. The Node app wraps the static HTML with a disclaimer footer before serving.
+Agent pages are served **through** Node so it can inject the disclaimer. The flow: authenticate → authorize → read file → inject footer → respond.
+
+### Registration Daily Cap
+```typescript
+const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+const count = await pool.query(
+  'SELECT COUNT(*) FROM users WHERE registration_date = CURRENT_DATE'
+);
+if (parseInt(count.rows[0].count) >= 100) {
+  return res.status(403).send('Daily registration limit reached');
+}
+```
 
 ### Session Security
-- Use `express-session` with PostgreSQL store
-- Session secret in `.env`, never in code
-- HTTP-only cookies
-- Session expiration: 24h
-
-### Registration Cap
-```sql
--- Check daily registration count
-SELECT COUNT(*) FROM users WHERE registration_date = CURRENT_DATE;
-```
-If >= 100, reject new registrations for the day.
+- `express-session` backed by PostgreSQL
+- Session secret from `.env`, never hardcoded
+- HTTP-only cookies, secure in production
+- Session TTL: 24 hours
 
 ### Watermark
-Every served page must include: "AI 自动化学习中..." watermark + legal disclaimer.
+Every served page must include bottom-right watermark: "AI 自动化学习中..."
+
+### Middleware Pattern
+```typescript
+// middleware/auth.ts
+export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.session.userId) return res.redirect('/auth/login');
+  next();
+}
+
+// middleware/admin.ts
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  if (req.session.role !== 'admin') return res.status(403).send('Forbidden');
+  next();
+}
+```
+
+## 11. .env File Format
+
+```bash
+# Required (create on VPS, never commit)
+DB_PASSWORD=<random_strong_password>
+SESSION_SECRET=<random_string>
+SENDGRID_API_KEY=<sendgrid_api_key>
+
+# Optional with defaults
+PORT=3000
+DB_HOST=postgres
+DB_USER=pier
+DB_NAME=pier
+SITE_URL=https://ailaopo.online
+```
+
+## 12. Open Technical Questions
+
+| # | Question |
+|---|----------|
+| T-1 | Nginx config: should nginx serve agent static files directly (faster), or always proxy through Node? (Decision: proxy through Node for auth check + disclaimer injection) |
+| T-2 | How to create first admin user? (seed from .env ADMIN_EMAIL variable on first startup) |
+| T-3 | Database migration strategy? (manual .sql files + node script, or use a migration library like `node-pg-migrate`) |
