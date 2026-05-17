@@ -1,17 +1,19 @@
 import { Pool } from 'pg';
 
-let pool: Pool;
-if (process.env.DATABASE_URL) {
-  pool = new Pool({ connectionString: process.env.DATABASE_URL });
-} else {
-  pool = new Pool({
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432'),
-    user: process.env.DB_USER || 'pier',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'pier',
-  });
+function getConnectionString(): string {
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  const user = process.env.DB_USER || 'pier';
+  const pw = process.env.DB_PASSWORD || '';
+  const host = process.env.DB_HOST || 'localhost';
+  const port = process.env.DB_PORT || '5432';
+  const db = process.env.DB_NAME || 'pier';
+  return `postgres://${user}:${pw}@${host}:${port}/${db}`;
 }
+
+const connStr = getConnectionString();
+
+// Pool created lazily — pg does not connect until first query
+const pool = new Pool({ connectionString: connStr });
 
 export default pool;
 
@@ -67,6 +69,25 @@ CREATE TABLE IF NOT EXISTS agent_shares (
 `;
 
 export async function initDB(): Promise<void> {
+  // Ensure the target database exists (separate from default postgres db)
+  const dbUrl = process.env.DATABASE_URL;
+  if (dbUrl) {
+    const adminUrl = dbUrl.replace(/\/[^/]+$/, '/postgres');
+    const dbName = dbUrl.split('/').pop();
+    if (dbName && dbName !== 'postgres') {
+      const adminPool = new Pool({ connectionString: adminUrl });
+      try {
+        const result = await adminPool.query('SELECT 1 FROM pg_database WHERE datname = $1', [dbName]);
+        if (result.rows.length === 0) {
+          await adminPool.query(`CREATE DATABASE "${dbName}" OWNER pier`);
+          console.log(`Created database: ${dbName}`);
+        }
+      } finally {
+        await adminPool.end();
+      }
+    }
+  }
+
   await pool.query(schemaSQL);
   console.log('Database schema initialized');
 

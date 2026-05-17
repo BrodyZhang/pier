@@ -29,6 +29,23 @@ description: Use when the user asks you to deploy, push, or release the project.
 - All debugging via `sudo docker logs <container>` or `sudo docker exec -it <container> sh`
 - All config changes: modify files in repo, rebuild and redeploy via GitHub Actions
 
+## CRITICAL: Test-First Deploy
+
+**Push to master NEVER touches production.** The flow is:
+
+```
+push → build :latest → deploy to app-test only (test.ailaopo.online)
+      ↓
+      user tests on http://test.ailaopo.online/
+      ↓
+      if OK → manually promote to production
+      ↓
+      if not OK → fix + push again (still only affects test)
+```
+
+- `app-test` always runs `:latest` (every push redeploys it)
+- `app-prod` is NEVER restarted by push deploy
+
 ## Steps
 
 ### 1. Commit and Push
@@ -41,22 +58,39 @@ git push origin master
 ### 2. Wait for Build
 - GitHub Actions builds Docker image from `Dockerfile`
 - Pushes to Docker Hub with two tags: `:latest` and `:YYYYMMDD-RUNNUMBER`
-- SSHes to VPS, builds router image, pulls app images, runs `docker compose up -d`
+- SSHes to VPS, builds router image, pulls app-test only, runs `docker compose up -d router app-test db`
 
-### 3. Verify
+### 3. Verify on Test
 - Check GitHub Actions tab for green checkmark
-- Or SSH to VPS: `cd ~/pier && docker compose ps`
 - Open `http://test.ailaopo.online/` to verify test deployment
+- Test all features: register, login, submit agent, admin flows
 
 ## Production Promotion
 
-To promote a tested version to production:
+**Only after you confirm test is working:**
 
-1. **Via GitHub UI:** Go to Settings → Variables and secrets → Actions → edit `PROD_VERSION`
-2. Set value to a specific tag (e.g. `v20260517-00000042`) — or re-run latest workflow
-3. The next deploy will pull and restart `app-prod` with the new version
+```bash
+# Via SSH:
+# 1. Pull the specific version that was tested (from GitHub Actions build output)
+ssh azureuser@<VPS_IP>
+cd ~/pier
+docker compose pull app-prod    # pulls :${PROD_VERSION} or :latest
+docker compose up -d app-prod
+```
 
-To revert: set `PROD_VERSION` back to `latest` and redeploy.
+Or to pin a specific version:
+
+```bash
+# 1. Edit .env on VPS
+echo 'PROD_VERSION=v20260517-00000042' >> ~/pier/.env
+
+# 2. Pull and restart prod
+cd ~/pier
+docker compose pull app-prod
+docker compose up -d app-prod
+```
+
+**To revert:** change `PROD_VERSION` back to `latest` and `docker compose up -d app-prod`
 
 ## Deploy to an Empty VPS (First Time)
 

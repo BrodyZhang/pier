@@ -81,14 +81,11 @@ jobs:
             # Build router image (local, nginx config from repo)
             docker compose build router
 
-            # Pull test image (:latest) — always updated on push
+            # Pull only test image — prod is NEVER touched by push deploy
             docker compose pull app-test
 
-            # Pull prod image (PROD_VERSION tag) — only if version changed
-            docker compose pull app-prod
-
-            # Restart all services (router + app-test + app-prod + db)
-            docker compose up -d
+            # Restart test + router + db. app-prod stays untouched.
+            docker compose up -d router app-test db
 
       - name: Verify container status
         uses: appleboy/ssh-action@v1.0.0
@@ -105,8 +102,8 @@ jobs:
             echo ""
             echo "Checking app-test logs (last 3 lines)..."
             docker logs pier-app-test-1 --tail 3 2>/dev/null || echo "no logs"
-            echo "Checking app-prod logs (last 3 lines)..."
-            docker logs pier-app-prod-1 --tail 3 2>/dev/null || echo "no logs"
+            echo "Prod was NOT restarted (unchanged)."
+            docker logs pier-app-prod-1 --tail 1 2>/dev/null || echo "app-prod not running"
 
       - name: Smoke test (external)
         run: |

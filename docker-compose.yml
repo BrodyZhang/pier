@@ -20,7 +20,7 @@ services:
     volumes:
       - agent-data-test:/app/data
     environment:
-      - DATABASE_URL=postgres://pier:pier@db:5432/pier
+      - DATABASE_URL=postgres://pier:pier@db:5432/pier_test
       - SESSION_SECRET=${SESSION_SECRET:-change-me}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
       - NODE_ENV=production
@@ -35,7 +35,7 @@ services:
     volumes:
       - agent-data-prod:/app/data
     environment:
-      - DATABASE_URL=postgres://pier:pier@db:5432/pier
+      - DATABASE_URL=postgres://pier:pier@db:5432/pier_prod
       - SESSION_SECRET=${SESSION_SECRET:-change-me}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
@@ -52,7 +52,7 @@ services:
     environment:
       POSTGRES_USER: pier
       POSTGRES_PASSWORD: pier
-      POSTGRES_DB: pier
+      POSTGRES_DB: postgres
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U pier"]
       interval: 5s

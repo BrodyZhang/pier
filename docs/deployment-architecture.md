@@ -76,55 +76,44 @@ Routes traffic by domain name:
 
 - **Image**: `brodyzhang2026/pier:latest` (always the most recent push)
 - **Purpose**: Test new deployments before promoting to production
-- No `ADMIN_EMAIL` env — test can run without admin seed
+- **Database**: `pier_test` (separate from prod)
 - Separate volume `agent-data-test` for uploaded files
 
 ### app-prod (Node.js 20)
 
 - **Image**: `brodyzhang2026/pier:${PROD_VERSION:-latest}` (pinned version)
 - **Purpose**: Stable production serving real users
+- **Database**: `pier_prod` (separate from test)
 - Has `ADMIN_EMAIL` for admin user seeding
 - Separate volume `agent-data-prod` for uploaded files
 
 ### db (PostgreSQL 16)
 
-- Shared database for both test and production
+- Single PostgreSQL instance, **two separate databases**: `pier_test` and `pier_prod`
+- Test and prod data are fully isolated — different database names in the same server
+- Database auto-created on first startup via `initDB()` (connects to `postgres` admin DB, creates app DB if missing)
 - Health check with `pg_isready` before app containers start
 
 ---
 
-## 3. Version Management
+## 3. Test-First Deploy (CRITICAL)
 
-**Key concept:** test always runs `:latest`, production runs a specific tag.
-
-### Workflow
+**Push to master NEVER touches production.** The deploy cycle:
 
 ```
-Git push → build → push :latest + :v20260517-42 to Docker Hub
-         → deploy.yml pulls :latest for app-test
-         → app-prod keeps running its pinned version
-         → test on test.ailaopo.online
-         → if passed → update PROD_VERSION → restart app-prod
+Git push
+  ↓
+Build :latest + :vYYYYMMDD-RUN on Docker Hub
+  ↓
+deploy.yml → pulls :latest for app-test ONLY
+  ↓         → docker compose up -d router app-test db
+  ↓         → app-prod stays untouched
+  ↓
+User tests on http://test.ailaopo.online/
+  ↓
+if OK → manual promote (SSH: docker compose pull app-prod && docker compose up -d app-prod)
+if not → fix + push again (still only test)
 ```
-
-### Promoting to Production
-
-Set the `PROD_VERSION` GitHub variable to a specific version tag (e.g. `v20260517-00000042`):
-
-```bash
-# Option 1: Via GitHub UI
-# Settings → Variables and secrets → Actions → PROD_VERSION
-
-# Option 2: Via SSH (manual)
-cd ~/pier
-# Edit .env: PROD_VERSION=v20260517-00000042
-docker compose pull app-prod
-docker compose up -d app-prod
-
-# Option 3: Trigger promotion workflow (future)
-```
-
-Default: `PROD_VERSION=latest` (both test and prod run same version).
 
 ---
 
@@ -241,16 +230,32 @@ sequenceDiagram
   Actions->>Actions: curl test.ailaopo.online
 ```
 
-### Deploy Steps
+### Deploy Steps (test-only — never touches prod)
 
 1. `git pull origin master` — updates docker-compose.yml, router config
 2. Write `.env` — `SESSION_SECRET`, `SENDGRID_API_KEY`, `ADMIN_EMAIL`, `PROD_VERSION`
 3. `docker compose build router` — rebuilds nginx from `Dockerfile.router`
-4. `docker compose pull app-test` — pulls `:latest`
-5. `docker compose pull app-prod` — pulls `${PROD_VERSION}` tag
-6. `docker compose up -d` — starts/restarts all services
-7. Verify — check `docker compose ps`, container logs
-8. Smoke test — curl `http://test.ailaopo.online/`
+4. `docker compose pull app-test` — pulls `:latest` (only test)
+5. `docker compose up -d router app-test db` — restarts test only, **prod stays untouched**
+6. Verify — check `docker compose ps`, container logs
+7. Smoke test — curl `http://test.ailaopo.online/`
+
+### Production Promotion (Manual)
+
+```bash
+# After testing is confirmed on test.ailaopo.online:
+ssh azureuser@<VPS_IP>
+cd ~/pier
+
+# Option A: promote same :latest
+docker compose pull app-prod
+docker compose up -d app-prod
+
+# Option B: pin a specific version
+echo 'PROD_VERSION=v20260517-00000042' >> .env
+docker compose pull app-prod
+docker compose up -d app-prod
+```
 
 ---
 
@@ -258,7 +263,7 @@ sequenceDiagram
 
 | Variable | Source | Used By |
 |----------|--------|---------|
-| `DATABASE_URL` | docker-compose.yml | app-test, app-prod |
+| `DATABASE_URL` | docker-compose.yml | app-test → `pier_test`, app-prod → `pier_prod` |
 | `SESSION_SECRET` | GitHub secret → VPS .env → container | app-test, app-prod |
 | `SENDGRID_API_KEY` | GitHub secret → VPS .env → container | app-test, app-prod |
 | `ADMIN_EMAIL` | GitHub secret → VPS .env → container | app-prod only |
@@ -286,7 +291,7 @@ PROD_VERSION=v20260517-00000042
 | `agent-data-prod` | `/app/data` | app-prod |
 | Host: `/etc/letsencrypt` | `/etc/letsencrypt:ro` | router |
 
-Test and prod have **separate volumes** — uploaded agent HTML files don't mix.
+Test and prod have **separate volumes** — uploaded agent HTML files don't mix. They also use **separate databases** (`pier_test` vs `pier_prod`) within the same PostgreSQL instance.
 
 ---
 
@@ -295,8 +300,10 @@ Test and prod have **separate volumes** — uploaded agent HTML files don't mix.
 1. Docker Compose creates internal network
 2. `pier-db-1` starts, runs `pg_isready` health check
 3. `pier-app-test-1` + `pier-app-prod-1` wait for DB health
-4. `pier-router-1` starts (no dependency on DB, nginx only)
-5. Each Node.js app runs `initDB()` — schema + admin seed (prod only)
+4. `pier-router-1` starts (nginx only, no dependency on DB)
+5. Each Node.js app runs `initDB()`:
+   - First: connects to `postgres` admin DB, creates its own database (`pier_test` or `pier_prod`) if missing
+   - Then: connects to its database, runs schema creation + admin seed (prod only)
 6. Router proxies: `test.ailaopo.online` → `app-test`, `ailaopo.online` → `app-prod`
 
 ---
