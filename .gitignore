@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+data/agents/
+ssl/
+# opencode session state (user-specific, not shared)
+.opencode/session/
+.opencode/*.json

@@ -1,0 +1,25 @@
+<div class="card" style="max-width:450px;margin:40px auto;">
+    <h1>Register</h1>
+    <div class="disclaimer">
+        This is a learning project. Data may be cleared at any time. Must be 18+.
+    </div>
+    <% if (typeof error !== 'undefined' && error) { %>
+        <div class="error"><%= error %></div>
+    <% } %>
+    <% if (sent) { %>
+        <div class="success">Verification code sent to <strong><%= email %></strong>. Check your email (or console in dev mode).</div>
+        <form method="POST" action="/auth/register/verify">
+            <input type="hidden" name="email" value="<%= email %>">
+            <label>Verification Code</label>
+            <input type="text" name="code" maxlength="6" required placeholder="Enter 6-digit code">
+            <button type="submit" class="btn btn-primary" style="margin-top:20px;">Verify & Register</button>
+        </form>
+    <% } else { %>
+        <form method="POST">
+            <label>Email</label>
+            <input type="email" name="email" required placeholder="you@example.com" value="<%= typeof email !== 'undefined' ? email : '' %>">
+            <button type="submit" class="btn btn-primary" style="margin-top:20px;">Send Code</button>
+        </form>
+        <p style="margin-top:20px;color:#666;">Already have an account? <a href="/auth/login">Login</a></p>
+    <% } %>
+</div>

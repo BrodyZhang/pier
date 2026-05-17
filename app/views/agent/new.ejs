@@ -1,0 +1,17 @@
+<div class="card" style="max-width:600px;margin:40px auto;">
+    <h1>Create Agent Request</h1>
+    <p style="color:#666;margin-bottom:20px;">Describe what kind of page you want. Our team will review and build it manually.</p>
+    <div class="disclaimer">
+        This is a learning project. No AI is involved. Your page will be manually created by our team. Data may be cleared at any time.
+    </div>
+    <% if (typeof error !== 'undefined' && error) { %>
+        <div class="error"><%= error %></div>
+    <% } %>
+    <form method="POST">
+        <label>Agent Name</label>
+        <input type="text" name="name" required placeholder="e.g. For my love">
+        <label>Description</label>
+        <textarea name="description" rows="6" required placeholder="Describe what you want the page to look like, the tone, colors, any special messages..."></textarea>
+        <button type="submit" class="btn btn-primary" style="margin-top:20px;">Submit Request</button>
+    </form>
+</div>

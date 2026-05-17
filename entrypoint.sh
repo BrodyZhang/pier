@@ -1,29 +1,36 @@
 #!/bin/sh
+set -e
 
+# Create required directories
+mkdir -p /var/www/html /app/data/agents
+
+# If Let's Encrypt certs exist, configure SSL
 if [ -f "/etc/letsencrypt/live/ailaopo.online/fullchain.pem" ]; then
-    cat > /etc/nginx/conf.d/default.conf << 'EOF'
+    # Copy the static nginx config (already has SSL configured)
+    cp /etc/nginx/http.d/default.conf /etc/nginx/http.d/default.conf
+else
+    # Use a simple HTTP-only config (for initial cert setup)
+    cat > /etc/nginx/http.d/default.conf << 'EOF'
 server {
     listen 80;
     server_name ailaopo.online www.ailaopo.online;
-    return 301 https://$host$request_uri;
-}
 
-server {
-    listen 443 ssl;
-    server_name ailaopo.online www.ailaopo.online;
-
-    ssl_certificate /etc/letsencrypt/live/ailaopo.online/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/ailaopo.online/privkey.pem;
-
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_prefer_server_ciphers off;
+    location /.well-known/acme-challenge/ {
+        root /var/www/html;
+    }
 
     location / {
-        root /usr/share/nginx/html;
-        index index.html;
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 }
 EOF
 fi
 
+# Start Node.js app in background
+node dist/server.js &
+
+# Start nginx in foreground
 exec nginx -g "daemon off;"

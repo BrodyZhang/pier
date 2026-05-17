@@ -1,10 +1,38 @@
-version: '3.8'
-
 services:
-  web:
+  app:
     build: .
     ports:
+      - "80:80"
       - "443:443"
     volumes:
-      - ./ssl:/etc/nginx/ssl:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - agent-data:/app/data
+    environment:
+      - DATABASE_URL=postgres://pier:pier@db:5432/pier
+      - SESSION_SECRET=${SESSION_SECRET:-change-me-in-production}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-}
+      - NODE_ENV=production
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: pier
+      POSTGRES_PASSWORD: pier
+      POSTGRES_DB: pier
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pier"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pg-data:
+  agent-data:

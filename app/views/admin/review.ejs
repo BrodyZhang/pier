@@ -1,0 +1,52 @@
+<div class="card" style="max-width:700px;margin:40px auto;">
+    <h1>Review Request #<%= agent.id %></h1>
+    <p><strong>Name:</strong> <%= agent.name %></p>
+    <p><strong>User:</strong> <%= agent.user_email %></p>
+    <p><strong>Submitted:</strong> <%= new Date(agent.created_at).toLocaleString() %></p>
+    <p><strong>Description:</strong></p>
+    <div style="background:#f8f9fa;padding:15px;border-radius:8px;white-space:pre-wrap;"><%= agent.description %></div>
+    <p><strong>Status:</strong>
+        <span class="status status-<%= agent.status === 'pending_review' ? 'pending' : agent.status === 'in_development' ? 'dev' : agent.status === 'completed' ? 'done' : 'rejected' %>">
+            <%= agent.status.replace(/_/g, ' ') %>
+        </span>
+    </p>
+</div>
+
+<% if (agent.status === 'pending_review') { %>
+<div class="card" style="max-width:700px;margin:20px auto;">
+    <h2>Approve</h2>
+    <p style="color:#666;">Begin development on this agent.</p>
+    <form method="POST" action="/admin/requests/<%= agent.id %>/approve">
+        <button type="submit" class="btn btn-primary">Approve & Start Development</button>
+    </form>
+</div>
+
+<div class="card" style="max-width:700px;margin:20px auto;">
+    <h2>Reject</h2>
+    <form method="POST" action="/admin/requests/<%= agent.id %>/reject">
+        <label>Rejection Reason</label>
+        <textarea name="reason" rows="3" required placeholder="Why was this rejected?"></textarea>
+        <button type="submit" class="btn btn-danger" style="margin-top:10px;">Reject</button>
+    </form>
+</div>
+<% } %>
+
+<% if (agent.status === 'in_development') { %>
+<div class="card" style="max-width:700px;margin:20px auto;">
+    <h2>Upload HTML</h2>
+    <form method="POST" action="/admin/requests/<%= agent.id %>/upload" enctype="multipart/form-data">
+        <label>HTML File</label>
+        <input type="file" name="html" accept=".html" required>
+        <p style="font-size:13px;color:#666;">Upload the rendered agent page HTML.</p>
+        <button type="submit" class="btn btn-primary" style="margin-top:10px;">Upload & Mark Complete</button>
+    </form>
+</div>
+<% } %>
+
+<% if (agent.status === 'completed' && agent.unique_slug) { %>
+<div class="card" style="max-width:700px;margin:20px auto;">
+    <h2>Completed</h2>
+    <p>Slug: <code><%= agent.unique_slug %></code></p>
+    <p><a href="/agent/<%= agent.unique_slug %>" class="btn btn-outline">View Agent Page</a></p>
+</div>
+<% } %>

@@ -1,0 +1,22 @@
+<div class="card" style="max-width:450px;margin:40px auto;">
+    <h1>Login</h1>
+    <% if (typeof error !== 'undefined' && error) { %>
+        <div class="error"><%= error %></div>
+    <% } %>
+    <% if (sent) { %>
+        <div class="success">Code sent to <strong><%= email %></strong>.</div>
+        <form method="POST" action="/auth/login/verify">
+            <input type="hidden" name="email" value="<%= email %>">
+            <label>Verification Code</label>
+            <input type="text" name="code" maxlength="6" required placeholder="Enter 6-digit code">
+            <button type="submit" class="btn btn-primary" style="margin-top:20px;">Verify & Login</button>
+        </form>
+    <% } else { %>
+        <form method="POST">
+            <label>Email</label>
+            <input type="email" name="email" required placeholder="you@example.com" value="<%= typeof email !== 'undefined' ? email : '' %>">
+            <button type="submit" class="btn btn-primary" style="margin-top:20px;">Send Code</button>
+        </form>
+        <p style="margin-top:20px;color:#666;">Don't have an account? <a href="/auth/register">Register</a></p>
+    <% } %>
+</div>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <style>
+        .pier-watermark {
+            position: fixed;
+            bottom: 10px;
+            right: 15px;
+            font-size: 12px;
+            color: rgba(0,0,0,0.15);
+            z-index: 9999;
+            pointer-events: none;
+        }
+        .pier-disclaimer {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px;
+            font-size: 13px;
+            color: #856404;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- pier injection: do not remove -->
+    <div class="pier-disclaimer">
+        ⚠️ This is a personal learning project. No actual AI services are provided. Page may be taken down at any time.
+    </div>
+    <%- agentHtml %>
+    <div class="pier-watermark">Powered by Pier - AI 自动化学习中</div>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h1>My Agents</h1>
+        <a href="/agent/new" class="btn btn-primary">New Request</a>
+    </div>
+</div>
+
+<div class="card">
+    <h2>My Requests</h2>
+    <% if (agents.length === 0) { %>
+        <p style="color:#666;padding:20px 0;">No requests yet. <a href="/agent/new">Create your first one!</a></p>
+    <% } else { %>
+        <table>
+            <tr><th>Name</th><th>Status</th><th>Created</th><th></th></tr>
+            <% agents.forEach(function(a) { %>
+                <tr>
+                    <td><%= a.name %></td>
+                    <td>
+                        <span class="status status-<%= a.status === 'pending_review' ? 'pending' : a.status === 'in_development' ? 'dev' : a.status === 'completed' ? 'done' : 'rejected' %>">
+                            <%= a.status.replace(/_/g, ' ') %>
+                        </span>
+                    </td>
+                    <td style="font-size:14px;color:#666;"><%= new Date(a.created_at).toLocaleDateString() %></td>
+                    <td>
+                        <% if (a.status === 'completed' && a.unique_slug) { %>
+                            <a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">View</a>
+                            <a href="/agent/<%= a.unique_slug %>/share" class="btn btn-outline btn-sm">Share</a>
+                        <% } %>
+                        <% if (a.status === 'rejected' && a.rejection_reason) { %>
+                            <span style="font-size:13px;color:#e74c3c;"><%= a.rejection_reason %></span>
+                        <% } %>
+                    </td>
+                </tr>
+            <% }) %>
+        </table>
+    <% } %>
+</div>
+
+<% if (sharedAgents.length > 0) { %>
+<div class="card">
+    <h2>Shared With Me</h2>
+    <table>
+        <tr><th>Name</th><th>Created by</th><th></th></tr>
+        <% sharedAgents.forEach(function(a) { %>
+            <tr>
+                <td><%= a.name %></td>
+                <td><%= a.creator_email %></td>
+                <td>
+                    <% if (a.unique_slug) { %>
+                        <a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">View</a>
+                    <% } %>
+                </td>
+            </tr>
+        <% }) %>
+    </table>
+</div>
+<% } %>

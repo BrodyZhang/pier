@@ -1,0 +1,29 @@
+<div class="card" style="max-width:500px;margin:40px auto;">
+    <h1>Share Agent</h1>
+    <p style="color:#666;">Agent: <strong><%= agent.name %></strong></p>
+
+    <% if (typeof error !== 'undefined' && error) { %>
+        <div class="error"><%= error %></div>
+    <% } %>
+    <% if (typeof success !== 'undefined' && success) { %>
+        <div class="success"><%= success %></div>
+    <% } %>
+
+    <% if (share) { %>
+        <p style="margin:20px 0;">Shared with: <strong><%= share.partner_email %></strong></p>
+        <form method="POST" action="/agent/<%= agent.unique_slug %>/unshare">
+            <button type="submit" class="btn btn-danger">Unshare</button>
+        </form>
+    <% } else { %>
+        <p style="margin:20px 0;">Share this agent with your partner. Only you two will be able to see it.</p>
+        <form method="POST">
+            <label>Partner's Email</label>
+            <input type="email" name="partnerEmail" required placeholder="partner@example.com">
+            <button type="submit" class="btn btn-primary" style="margin-top:20px;">Share</button>
+        </form>
+    <% } %>
+
+    <% if (agent.unique_slug) { %>
+        <p style="margin-top:20px;color:#666;">Agent URL: <a href="/agent/<%= agent.unique_slug %>">/agent/<%= agent.unique_slug %></a></p>
+    <% } %>
+</div>

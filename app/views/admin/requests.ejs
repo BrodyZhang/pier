@@ -1,0 +1,80 @@
+<div class="card">
+    <h1>🛠️ Agent Requests</h1>
+</div>
+
+<div class="card">
+    <h2>Pending Review</h2>
+    <% if (pending.length === 0) { %>
+        <p style="color:#666;">No pending requests.</p>
+    <% } else { %>
+        <table>
+            <tr><th>Name</th><th>User</th><th>Description</th><th>Date</th><th></th></tr>
+            <% pending.forEach(function(a) { %>
+                <tr>
+                    <td><%= a.name %></td>
+                    <td><%= a.user_email %></td>
+                    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><%= a.description %></td>
+                    <td style="font-size:14px;color:#666;"><%= new Date(a.created_at).toLocaleDateString() %></td>
+                    <td><a href="/admin/requests/<%= a.id %>" class="btn btn-primary btn-sm">Review</a></td>
+                </tr>
+            <% }) %>
+        </table>
+    <% } %>
+</div>
+
+<div class="card">
+    <h2>In Development</h2>
+    <% if (dev.length === 0) { %>
+        <p style="color:#666;">No requests in development.</p>
+    <% } else { %>
+        <table>
+            <tr><th>Name</th><th>User</th><th>Date</th><th></th></tr>
+            <% dev.forEach(function(a) { %>
+                <tr>
+                    <td><%= a.name %></td>
+                    <td><%= a.user_email %></td>
+                    <td style="font-size:14px;color:#666;"><%= new Date(a.created_at).toLocaleDateString() %></td>
+                    <td><a href="/admin/requests/<%= a.id %>" class="btn btn-primary btn-sm">Manage</a></td>
+                </tr>
+            <% }) %>
+        </table>
+    <% } %>
+</div>
+
+<div class="card">
+    <h2>Completed</h2>
+    <% if (completed.length === 0) { %>
+        <p style="color:#666;">No completed requests.</p>
+    <% } else { %>
+        <table>
+            <tr><th>Name</th><th>User</th><th>Slug</th><th></th></tr>
+            <% completed.forEach(function(a) { %>
+                <tr>
+                    <td><%= a.name %></td>
+                    <td><%= a.user_email %></td>
+                    <td><code><%= a.unique_slug %></code></td>
+                    <td><a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">View</a></td>
+                </tr>
+            <% }) %>
+        </table>
+    <% } %>
+</div>
+
+<div class="card">
+    <h2>Rejected</h2>
+    <% if (rejected.length === 0) { %>
+        <p style="color:#666;">No rejected requests.</p>
+    <% } else { %>
+        <table>
+            <tr><th>Name</th><th>User</th><th>Reason</th><th></th></tr>
+            <% rejected.forEach(function(a) { %>
+                <tr>
+                    <td><%= a.name %></td>
+                    <td><%= a.user_email %></td>
+                    <td style="color:#e74c3c;"><%= a.rejection_reason %></td>
+                    <td><a href="/admin/requests/<%= a.id %>" class="btn btn-outline btn-sm">View</a></td>
+                </tr>
+            <% }) %>
+        </table>
+    <% } %>
+</div>
