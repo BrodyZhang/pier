@@ -9,3 +9,5 @@ ssl/
 
 # test artifacts
 *.txt
+reg_response.html
+test5.html
