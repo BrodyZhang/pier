@@ -7,7 +7,7 @@
   "test_domain": "test.ailaopo.online",
   "docker_image": "brodyzhang2026/pier",
 
-  "instructions": ["AGENTS.md", "REPO_INDEX.md"],
+  "instructions": ["AGENTS.md", "REPO_INDEX.md", "docs/STATUS.md"],
 
   "skills": {
     "paths": [".opencode/skills"]

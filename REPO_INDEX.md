@@ -53,7 +53,8 @@ pier/
 ├── docs/
 │   ├── architecture.md                 # System context, user flow, security perimeter
 │   ├── requirements.md                 # Feature spec, legal disclaimers, priorities
-│   └── tech-design.md                  # Schema, routes, stack, deployment plan
+│   ├── tech-design.md                  # Schema, routes, stack, deployment plan
+│   └── STATUS.md                       # Product state, deployment, tasks, blockers
 │
 ├── nginx/
 │   └── nginx.conf                      # Reverse proxy: SSL termination → Node :3000

@@ -43,9 +43,18 @@ These are the ONLY things the human must do themselves:
 | GitHub secrets | Before first deploy | Set SESSION_SECRET, ADMIN_EMAIL, DOCKER_USERNAME, DOCKER_PASSWORD, VPS_HOST, VPS_USER, SSH_PRIVATE_KEY |
 | Quit/restart opencode | After config change | Close terminal, reopen opencode |
 
+## Status Tracking
+
+`docs/STATUS.md` tracks product state, deployment status, tasks, blockers, and env vars. **Update it on every change** that affects:
+- Product state (new features, completed components)
+- Deployment (version deployed, domain changes)
+- Task progress (started, completed, blocked)
+- Known issues (new blockers, resolved issues)
+- Environment variables (added, changed, removed)
+
 ## Repo Index Maintenance
 
-REPO_INDEX.md is the single source of truth for file locations. Update it whenever:
+`REPO_INDEX.md` is the single source of truth for file locations. Update it whenever:
 - A file is added or removed
 - A route or endpoint changes
 - The directory structure changes
