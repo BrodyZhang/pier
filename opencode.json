@@ -1,0 +1,38 @@
+{
+    "name": "pier",
+    "description": "一个自动化的静态网站部署项目，包含GitHub Actions自动化部署到Azure VPS，支持HTTPS/Nginx/Docker",
+    "repository": "https://github.com/BrodyZhang/pier",
+    "files": {
+        "src/index.html": "网站首页内容",
+        "Dockerfile": "Docker镜像构建配置",
+        "nginx.conf": "Nginx服务器配置",
+        "entrypoint.sh": "容器启动脚本，用于检测SSL证书并配置HTTPS",
+        ".github/workflows/deploy.yml": "GitHub Actions自动化部署工作流"
+    },
+    "secrets": {
+        "DOCKER_USERNAME": "Docker Hub用户名",
+        "DOCKER_PASSWORD": "Docker Hub Access Token（需要repo权限）",
+        "VPS_HOST": "Azure VPS公网IP地址",
+        "VPS_USER": "SSH用户名（通常为root）",
+        "SSH_PRIVATE_KEY": "VPS SSH私钥"
+    },
+    "architecture": {
+        "description": "代码push到master → GitHub Actions构建镜像 → 推送到Docker Hub → SSH到VPS重启容器",
+        "flow": [
+            "1. 开发者push代码到GitHub master分支",
+            "2. GitHub Actions自动触发构建",
+            "3. 构建Docker镜像并推送到Docker Hub",
+            "4. SSH远程到VPS执行docker pull和docker run",
+            "5. 容器使用Let's Encrypt证书提供HTTPS服务"
+        ]
+    },
+    "deployment": {
+        "vps_port": "80和443",
+        "domain": "ailaopo.online",
+        "auto_restart": "使用--restart=always策略，VPS重启后自动启动",
+        "ssl": "Let's Encrypt免费证书，位于/etc/letsencrypt"
+    },
+    "instructions": {
+        "for_ai": "所有AI在这个项目上操作时需要遵循：1. 使用英文注释和提交信息 2. 修改HTML内容后要commit和push 3. workflow文件修改后会自动触发部署 4. 确保不泄露任何secret到代码中 5. 保持代码整洁"
+    }
+}
