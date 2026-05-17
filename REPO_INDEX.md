@@ -32,8 +32,8 @@ pier/
 │   │   │   ├── agent.ts                # Create, view, share/unshare agent pages
 │   │   │   └── admin.ts                # Admin: approve/reject/upload/review
 │   │   └── services/
-│   │       ├── db.ts                   # pg Pool + schema init (users, agent_requests, etc.)
-│   │       └── mail.ts                 # SendGrid with NODE_ENV=dev console.log fallback
+│   │       ├── db.ts                   # pg Pool + schema init (users, agent_requests, agent_files, etc.)
+│   │       └── mail.ts                 # Email: Resend API (HTTPS) or SMTP or console.log fallback
 │   └── views/
 │       ├── layout.ejs                  # Shared shell: nav, disclaimer, watermark
 │       ├── index.ejs                   # Homepage — CTA to register
@@ -105,7 +105,9 @@ Defined in `app/src/services/db.ts:initDB()`:
 |-------|---------|---------|
 | `users` | id (UUID PK), email (unique), role, registration_date, created_at, last_login_at | User accounts |
 | `verification_codes` | id (UUID PK), email, code (6-digit), expires_at, used, created_at | Login/register codes |
-| `agent_requests` | id (UUID PK), user_id (FK), name, description, status, rejection_reason, unique_slug, created_at, updated_at | Agent requests |
+| `agent_requests` | id (UUID PK), user_id (FK), name, description, status, rejection_reason, review_notes, review_comments, unique_slug, created_at, updated_at | Agent requests |
+| `agent_versions` | id (UUID PK), agent_id (FK), version_number, request_description, html_file_path, created_at | Version history |
+| `agent_files` | id (SERIAL PK), agent_id (FK), content (TEXT), created_at | Agent HTML pages (DB storage) |
 | `agent_shares` | id (UUID PK), agent_id (FK unique), partner_email, partner_user_id (FK), created_at | Two-person access |
 | `user_sessions` | (managed by connect-pg-simple) | Express sessions |
 
@@ -115,6 +117,12 @@ Defined in `app/src/services/db.ts:initDB()`:
 |-----|----------|---------|--------|
 | `DATABASE_URL` | Yes | `postgres://pier:pier@db:5432/pier` | docker-compose |
 | `SESSION_SECRET` | Yes | (none) | VPS .env or GitHub secret |
-| `SENDGRID_API_KEY` | No | (dev fallback) | GitHub secret |
+| `SMTP_HOST` | No | (none → dev fallback) | GitHub secret — e.g. `smtp.resend.com` |
+| `SMTP_PORT` | No | `465` | GitHub secret |
+| `SMTP_USER` | No | (none) | GitHub secret — e.g. `resend` |
+| `SMTP_PASS` | No | (none) | GitHub secret — Resend API key or SMTP password |
+| `SMTP_FROM` | No | `noreply@ailaopo.online` | GitHub secret |
 | `ADMIN_EMAIL` | No | (none) | GitHub secret — seeds admin user on startup |
+| `DEV_API_KEY` | Yes (for AI) | (none) | GitHub secret — Bearer token for `/api/dev/*` |
 | `NODE_ENV` | No | production | docker-compose |
+

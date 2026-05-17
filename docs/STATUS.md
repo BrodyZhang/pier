@@ -17,7 +17,11 @@
 | Admin Seed | ✅ Complete | ADMIN_EMAIL env var auto-creates admin on startup |
 | Test Domain | ✅ Complete | HTTPS (Let's Encrypt), proxies to app-test |
 | Session | ✅ Fixed | trust proxy + secure: 'auto' for cookie behind nginx |
-| Agent Storage | ✅ Complete | Date-based subdirs: `/app/data/agents/YYYY-MM-DD/{slug}/index.html` |
+| Agent Storage | ✅ Complete | PostgreSQL `agent_files` table (DB storage, no filesystem) |
+| Built-in Admin | ✅ Complete | `296068994@qq.com` hard-coded in `ensureAdmin()` |
+| Dev Review Flow | ✅ Complete | AI upload → `dev_review` → admin approve/reject with comments |
+| AI Dev API | ✅ Complete | `GET /api/dev/agents`, `GET /api/dev/pending`, `GET /api/dev/rejected`, `POST /api/dev/upload/:id` — Bearer token auth via `DEV_API_KEY` |
+| Email (Resend) | ✅ Complete | Resend HTTPS API (port 443, no SMTP), auto-detected from `smtp.resend.com` host, fallback to console.log |
 
 ## Deployment
 
@@ -28,8 +32,8 @@
 | VPS | Azure Ubuntu 24.04 |
 | Method | docker compose (4 services: router, app-test, app-prod, db) |
 | Image | `brodyzhang2026/pier` (Docker Hub) |
-| **Status** | ✅ Deployed (build #51, date-based agent storage) |
-| Last Deploy | 2026-05-17 13:21 UTC |
+| **Status** | ✅ Deployed (build #66, Resend email + DB storage + dev API) |
+| Last Deploy | 2026-05-17 07:35 UTC |
 
 ## Development Tasks
 
@@ -52,21 +56,26 @@
 - [x] SSL for test domain: certbot --standalone -d test.ailaopo.online
 - [x] Agent HTML storage: date-based subdirs (YYYY-MM-DD/{slug}/index.html)
 - [x] Full flow test: register → login → create agent → admin approve → upload → view → share
+- [x] Admin delete agents
+- [x] Agent HTML stored in PostgreSQL (agent_files table)
+- [x] Dev API secured with DEV_API_KEY Bearer token
+- [x] Review workflow: review_notes (admin→AI) + review_comments (admin→AI on reject)
+- [x] POST /api/dev/upload/:id for AI HTML upload
+- [x] Email via Resend HTTPS API (port 443, no SMTP), fallback to console.log
+- [x] Resend domain verification + DKIM
 
 ### Next (Priority Order)
 1. ✅ ~~Register/login flow~~ (tested on test.ailaopo.online)
 2. ✅ ~~Admin approve/reject/upload flow~~ (tested)
 3. ✅ ~~Agent page view & share flow~~ (tested)
 4. ✅ ~~SSL for test.ailaopo.online~~ (certbot done)
-5. 🔲 SendGrid integration for email verification (production)
+5. ✅ ~~Email verification~~ (Resend HTTPS API, working) |
 
 ### Future (Backlog)
-- [ ] Email notifications (SendGrid integration)
-- [ ] Version history / edit requests
-- [ ] Admin-user messaging
 - [ ] Rate limiting on auth endpoints
 - [ ] Database migration strategy
 - [ ] Backup strategy
+- [ ] Promote to production
 
 ## Known Issues / Blockers
 
@@ -85,6 +94,11 @@
 | `SSH_PRIVATE_KEY` | ✅ | GitHub secret |
 | `SESSION_SECRET` | ✅ | GitHub secret + VPS `.env` |
 | `ADMIN_EMAIL` | ✅ | GitHub secret + VPS `.env` |
-| `SENDGRID_API_KEY` | ❌ (optional) | GitHub secret |
+| `SMTP_HOST` | ✅ | GitHub secret — `smtp.resend.com` |
+| `SMTP_PORT` | ✅ | `465` (ignored, Resend uses HTTPS API) |
+| `SMTP_USER` | ✅ | GitHub secret — `resend` |
+| `SMTP_PASS` | ✅ | GitHub secret — Resend API key |
+| `SMTP_FROM` | ✅ | GitHub secret — `noreply@ailaopo.online` |
+| `DEV_API_KEY` | ✅ | GitHub secret — Bearer token for AI dev API |
 
 **Format note:** Docker Hub password/token is passed via stdin in the SSH script (line in deploy.yml). Consider using a read-only token for pull-only operations to minimize risk.
