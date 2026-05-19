@@ -2,11 +2,13 @@ import { Router, Request, Response } from 'express';
 import pool from '../services/db';
 
 const router = Router();
+const ALLOWED_DEV_STATUSES = "'in_development','pending_review','dev_review'";
+
 
 // Helper: validate agent exists and is in ai-editable status
 async function getDevAgent(id: string): Promise<any> {
   const result = await pool.query(
-    `SELECT id, unique_slug, status FROM agent_requests WHERE id = $1 AND status IN ('in_development', 'pending_review', 'dev_review')`,
+    `SELECT id, unique_slug, status FROM agent_requests WHERE id = $1 AND status IN (${ALLOWED_DEV_STATUSES})`,
     [id]
   );
   return result.rows[0] || null;
