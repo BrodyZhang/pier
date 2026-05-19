@@ -32,7 +32,7 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            padding: 10px 24px;
+            padding: 12px 24px;
             border-radius: 12px;
             text-decoration: none;
             font-size: 15px;
@@ -40,6 +40,7 @@
             cursor: pointer;
             border: none;
             transition: all 0.25s;
+            min-height: 44px;
         }
         .btn-primary {
             background: linear-gradient(135deg, #ff6b9d, #c2185b);
@@ -70,17 +71,17 @@
         label { display: block; margin: 14px 0 6px; font-weight: 500; color: #6c6c8a; font-size: 14px; }
         input, textarea, select {
             width: 100%;
-            padding: 12px 14px;
+            padding: 14px 14px;
             background: rgba(255,255,255,0.8);
             border: 1.5px solid rgba(233,30,99,0.15);
             border-radius: 12px;
-            font-size: 15px;
+            font-size: 16px;
             color: #4a4a6a;
             transition: border-color 0.2s, box-shadow 0.2s;
             font-family: inherit;
         }
         input:focus, textarea:focus, select:focus { outline: none; border-color: #ff6b9d; box-shadow: 0 0 0 3px rgba(255,107,157,0.15); }
-        textarea { resize: vertical; min-height: 80px; }
+        textarea { resize: vertical; min-height: 100px; }
         table { width: 100%; border-collapse: collapse; }
         th, td { text-align: left; padding: 14px 12px; border-bottom: 1px solid rgba(233,30,99,0.08); }
         th { font-weight: 600; color: #b0b0c8; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -279,10 +280,10 @@
             .tabs { overflow-x: auto; flex-wrap: nowrap; }
             .tab-btn { padding: 6px 12px; font-size: 13px; flex-shrink: 0; }
             .badge-count { min-width: 18px; height: 18px; font-size: 10px; padding: 0 4px; }
-            .btn { padding: 8px 18px; font-size: 14px; }
-            .btn-sm { padding: 5px 12px; font-size: 12px; }
-            input, textarea, select { padding: 10px 12px; font-size: 14px; }
-            .list-item { padding: 12px; }
+            .btn { padding: 12px 18px; font-size: 15px; min-height: 44px; }
+            .btn-sm { padding: 10px 14px; font-size: 14px; min-height: 40px; }
+            input, textarea, select { padding: 14px 12px; font-size: 16px; }
+            .list-item { padding: 14px; }
             .list-item .flex-wrap form { width: 100%; }
             .hearts { display: none; }
         }
