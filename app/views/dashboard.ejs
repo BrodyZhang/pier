@@ -10,7 +10,7 @@
     <% if (agents.length === 0) { %>
         <div class="empty-state">
             <div style="font-size:40px;margin-bottom:8px;"></div>
-            <p>还没有请求。<a href="/agent/new" style="color:#667eea;text-decoration:none;">创建第一个吧！</a></p>
+            <p>还没有请求。<a href="/agent/new" style="color:#e91e63;text-decoration:none;">创建第一个吧！</a></p>
         </div>
     <% } else { %>
         <table>
@@ -23,7 +23,7 @@
                             <% if (a.status === 'pending_review') { %>待审核<% } else if (a.status === 'in_development' || a.status === 'dev_review') { %>开发中<% } else if (a.status === 'completed') { %>已完成<% } else { %>已拒绝<% } %>
                         </span>
                     </td>
-                    <td style="font-size:13px;color:rgba(255,255,255,0.4);"><%= new Date(a.created_at).toLocaleDateString() %></td>
+                    <td style="font-size:13px;color:#b0b0c8;"><%= new Date(a.created_at).toLocaleDateString() %></td>
                     <td>
                         <div style="display:flex;gap:6px;flex-wrap:wrap;">
                             <% if (a.status === 'completed' && a.unique_slug) { %>
@@ -31,10 +31,10 @@
                                 <a href="/agent/<%= a.unique_slug %>/share" class="btn btn-primary btn-sm">分享</a>
                             <% } %>
                             <% if (a.status === 'rejected' && a.rejection_reason) { %>
-                                <span style="font-size:13px;color:#ff6b6b;padding:4px 0;"><%= a.rejection_reason %></span>
+                                <span style="font-size:13px;color:#d32f2f;padding:4px 0;"><%= a.rejection_reason %></span>
                             <% } %>
                             <form method="POST" action="/agent/<%= a.unique_slug %>/delete" style="display:inline;" onsubmit="return confirm('确定删除「<%= a.name %>」？此操作不可恢复。');">
-                                <button type="submit" class="btn btn-danger btn-sm" style="background:rgba(255,255,255,0.1);">删除</button>
+                                <button type="submit" class="btn btn-sm" style="background:rgba(233,30,99,0.08);color:#c2185b;border:1px solid rgba(233,30,99,0.15);padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;">删除</button>
                             </form>
                         </div>
                     </td>
@@ -52,7 +52,7 @@
         <% sharedAgents.forEach(function(a) { %>
             <tr>
                 <td><strong><%= a.name %></strong></td>
-                <td style="color:rgba(255,255,255,0.5);"><%= a.creator_email %></td>
+                <td style="color:#6c6c8a;"><%= a.creator_email %></td>
                 <td>
                     <% if (a.unique_slug) { %>
                         <a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">查看</a>

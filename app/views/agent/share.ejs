@@ -1,6 +1,6 @@
 <div class="card" style="max-width:500px;margin:40px auto;">
     <h1>分享告白页</h1>
-    <p style="color:rgba(255,255,255,0.6);">告白页：<strong><%= agent.name %></strong></p>
+    <p style="color:#6c6c8a;">告白页：<strong><%= agent.name %></strong></p>
 
     <% if (typeof error !== 'undefined' && error) { %>
         <div class="error"><%= error %></div>
@@ -24,6 +24,6 @@
     <% } %>
 
     <% if (agent.unique_slug) { %>
-        <p style="margin-top:20px;color:rgba(255,255,255,0.4);">页面链接：<a href="/agent/<%= agent.unique_slug %>" style="color:#667eea;">/agent/<%= agent.unique_slug %></a></p>
+        <p style="margin-top:20px;color:#b0b0c8;">页面链接：<a href="/agent/<%= agent.unique_slug %>" style="color:#e91e63;">/agent/<%= agent.unique_slug %></a></p>
     <% } %>
 </div>
