@@ -33,7 +33,7 @@
 | Method | docker compose (4 services: router, app-test, app-prod, db) |
 | Image | `brodyzhang2026/pier` (Docker Hub) |
 | **Status** | ✅ Deployed (build #72 prod, #73 test) |
-| Last Deploy | 2026-05-17 14:30 UTC |
+| Last Deploy | 2026-05-17 15:00 UTC |
 | Prod Version File | `PROD_VERSION` — push changes to auto-promote via deploy-prod.yml |
 
 ## Development Tasks
@@ -77,7 +77,7 @@
 - [x] Consistent v prefix for version tags (deploy.yml + PROD_VERSION + deploy-prod.yml)
 - [x] Review history log (JSONB review_log column, full audit trail on admin review page)
 - [x] User self-delete agents (delete button on dashboard for own agents)
-- [x] Improved review comment UI (show history, better textarea in dev review, review notes/comments displayed clearly)
+- [x] Improved admin requests UI: one-layer tabs with inline actions, character limits, daily limit 20
 
 ### Next (Priority Order)
 1. ✅ ~~Register/login flow~~ (tested on test.ailaopo.online)

@@ -15,6 +15,14 @@ router.post('/new', requireAuth, async (req: Request, res: Response) => {
     return res.render('agent/new', { title: 'New Agent', error: 'Name and description are required.' });
   }
 
+  if (name.trim().length > 50) {
+    return res.render('agent/new', { title: 'New Agent', error: '页面名称不能超过50个字符。' });
+  }
+
+  if (description.trim().length > 500) {
+    return res.render('agent/new', { title: 'New Agent', error: '描述不能超过500个字符。' });
+  }
+
   try {
     await pool.query(
       `INSERT INTO agent_requests (user_id, name, description)

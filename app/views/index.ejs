@@ -4,7 +4,7 @@
         爱她，就为她定制一个独一无二的页面。<br>
         提交你的想法，我们的团队会为你精心打造。
     </p>
-    <a href="/auth/register" class="btn btn-primary" style="font-size:20px;padding:15px 50px;">开始创建</a>
+    <a href="<%= typeof userId !== 'undefined' && userId ? '/agent/new' : '/auth/register' %>" class="btn btn-primary" style="font-size:20px;padding:15px 50px;">开始创建</a>
 </div>
 <div class="card">
     <h2>如何使用</h2>

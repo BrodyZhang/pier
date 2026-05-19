@@ -9,7 +9,7 @@ function generateCode(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-const DAILY_LIMIT = 100;
+const DAILY_LIMIT = 20;
 
 router.get('/register', async (_req: Request, res: Response) => {
   try {
@@ -36,7 +36,7 @@ router.post('/register', async (req: Request, res: Response) => {
     const remainingSlots = Math.max(0, DAILY_LIMIT - registered);
     if (registered >= DAILY_LIMIT) {
       return res.render('auth/register', {
-        title: '注册', error: '今日注册名额已满（100/100），请明天再来。',
+        title: '注册', error: '今日注册名额已满（20/20），请明天再来。',
         email, sent: false, remainingSlots: 0,
       });
     }

@@ -8,10 +8,10 @@
         <div class="error"><%= error %></div>
     <% } %>
     <form method="POST">
-        <label>页面名称</label>
-        <input type="text" name="name" required placeholder="例如：给我的爱人">
-        <label>详细描述</label>
-        <textarea name="description" rows="6" required placeholder="描述你想要的页面风格、色调、特殊寄语等…"></textarea>
+        <label>页面名称 <span style="color:rgba(255,255,255,0.3);font-size:12px;">（最多50字）</span></label>
+        <input type="text" name="name" required maxlength="50" placeholder="例如：给我的爱人">
+        <label>详细描述 <span class="char-count" id="descCount">0/500</span></label>
+        <textarea name="description" rows="6" required maxlength="500" placeholder="描述你想要的页面风格、色调、特殊寄语等…" oninput="document.getElementById('descCount').textContent = this.value.length + '/500';"></textarea>
         <button type="submit" class="btn btn-primary" style="margin-top:20px;width:100%;justify-content:center;">提交请求</button>
     </form>
 </div>
