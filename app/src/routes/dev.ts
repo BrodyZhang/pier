@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Router, Request, Response } from 'express';
 import pool from '../services/db';
 
@@ -97,6 +98,32 @@ router.post('/upload/:id', async (req: Request, res: Response) => {
     res.json({ success: true, status: 'dev_review' });
   } catch (err) {
     console.error('Dev upload error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/dev/create — AI creates a new agent directly (for testing or auto-generation)
+router.post('/create', async (req: Request, res: Response) => {
+  try {
+    const { name, description, userId } = req.body;
+    if (!name || !description) {
+      return res.status(400).json({ error: 'name and description are required' });
+    }
+    const slug = crypto.randomUUID();
+    const result = await pool.query(
+      `INSERT INTO agent_requests (user_id, name, description, status, unique_slug)
+       VALUES ($1, $2, $3, 'in_development', $4)
+       RETURNING id, unique_slug, status`,
+      [userId || '00000000-0000-0000-0000-000000000000', name, description, slug]
+    );
+    await pool.query(
+      `INSERT INTO agent_versions (agent_id, version_number, request_description)
+       VALUES ($1, 1, 'Dev API creation')`,
+      [result.rows[0].id]
+    );
+    res.json({ agent: result.rows[0] });
+  } catch (err) {
+    console.error('Dev create error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
