@@ -1,28 +1,30 @@
 import { Pool } from 'pg';
 
 function getConnectionString(): string {
-  let url: string;
-  if (process.env.DATABASE_URL) {
-    url = process.env.DATABASE_URL;
-  } else {
-    const user = process.env.DB_USER || 'pier';
-    const pw = process.env.DB_PASSWORD || '';
-    const host = process.env.DB_HOST || 'localhost';
-    const port = process.env.DB_PORT || '5432';
-    const db = process.env.DB_NAME || 'pier';
-    url = `postgres://${user}:${pw}@${host}:${port}/${db}`;
-  }
-  // Ensure UTF-8 client encoding for Chinese text support
-  if (!url.includes('client_encoding')) {
-    url += (url.includes('?') ? '&' : '?') + 'client_encoding=utf8';
-  }
-  return url;
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  const user = process.env.DB_USER || 'pier';
+  const pw = process.env.DB_PASSWORD || '';
+  const host = process.env.DB_HOST || 'localhost';
+  const port = process.env.DB_PORT || '5432';
+  const db = process.env.DB_NAME || 'pier';
+  return `postgres://${user}:${pw}@${host}:${port}/${db}`;
 }
 
 const connStr = getConnectionString();
 
 // Pool created lazily — pg does not connect until first query
-const pool = new Pool({ connectionString: connStr });
+const pool = new Pool({
+  connectionString: connStr,
+  // Force UTF-8 client encoding so Chinese text is stored correctly
+  statement_timeout: 30000,
+});
+
+// Ensure UTF-8 client encoding on every new connection
+pool.on('connect', (client) => {
+  client.query("SET client_encoding TO 'UTF8'").catch((err: Error) => {
+    console.error('Failed to set client_encoding:', err.message);
+  });
+});
 
 export default pool;
 
@@ -109,7 +111,7 @@ export async function initDB(): Promise<void> {
       try {
         const result = await adminPool.query('SELECT 1 FROM pg_database WHERE datname = $1', [dbName]);
         if (result.rows.length === 0) {
-          await adminPool.query(`CREATE DATABASE "${dbName}" OWNER pier`);
+          await adminPool.query(`CREATE DATABASE "${dbName}" OWNER pier ENCODING 'UTF8'`);
           console.log(`Created database: ${dbName}`);
         }
       } finally {
