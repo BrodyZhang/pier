@@ -95,6 +95,7 @@ router.post('/register/verify', async (req: Request, res: Response) => {
 
     req.session.userId = user.rows[0].id;
     req.session.role = user.rows[0].role;
+    req.session.userEmail = email;
     res.redirect('/dashboard');
   } catch (err) {
     console.error('Verify error:', err);
@@ -163,6 +164,7 @@ router.post('/login/verify', async (req: Request, res: Response) => {
 
     req.session.userId = result.rows[0].uid;
     req.session.role = result.rows[0].role;
+    req.session.userEmail = email;
     res.redirect('/dashboard');
   } catch (err) {
     console.error('Login verify error:', err);

@@ -47,18 +47,11 @@ app.use(session({
 }));
 
 // Make session data available to all views
-app.use(async (req, _res, next) => {
+app.use((req, _res, next) => {
   _res.locals.userId = req.session.userId;
   _res.locals.role = req.session.role;
   _res.locals.isAdmin = req.session.role === 'admin';
-  if (req.session.userId) {
-    try {
-      const user = await pool.query('SELECT email FROM users WHERE id = $1', [req.session.userId]);
-      _res.locals.userEmail = user.rows[0]?.email || '';
-    } catch { _res.locals.userEmail = ''; }
-  } else {
-    _res.locals.userEmail = '';
-  }
+  _res.locals.userEmail = req.session.userEmail || '';
   next();
 });
 
