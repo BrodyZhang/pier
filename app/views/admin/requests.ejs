@@ -1,22 +1,22 @@
 <style>
-.admin-form-inline { display:flex; align-items:center; gap:6px; }
-.admin-form-inline input { width:160px; max-width:160px; padding:6px 10px; font-size:13px; }
+.admin-form-inline { display:flex; align-items:center; gap:8px; }
+.admin-form-inline input { width:180px; max-width:180px; padding:10px 12px; font-size:14px; }
 .admin-form-reject { display:flex; flex-wrap:wrap; align-items:flex-start; gap:8px; }
-.admin-form-reject textarea { flex:1; min-width:120px; padding:6px 10px; font-size:13px; min-height:36px; resize:none; }
-.btn-delete { background:rgba(233,30,99,0.08);color:#c2185b;border:1px solid rgba(233,30,99,0.15);padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px; }
+.admin-form-reject textarea { flex:1; min-width:120px; padding:10px 12px; font-size:14px; min-height:44px; resize:none; }
+.btn-delete { background:rgba(233,30,99,0.08);color:#c2185b;border:1px solid rgba(233,30,99,0.15);padding:10px 16px;border-radius:8px;cursor:pointer;font-size:14px; }
 .desc-text { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .admin-list-item { background:rgba(255,255,255,0.8); border:1px solid rgba(233,30,99,0.1); border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(233,30,99,0.04); }
 @media (max-width:640px) {
-    .admin-form-inline { width:100%; }
+    .admin-form-inline { flex-direction:column; width:100%; gap:6px; }
     .admin-form-inline input { width:100%; max-width:100%; }
-    .admin-actions { flex-direction:row; flex-wrap:wrap; align-items:center; gap:4px; }
-    .admin-actions form { width:auto; flex:1; min-width:0; }
+    .admin-actions { flex-direction:column; align-items:stretch; gap:6px; }
+    .admin-actions form { width:100%; }
     .admin-form-reject { flex-direction:column; }
-    .admin-form-reject textarea { width:100%; }
+    .admin-form-reject textarea { width:100%; min-height:60px; }
     .desc-text { max-width:100%; white-space:normal; }
     .admin-list-item { padding:12px; margin-bottom:10px; box-shadow:0 2px 8px rgba(233,30,99,0.06); }
     .admin-list-item .flex-wrap .status { margin-top:4px; }
-    .admin-actions .btn { font-size:13px; padding:8px 12px; }
+    .admin-actions .btn { font-size:14px; padding:10px 14px; }
 }
 </style>
 <div class="card" style="padding:20px 28px;">
