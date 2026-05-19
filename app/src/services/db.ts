@@ -15,8 +15,6 @@ const connStr = getConnectionString();
 // Pool created lazily — pg does not connect until first query
 const pool = new Pool({
   connectionString: connStr,
-  // Force UTF-8 client encoding so Chinese text is stored correctly
-  statement_timeout: 30000,
 });
 
 // Ensure UTF-8 client encoding on every new connection
