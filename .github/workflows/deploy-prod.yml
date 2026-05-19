@@ -45,6 +45,9 @@ jobs:
 
             echo "=== Promoting prod to $PROD_VER ==="
 
+            # Login to Docker Hub first
+            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+
             # Write new PROD_VERSION to .env
             if grep -q '^PROD_VERSION=' .env; then
               sed -i "s/^PROD_VERSION=.*/PROD_VERSION=$PROD_VER/" .env
@@ -55,8 +58,11 @@ jobs:
             # Pull the specific version
             docker compose pull app-prod
 
-            # Restart only app-prod
-            docker compose up -d app-prod
+            # Force recreate with new image
+            docker compose up -d --force-recreate app-prod
+
+            # Clean up old images
+            docker image prune -f
 
             echo "=== Prod promoted to $PROD_VER ==="
 
