@@ -91,40 +91,43 @@ router.get('/:slug', async (req: Request, res: Response) => {
     // Inject real-time chat
     const chatHtml = `<div id="pier-chat-root" data-slug="${req.params.slug}" data-email="${userEmail}" style="display:none;"></div>
 <style>
-#pier-chat-btn{position:fixed;bottom:24px;right:24px;z-index:10000;width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#ff6b9d,#e91e63);color:#fff;border:none;font-size:28px;cursor:pointer;box-shadow:0 6px 24px rgba(233,30,99,0.4);display:flex;align-items:center;justify-content:center;transition:transform .2s;}
-#pier-chat-btn:active{transform:scale(0.92)}
-#pier-chat-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:10001;background:rgba(0,0,0,0.4);display:none;align-items:flex-end;justify-content:center;}
-#pier-chat-panel{width:100%;max-width:420px;background:#f5f5f5;border-radius:24px 24px 0 0;height:60vh;display:flex;flex-direction:column;box-shadow:0 -8px 40px rgba(0,0,0,0.25);transform:translateY(100%);transition:transform .35s cubic-bezier(0.32,1,0.23,1);}
+#pier-chat-btn{position:fixed;bottom:20px;right:20px;z-index:10000;width:52px;height:52px;border-radius:50%;background:#fff;border:3px solid #ff6b9d;color:#ff6b9d;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(233,30,99,0.3);display:flex;align-items:center;justify-content:center;transition:transform .2s;}
+#pier-chat-btn:active{transform:scale(0.9)}
+#pier-chat-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:10001;background:rgba(0,0,0,0.35);display:none;align-items:flex-end;justify-content:center;}
+#pier-chat-panel{width:100%;max-width:360px;background:#fff;border-radius:16px 16px 0 0;height:55vh;display:flex;flex-direction:column;box-shadow:0 -6px 30px rgba(0,0,0,0.2);transform:translateY(100%);transition:transform .3s ease;}
+@media(max-width:400px){ #pier-chat-panel{max-width:100%;} }
 @media(max-width:480px){
-  #pier-chat-panel{max-width:100%;border-radius:16px 16px 0 0;height:65vh;}
-  #pier-chat-panel.keyboard{height:45vh;}
-  #pier-chat-header{padding:14px 16px 12px}
-  #pier-chat-title{font-size:16px}
-  #pier-chat-msgs{padding:12px;gap:8px}
-  #pier-chat-input-area{padding:10px 12px 16px}
-  .pier-msg .bubble{padding:10px 14px;font-size:14px}
-  .pier-msg-time{font-size:10px}
+  #pier-chat-panel{height:55vh;border-radius:12px 12px 0 0;}
+  #pier-chat-panel.keyboard{height:42vh;}
+  #pier-chat-header{padding:12px 14px 10px}
+  #pier-chat-title{font-size:15px}
+  #pier-chat-msgs{padding:10px;gap:6px}
+  #pier-chat-input-area{padding:8px 10px 14px}
+  .pier-msg .bubble{padding:8px 12px;font-size:13px}
+  .pier-msg-time{font-size:9px}
+  .pier-msg-name{font-size:10px}
+  #pier-chat-btn{bottom:16px;right:16px;width:48px;height:48px;font-size:22px}
 }
-#pier-chat-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;background:linear-gradient(135deg,#ff6b9d,#e91e63);color:#fff;border-radius:24px 24px 0 0;}
-#pier-chat-title{font-size:18px;font-weight:600;}
-#pier-chat-online{font-size:13px;opacity:0.9;margin-right:8px;}
-#pier-chat-close{background:none;border:none;font-size:26px;color:#fff;cursor:pointer;opacity:0.9;padding:4px;line-height:1;}
+#pier-chat-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:#ff6b9d;color:#fff;border-radius:16px 16px 0 0;}
+#pier-chat-title{font-size:16px;font-weight:600;}
+#pier-chat-online{font-size:12px;opacity:0.9;margin-right:8px;}
+#pier-chat-close{background:none;border:none;font-size:24px;color:#fff;cursor:pointer;opacity:0.85;padding:0 4px;line-height:1;}
 #pier-chat-close:active{opacity:1}
-#pier-chat-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;background:#f5f5f5;}
-.pier-msg{display:flex;flex-direction:column;max-width:80%;animation:fadeIn .2s ease}
+#pier-chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:#f8f8f8;}
+.pier-msg{display:flex;flex-direction:column;max-width:85%;animation:fadeIn .15s ease}
 .pier-msg-me{align-self:flex-end;align-items:flex-end}
 .pier-msg-other{align-self:flex-start;align-items:flex-start}
-.pier-msg-time{font-size:10px;color:#aaa;margin:4px 6px 0}
-.pier-msg-me .bubble{background:linear-gradient(135deg,#ff6b9d,#e91e63);color:#fff;padding:12px 16px;border-radius:20px 20px 6px 20px;font-size:15px;line-height:1.4;word-break:break-word;box-shadow:0 2px 8px rgba(233,30,99,0.25);}
-.pier-msg-other .bubble{background:#fff;color:#333;padding:12px 16px;border-radius:20px 20px 20px 6px;font-size:15px;line-height:1.4;word-break:break-word;box-shadow:0 1px 3px rgba(0,0,0,0.1);}
-.pier-msg-name{font-size:11px;color:#999;margin-bottom:3px}
-@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-#pier-chat-input-area{padding:12px 16px 20px;background:#fff;display:flex;gap:12px;align-items:flex-end;border-top:1px solid #eee;}
-#pier-chat-input{flex:1;border:none;background:#f0f0f0;border-radius:24px;padding:14px 18px;font-size:15px;outline:none;min-height:48px;max-height:80px;resize:none;}
-#pier-chat-input:focus{background:#e8e8e8}
-#pier-chat-send{background:linear-gradient(135deg,#ff6b9d,#e91e63);color:#fff;border:none;border-radius:50%;width:48px;height:48px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(233,30,99,0.3);flex-shrink:0;}
-#pier-chat-send:active{transform:scale(0.92)}
-#pier-chat-footer{padding:8px 16px 12px;font-size:11px;color:#bbb;text-align:center;background:#fff;}
+.pier-msg-name{font-size:10px;color:#999;margin-bottom:2px}
+.pier-msg-time{font-size:9px;color:#bbb;margin:3px 4px 0}
+.pier-msg-me .bubble{background:#ff6b9d;color:#fff;padding:10px 14px;border-radius:18px 18px 4px 18px;font-size:14px;line-height:1.4;word-break:break-word;}
+.pier-msg-other .bubble{background:#fff;color:#333;padding:10px 14px;border-radius:18px 18px 18px 4px;font-size:14px;line-height:1.4;word-break:break-word;box-shadow:0 1px 2px rgba(0,0,0,0.08);}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+#pier-chat-input-area{padding:10px 14px 16px;background:#fff;display:flex;gap:10px;align-items:flex-end;border-top:1px solid #f0f0f0;}
+#pier-chat-input{flex:1;border:none;background:#f5f5f5;border-radius:20px;padding:12px 16px;font-size:14px;outline:none;min-height:44px;max-height:70px;resize:none;}
+#pier-chat-input:focus{background:#eee}
+#pier-chat-send{background:#ff6b9d;color:#fff;border:none;border-radius:50%;width:44px;height:44px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+#pier-chat-send:active{transform:scale(0.9)}
+#pier-chat-footer{padding:6px 14px 10px;font-size:10px;color:#ccc;text-align:center;background:#fff;}
 </style>
 <div id="pier-chat-btn" onclick="toggleChat()">💬</div>
 <div id="pier-chat-overlay" onclick="toggleChat()">
@@ -135,10 +138,10 @@ router.get('/:slug', async (req: Request, res: Response) => {
     </div>
     <div id="pier-chat-msgs"></div>
     <div id="pier-chat-input-area">
-      <textarea id="pier-chat-input" placeholder="说点什么..." maxlength="500" rows="1" oninput="this.style.height='';this.style.height=Math.min(this.scrollHeight,80)+'px'" onfocus="onInputFocus()" onblur="onInputBlur()" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMsg()}"></textarea>
+      <textarea id="pier-chat-input" placeholder="说点什么..." maxlength="500" rows="1" oninput="this.style.height='';this.style.height=Math.min(this.scrollHeight,70)+'px'" onfocus="onInputFocus()" onblur="onInputBlur()" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMsg()}"></textarea>
       <button id="pier-chat-send" onclick="sendChatMsg()">➤</button>
     </div>
-    <div id="pier-chat-footer">实时消息仅当前在线用户可见，关闭后消失，无历史记录</div>
+    <div id="pier-chat-footer">实时消息仅当前在线用户可见，关闭后消失</div>
   </div>
 </div>
 <script>
@@ -190,14 +193,14 @@ router.get('/:slug', async (req: Request, res: Response) => {
 
   function updateOnline(n) {
     var el = document.getElementById('pier-chat-online');
-    if (el) el.textContent = n + '人在线 ';
+    if (el) el.textContent = n + '人 ';
   }
 
   function addSystemMsg(text, type) {
     var el = document.getElementById('pier-chat-msgs');
     if (!el) return;
     var d = document.createElement('div');
-    d.style.cssText = 'text-align:center;font-size:12px;padding:10px;color:' + (type === 'error' ? '#e91e63' : '#888') + ';';
+    d.style.cssText = 'text-align:center;font-size:11px;padding:8px;color:' + (type === 'error' ? '#ff6b9d' : '#999') + ';';
     d.textContent = text;
     el.appendChild(d);
     el.scrollTop = el.scrollHeight;
@@ -207,10 +210,10 @@ router.get('/:slug', async (req: Request, res: Response) => {
     var el = document.getElementById('pier-chat-msgs');
     if (!el) return;
     var isMe = user === userEmail || user === '你';
-    var name = isMe ? '你' : (user.split('@')[0] || user);
+    var shortEmail = isMe ? '' : (user.indexOf('@') > 0 ? user.split('@')[0] : user);
     var d = document.createElement('div');
     d.className = 'pier-msg ' + (isMe ? 'pier-msg-me' : 'pier-msg-other');
-    d.innerHTML = '<div class="bubble">' + escapeHtml(text) + '</div><div class="pier-msg-time">' + (isMe ? '' : name + ' · ') + time + '</div>';
+    d.innerHTML = (shortEmail ? '<div class="pier-msg-name">' + escapeHtml(shortEmail) + '</div>' : '') + '<div class="bubble">' + escapeHtml(text) + '</div><div class="pier-msg-time">' + (isMe ? '我 ' : '') + time + '</div>';
     el.appendChild(d);
     el.scrollTop = el.scrollHeight;
   }
@@ -238,7 +241,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
     var btn = document.getElementById('pier-chat-btn');
     if (overlay.style.display === 'flex') {
       panel.style.transform = 'translateY(100%)';
-      setTimeout(function(){ overlay.style.display = 'none'; }, 350);
+      setTimeout(function(){ overlay.style.display = 'none'; }, 300);
       btn.style.display = 'flex';
     } else {
       overlay.style.display = 'flex';
