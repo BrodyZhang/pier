@@ -8,6 +8,8 @@ import path from 'path';
 import fs from 'fs';
 import expressLayouts from 'express-ejs-layouts';
 import pgSession from 'connect-pg-simple';
+import http from 'http';
+import { WebSocketServer, WebSocket } from 'ws';
 import pool, { initDB } from './services/db';
 import { requireAuth, requireAdmin, requireDevApiKey } from './middleware/auth';
 import authRoutes from './routes/auth';
@@ -17,6 +19,7 @@ import adminRoutes from './routes/admin';
 import devRoutes from './routes/dev';
 
 const app = express();
+const server = http.createServer(app);
 
 const PORT = parseInt(process.env.PORT || '3000');
 
@@ -83,11 +86,10 @@ app.get('/g/:slug', async (req, res) => {
     );
     if (file.rows.length === 0) return res.status(404).send('Game content not found');
     let raw = file.rows[0].content;
-    // Content may be base64-encoded (new format) or plain text (legacy)
     let html: string;
     try {
       html = Buffer.from(raw, 'base64').toString('utf-8');
-      if (!html.includes('<!DOCTYPE') && !html.includes('<html')) html = raw; // not actually base64
+      if (!html.includes('<!DOCTYPE') && !html.includes('<html')) html = raw;
     } catch { html = raw; }
     const disclaimer = `<div style="position:fixed;bottom:10px;left:10px;right:10px;font-size:11px;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;text-align:center;">本页面由 AI 自动生成，为个人学习实验项目，内容仅供展示，不构成任何承诺或保证。</div>`;
     html = html.replace('</body>', `${disclaimer}</body>`);
@@ -110,10 +112,83 @@ app.get('/g/file/:name', (req, res) => {
   }
 });
 
+// --- WebSocket Chat ---
+interface ChatClient {
+  ws: WebSocket;
+  userEmail: string;
+  lastMessageTime: number;
+}
+
+const rooms = new Map<string, Map<WebSocket, ChatClient>>();
+
+const wss = new WebSocketServer({ server });
+
+wss.on('connection', (ws, req) => {
+  const url = new URL(req.url || '', 'http://localhost');
+  const slug = url.searchParams.get('slug');
+  if (!slug) { ws.close(1008, 'slug required'); return; }
+
+  if (!rooms.has(slug)) rooms.set(slug, new Map());
+  const room = rooms.get(slug)!;
+
+  const client: ChatClient = { ws, userEmail: '', lastMessageTime: 0 };
+  room.set(ws, client);
+
+  ws.send(JSON.stringify({ type: 'users', count: room.size }));
+
+  ws.on('message', (data) => {
+    try {
+      const msg = JSON.parse(data.toString());
+
+      if (msg.type === 'join') {
+        client.userEmail = msg.userEmail || 'Anonymous';
+        broadcast(room, { type: 'join', user: client.userEmail, users: room.size }, ws);
+        return;
+      }
+
+      if (msg.type === 'message') {
+        const now = Date.now();
+        if (now - client.lastMessageTime < 3000) {
+          ws.send(JSON.stringify({ type: 'error', message: '消息发送太快，请等待 3 秒' }));
+          return;
+        }
+        client.lastMessageTime = now;
+
+        const wordCount = msg.text.trim().length;
+        if (wordCount === 0) return;
+        if (wordCount > 500) {
+          ws.send(JSON.stringify({ type: 'error', message: '消息不能超过 500 字' }));
+          return;
+        }
+
+        const safeText = msg.text.substring(0, 500);
+        broadcast(room, { type: 'message', text: safeText, user: client.userEmail, time: now }, null);
+        return;
+      }
+    } catch { /* ignore malformed */ }
+  });
+
+  ws.on('close', () => {
+    const email = client.userEmail;
+    room.delete(ws);
+    if (room.size === 0) rooms.delete(slug);
+    else if (email) broadcast(room, { type: 'leave', user: email, users: room.size }, null);
+  });
+});
+
+function broadcast(room: Map<WebSocket, ChatClient>, message: object, exclude: WebSocket | null) {
+  const data = JSON.stringify(message);
+  for (const [ws] of room) {
+    if (ws !== exclude && ws.readyState === WebSocket.OPEN) {
+      ws.send(data);
+    }
+  }
+}
+
 async function start(): Promise<void> {
   try {
     await initDB();
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
   } catch (err) {
