@@ -61,8 +61,22 @@ app.use('/agent', agentRoutes);
 app.use('/admin', requireAuth, requireAdmin, adminRoutes);
 app.use('/api/dev', requireDevApiKey, devRoutes);
 
+import fs from 'fs';
+
 app.get('/', (_req, res) => {
   res.render('index', { user: null });
+});
+
+// Serve pre-built game files directly from filesystem (for games stored on disk)
+app.get('/g/file/:name', (req, res) => {
+  const { name } = req.params;
+  if (!/^[a-zA-Z0-9_-]+$/.test(name)) return res.status(400).send('Invalid name');
+  const filePath = path.join(__dirname, '../games', `${name}.html`);
+  if (fs.existsSync(filePath)) {
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('Not found');
+  }
 });
 
 async function start(): Promise<void> {
