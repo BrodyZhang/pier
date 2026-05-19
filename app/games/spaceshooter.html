@@ -93,6 +93,7 @@ let player, bullets, enemies, stars, particles, boss, bossBullets;
 let score, lives, level, gameRunning, frameCount;
 let keys = {};
 let comboCount = 0, comboTimer = 0;
+let lastTransitionFrame = -200; // prevent rapid level advances
 
 const LEVEL_BOSS = 3;
 const MAX_LEVEL = 3;
@@ -112,6 +113,7 @@ function init() {
     frameCount = 0;
     comboCount = 0;
     comboTimer = 0;
+    lastTransitionFrame = -200;
     
     for (let i = 0; i < 80; i++) {
         stars.push({
@@ -146,9 +148,10 @@ function spawnLevel() {
 }
 
 function spawnWave(count, speed) {
+    const spawnLevel = level; // capture level at spawn time
     for (let i = 0; i < count; i++) {
         setTimeout(() => {
-            if (!gameRunning) return;
+            if (!gameRunning || level !== spawnLevel) return;
             enemies.push({
                 x: 40 + Math.random() * (W - 80),
                 y: -30,
@@ -382,14 +385,14 @@ function updateEnemies() {
         }
     }
     
-    // Check wave cleared for levels 1-2
-    if (level < LEVEL_BOSS && enemies.length === 0 && !boss) {
-        // Next wave or next level
-        if (level === 1 && frameCount > 60) {
+    // Check wave cleared for levels 1-2 (with guard against rapid re-trigger)
+    if (level < LEVEL_BOSS && enemies.length === 0 && !boss && frameCount - lastTransitionFrame > 120) {
+        lastTransitionFrame = frameCount;
+        if (level === 1) {
             level = 2;
             updateUI();
             setTimeout(() => spawnLevel(), 1000);
-        } else if (level === 2 && frameCount > 60) {
+        } else if (level === 2) {
             level = 3;
             updateUI();
             setTimeout(() => spawnLevel(), 1000);
@@ -638,8 +641,15 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-document.addEventListener('keydown', e => { keys[e.code] = true; if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault(); });
+document.addEventListener('keydown', e => {
+    keys[e.code] = true;
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','KeyW','KeyA','KeyS','KeyD'].includes(e.code)) e.preventDefault();
+});
 document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// Ensure canvas captures keyboard focus on desktop
+canvas.setAttribute('tabindex', '0');
+canvas.focus();
 
 // Touch controls
 canvas.addEventListener('touchstart', e => {
@@ -689,6 +699,7 @@ canvas.addEventListener('touchend', e => {
 
 init();
 spawnLevel();
+canvas.focus();
 gameLoop();
 </script>
 </body>
