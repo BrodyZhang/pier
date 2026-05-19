@@ -32,8 +32,8 @@
 | VPS | Azure Ubuntu 24.04 |
 | Method | docker compose (4 services: router, app-test, app-prod, db) |
 | Image | `brodyzhang2026/pier` (Docker Hub) |
-| **Status** | ✅ Deployed (build #81 prod + test) |
-| Last Deploy | 2026-05-19 (build #81) |
+| **Status** | ✅ Deployed (test: build #83, prod: build #83) |
+| Last Deploy | 2026-05-19 (build #83) |
 | Prod Version File | `PROD_VERSION` — push changes to auto-promote via deploy-prod.yml |
 
 ## Development Tasks
@@ -125,6 +125,6 @@
 | `SMTP_PASS` | ✅ | GitHub secret — Resend API key |
 | `SMTP_FROM` | ✅ | GitHub secret — `noreply@ailaopo.online` |
 | `DEV_API_KEY` | ✅ | GitHub secret — Bearer token for AI dev API |
-| `PROD_VERSION` | ✅ | File in repo — `v20260519-00000081` (with `v` prefix) |
+| `PROD_VERSION` | ✅ | File in repo — `v20260519-00000083` (with `v` prefix) |
 
 **Format note:** Docker Hub password/token is passed via stdin in the SSH script (line in deploy.yml). Consider using a read-only token for pull-only operations to minimize risk.
