@@ -32,8 +32,8 @@
 | VPS | Azure Ubuntu 24.04 |
 | Method | docker compose (4 services: router, app-test, app-prod, db) |
 | Image | `brodyzhang2026/pier` (Docker Hub) |
-| **Status** | ✅ Deployed (test: build #90, prod: build #90) |
-| Last Deploy | 2026-05-19 (build #90) |
+| **Status** | ✅ Deployed (test: build #93, prod: build #93) |
+| Last Deploy | 2026-05-19 (build #93) |
 | Prod Version File | `PROD_VERSION` — push changes to auto-promote via deploy-prod.yml |
 
 ## Development Tasks
@@ -92,6 +92,8 @@
 - [x] Mobile responsive: @media 640px breakpoint, table→card stacking, data-label attributes
 - [x] Dev API endpoints: POST /api/dev/create, POST /api/dev/approve/:id
 - [x] Spaceshooter game: 飞机大战 HTML5 Canvas game deployed to prod
+- [x] Delete fix: use agent id instead of slug for delete action
+- [x] Spaceshooter freeze fix: level transition guard, stale wave guard, keyboard focus
 
 ### Next (Priority Order)
 1. ✅ ~~Register/login flow~~ (tested on test.ailaopo.online)
@@ -136,6 +138,6 @@
 | `SMTP_PASS` | ✅ | GitHub secret — Resend API key |
 | `SMTP_FROM` | ✅ | GitHub secret — `noreply@ailaopo.online` |
 | `DEV_API_KEY` | ✅ | GitHub secret — Bearer token for AI dev API |
-| `PROD_VERSION` | ✅ | File in repo — `v20260519-00000090` (with `v` prefix) |
+| `PROD_VERSION` | ✅ | File in repo — `v20260519-00000093` (with `v` prefix) |
 
 **Format note:** Docker Hub password/token is passed via stdin in the SSH script (line in deploy.yml). Consider using a read-only token for pull-only operations to minimize risk.
