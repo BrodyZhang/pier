@@ -79,9 +79,13 @@ router.post('/upload/:id', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Agent not found or not in development status' });
     }
 
-    const { html } = req.body;
-    if (!html || typeof html !== 'string') {
-      return res.status(400).json({ error: 'html field (string) is required' });
+    let html: string;
+    if (req.body.html_base64 && typeof req.body.html_base64 === 'string') {
+      html = Buffer.from(req.body.html_base64, 'base64').toString('utf-8');
+    } else if (req.body.html && typeof req.body.html === 'string') {
+      html = req.body.html;
+    } else {
+      return res.status(400).json({ error: 'html (string) or html_base64 (base64 string) is required' });
     }
 
     await pool.query('DELETE FROM agent_files WHERE agent_id = $1', [req.params.id]);
@@ -105,7 +109,9 @@ router.post('/upload/:id', async (req: Request, res: Response) => {
 // POST /api/dev/create — AI creates a new agent directly
 router.post('/create', async (req: Request, res: Response) => {
   try {
-    const { name, description, userId } = req.body;
+    let { name, description, userId } = req.body;
+    if (req.body.name_base64) name = Buffer.from(req.body.name_base64, 'base64').toString('utf-8');
+    if (req.body.description_base64) description = Buffer.from(req.body.description_base64, 'base64').toString('utf-8');
     if (!name || !description) {
       return res.status(400).json({ error: 'name and description are required' });
     }
