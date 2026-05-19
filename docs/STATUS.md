@@ -20,7 +20,7 @@
 | Agent Storage | ✅ Complete | PostgreSQL `agent_files` table (DB storage, no filesystem) |
 | Built-in Admin | ✅ Complete | `296068994@qq.com` hard-coded in `ensureAdmin()` |
 | Dev Review Flow | ✅ Complete | AI upload → `dev_review` → admin approve/reject with comments |
-| AI Dev API | ✅ Complete | `GET /api/dev/agents`, `GET /api/dev/pending`, `GET /api/dev/rejected`, `POST /api/dev/upload/:id` — Bearer token auth via `DEV_API_KEY` |
+| AI Dev API | ✅ Complete | `GET /api/dev/agents`, `GET /api/dev/pending`, `GET /api/dev/rejected`, `POST /api/dev/create` (direct agent creation), `POST /api/dev/upload/:id`, `POST /api/dev/approve/:id` (approve dev_review → completed) |
 | Email (Resend) | ✅ Complete | Resend HTTPS API (port 443, no SMTP), auto-detected from `smtp.resend.com` host, fallback to console.log |
 
 ## Deployment
@@ -32,8 +32,8 @@
 | VPS | Azure Ubuntu 24.04 |
 | Method | docker compose (4 services: router, app-test, app-prod, db) |
 | Image | `brodyzhang2026/pier` (Docker Hub) |
-| **Status** | ✅ Deployed (test: build #83, prod: build #83) |
-| Last Deploy | 2026-05-19 (build #83) |
+| **Status** | ✅ Deployed (test: build #90, prod: build #90) |
+| Last Deploy | 2026-05-19 (build #90) |
 | Prod Version File | `PROD_VERSION` — push changes to auto-promote via deploy-prod.yml |
 
 ## Development Tasks
@@ -85,6 +85,13 @@
 - [x] User email in nav header (from session)
 - [x] Homepage "开始创建" redirects to /agent/new if logged in
 - [x] Sync middleware fix: store userEmail in session instead of DB query
+- [x] Homepage rich content: emoji steps (📝🎨💝), 为什么选择我们, CTA section
+- [x] Light theme text colors: rgba→#hex for homepage visibility
+- [x] COALESCE null fix: review_log wrapped in all 5 SQL queries
+- [x] deploy.yml SSH error handling: `|| echo "WARN"` + set -x
+- [x] Mobile responsive: @media 640px breakpoint, table→card stacking, data-label attributes
+- [x] Dev API endpoints: POST /api/dev/create, POST /api/dev/approve/:id
+- [x] Spaceshooter game: 飞机大战 HTML5 Canvas game deployed to prod
 
 ### Next (Priority Order)
 1. ✅ ~~Register/login flow~~ (tested on test.ailaopo.online)
@@ -100,6 +107,9 @@
 - [ ] Backup strategy
 - [ ] Auto-reply to rejected tasks (webhook/action to auto-fix + re-upload)
 - [ ] Windows Scheduled Task for polling script (runs outside opencode session)
+- [ ] Public access for completed agents (no login required to view)
+- [ ] Admin dashboard with user management
+- [ ] Game showcase page
 
 ## Known Issues / Blockers
 
@@ -107,6 +117,7 @@
 |---|-------|--------|
 | 1 | ~~**PROD 502 Bad Gateway** — async middleware with DB query caused container crash. Fixed in build #81.~~ | ✅ Resolved |
 | 2 | **Test deploy SSH fails** — `appleboy/ssh-action` deploy step fails consistently. build-and-push always succeeds. Deploy-prod (prod deploy via SSH) works fine. | 🟡 Ongoing |
+| 3 | ~~**Approve endpoint 500** — caused by invalid UUID format in test IDs. Works correctly with valid UUIDs.~~ | ✅ Resolved |
 
 ## Environment Variables
 
@@ -125,6 +136,6 @@
 | `SMTP_PASS` | ✅ | GitHub secret — Resend API key |
 | `SMTP_FROM` | ✅ | GitHub secret — `noreply@ailaopo.online` |
 | `DEV_API_KEY` | ✅ | GitHub secret — Bearer token for AI dev API |
-| `PROD_VERSION` | ✅ | File in repo — `v20260519-00000083` (with `v` prefix) |
+| `PROD_VERSION` | ✅ | File in repo — `v20260519-00000090` (with `v` prefix) |
 
 **Format note:** Docker Hub password/token is passed via stdin in the SSH script (line in deploy.yml). Consider using a read-only token for pull-only operations to minimize risk.

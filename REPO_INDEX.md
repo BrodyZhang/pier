@@ -18,6 +18,8 @@ pier/
 │       └── code-style/SKILL.md         # Skill: code conventions
 │
 ├── app/                                # Node.js + TypeScript application
+│   ├── games/
+│   │   └── spaceshooter.html           # 飞机大战 - HTML5 Canvas space shooter game
 │   ├── package.json                    # Dependencies: express, pg, ejs, sendgrid, etc.
 │   ├── tsconfig.json                   # TypeScript config: ES2022, commonjs, strict
 │   ├── src/
@@ -30,7 +32,8 @@ pier/
 │   │   │   ├── auth.ts                 # Register/login with email + 6-digit code
 │   │   │   ├── dashboard.ts            # GET /dashboard — user's agents & shared
 │   │   │   ├── agent.ts                # Create, view, share/unshare agent pages
-│   │   │   └── admin.ts                # Admin: approve/reject/upload/review
+│   │   │   ├── admin.ts                # Admin: approve/reject/upload/review
+│   │   │   └── dev.ts                  # Dev API: create/upload/approve agents (DEV_API_KEY)
 │   │   └── services/
 │   │       ├── db.ts                   # pg Pool + schema init (users, agent_requests, agent_files, etc.)
 │   │       └── mail.ts                 # Email: Resend API (HTTPS) or SMTP or console.log fallback
@@ -96,6 +99,12 @@ pier/
 | POST | `/admin/requests/:id/approve` | requireAuth+requireAdmin | — | Approve → in_development |
 | POST | `/admin/requests/:id/reject` | requireAuth+requireAdmin | — | Reject with reason |
 | POST | `/admin/requests/:id/upload` | requireAuth+requireAdmin | — | Upload HTML, mark complete |
+| GET | `/api/dev/agents` | requireDevApiKey | — | List agents for AI development |
+| GET | `/api/dev/pending` | requireDevApiKey | — | Pending task counts for AI |
+| GET | `/api/dev/rejected` | requireDevApiKey | — | Rejected agents for re-iteration |
+| POST | `/api/dev/create` | requireDevApiKey | — | Create agent directly (AI) |
+| POST | `/api/dev/upload/:id` | requireDevApiKey | — | Upload HTML → dev_review |
+| POST | `/api/dev/approve/:id` | requireDevApiKey | — | Approve dev_review → completed |
 
 ## Database Tables
 
