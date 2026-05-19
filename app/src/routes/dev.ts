@@ -132,6 +132,23 @@ router.post('/create', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/dev/delete/:id — Delete an agent (for cleanup)
+router.post('/delete/:id', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM agent_requests WHERE id = $1 RETURNING id',
+      [req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Dev delete error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // POST /api/dev/approve/:id — Admin approves dev_review, setting status to completed
 router.post('/approve/:id', async (req: Request, res: Response) => {
   try {
