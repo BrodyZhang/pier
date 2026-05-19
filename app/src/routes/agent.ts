@@ -90,35 +90,61 @@ router.get('/:slug', async (req: Request, res: Response) => {
 
     // Inject real-time chat
     const chatHtml = `<div id="pier-chat-root" data-slug="${req.params.slug}" data-email="${userEmail}" style="display:none;"></div>
-<div id="pier-chat-btn" onclick="toggleChat()" style="position:fixed;bottom:20px;right:20px;z-index:10000;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#ff6b9d,#c2185b);color:#fff;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 20px rgba(194,24,91,0.4);display:flex;align-items:center;justify-content:center;transition:transform .2s,opacity .3s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform=''">💬</div>
-<div id="pier-chat-overlay" style="position:fixed;bottom:0;left:0;right:0;z-index:10001;background:#fff;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,0.15);display:none;flex-direction:column;max-height:60vh;height:400px;transition:transform .3s ease;transform:translateY(100%);font-family:-apple-system,'Microsoft YaHei','PingFang SC',sans-serif;" onclick="event.stopPropagation()">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #eee;flex-shrink:0;">
-    <span style="font-weight:600;font-size:15px;color:#333;">实时聊天</span>
-    <span id="pier-chat-online" style="font-size:12px;color:#999;"></span>
-    <button onclick="toggleChat()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;padding:4px;">✕</button>
+<style>
+#pier-chat-btn{position:fixed;bottom:20px;right:20px;z-index:10000;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#ff6b9d,#c2185b);color:#fff;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 20px rgba(194,24,91,0.4);display:flex;align-items:center;justify-content:center;transition:transform .2s;}
+#pier-chat-btn:active{transform:scale(0.95)}
+#pier-chat-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:10001;background:rgba(0,0,0,0.5);display:none;align-items:flex-end;justify-content:center;}
+#pier-chat-panel{width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;max-height:70vh;height:70vh;display:flex;flex-direction:column;box-shadow:0 -4px 30px rgba(0,0,0,0.2);transform:translateY(100%);transition:transform .3s ease;}
+@media(max-width:480px){ #pier-chat-panel{max-width:100%;border-radius:16px 16px 0 0;height:75vh;max-height:75vh;} }
+#pier-chat-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #f0f0f0;border-radius:20px 20px 0 0;background:#fff;}
+#pier-chat-title{font-size:16px;font-weight:600;color:#333;}
+#pier-chat-online{font-size:12px;color:#999;margin-right:8px;}
+#pier-chat-close{background:none;border:none;font-size:24px;cursor:pointer;color:#666;padding:0;line-height:1;}
+#pier-chat-msgs{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;background:#f8f9fa;}
+#pier-chat-msg-me{display:flex;flex-direction:column;align-items:flex-end;max-width:85%;}
+#pier-chat-msg-me .bubble{background:linear-gradient(135deg,#ff6b9d,#e91e63);color:#fff;padding:10px 16px;border-radius:20px 20px 4px 20px;font-size:15px;line-height:1.4;word-break:break-word;box-shadow:0 2px 8px rgba(233,30,99,0.3);}
+#pier-chat-msg-other{display:flex;flex-direction:column;align-items:flex-start;max-width:85%;}
+#pier-chat-msg-other .bubble{background:#fff;color:#333;padding:10px 16px;border-radius:20px 20px 20px 4px;font-size:15px;line-height:1.4;word-break:break-word;box-shadow:0 1px 4px rgba(0,0,0,0.1);}
+#pier-chat-msg-meta{font-size:11px;color:#aaa;margin:4px 4px 0;}
+#pier-chat-input-area{padding:12px 16px 20px;background:#fff;border-top:1px solid #f0f0f0;display:flex;gap:10px;align-items:center;}
+#pier-chat-input{flex:1;border:none;background:#f5f5f5;border-radius:24px;padding:12px 18px;font-size:15px;outline:none;height:48px;}
+#pier-chat-send{background:linear-gradient(135deg,#ff6b9d,#e91e63);color:#fff;border:none;border-radius:50%;width:48px;height:48px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(233,30,99,0.3);}
+#pier-chat-send:active{transform:scale(0.95);}
+#pier-chat-footer{padding:0 16px 12px;font-size:11px;color:#bbb;text-align:center;background:#fff;}
+</style>
+<div id="pier-chat-btn" onclick="toggleChat()">💬</div>
+<div id="pier-chat-overlay" onclick="toggleChat()">
+  <div id="pier-chat-panel" onclick="event.stopPropagation()">
+    <div id="pier-chat-header">
+      <span id="pier-chat-title">实时聊天</span>
+      <span><span id="pier-chat-online"></span><button id="pier-chat-close" onclick="toggleChat()">✕</button></span>
+    </div>
+    <div id="pier-chat-msgs"></div>
+    <div id="pier-chat-input-area">
+      <input id="pier-chat-input" type="text" placeholder="说点什么..." maxlength="500" onkeydown="if(event.key==='Enter')sendChatMsg()">
+      <button id="pier-chat-send" onclick="sendChatMsg()">➤</button>
+    </div>
+    <div id="pier-chat-footer">实时消息仅当前在线用户可见，关闭后消失，无历史记录</div>
   </div>
-  <div id="pier-chat-msgs" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px;font-size:14px;line-height:1.5;"></div>
-  <div style="padding:8px 12px 14px;border-top:1px solid #eee;display:flex;gap:8px;flex-shrink:0;">
-    <input id="pier-chat-input" type="text" placeholder="输入消息..." maxlength="500" style="flex:1;border:1.5px solid #e0e0e0;border-radius:24px;padding:10px 16px;font-size:15px;outline:none;min-height:44px;" onkeydown="if(event.key==='Enter')sendChatMsg()">
-    <button onclick="sendChatMsg()" style="background:linear-gradient(135deg,#ff6b9d,#c2185b);color:#fff;border:none;border-radius:24px;padding:0 18px;font-size:14px;font-weight:500;cursor:pointer;min-height:44px;white-space:nowrap;">发送</button>
-  </div>
-  <div style="padding:0 16px 10px;font-size:11px;color:#bbb;text-align:center;flex-shrink:0;">实时消息仅当前在线用户可见，关闭页面后消失，无历史记录</div>
 </div>
 <script>
 (function(){
   var slug = document.getElementById('pier-chat-root').getAttribute('data-slug');
-  var userEmail = document.getElementById('pier-chat-root').getAttribute('data-email');
-  var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  var wsUrl = protocol + '//' + window.location.host + '/ws?slug=' + encodeURIComponent(slug);
+  var userEmail = document.getElementById('pier-chat-root').getAttribute('data-email') || '游客';
+  var wsUrl = (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host + '/ws?slug=' + encodeURIComponent(slug);
   var ws = null;
   var reconnectTimer = null;
-  var connected = false;
+  var trying = false;
 
   function connect() {
-    if (ws && ws.readyState === WebSocket.OPEN) return;
+    if (trying || (ws && ws.readyState === WebSocket.OPEN)) return;
+    trying = true;
+    console.log('[Chat] Connecting to', wsUrl);
     ws = new WebSocket(wsUrl);
     ws.onopen = function() {
-      connected = true;
+      trying = false;
+      console.log('[Chat] Connected');
+      addSystemMsg('已连接', 'success');
       ws.send(JSON.stringify({type:'join',userEmail:userEmail}));
     };
     ws.onmessage = function(e) {
@@ -127,38 +153,43 @@ router.get('/:slug', async (req: Request, res: Response) => {
         if (msg.type === 'users') {
           updateOnline(msg.count);
         } else if (msg.type === 'join') {
-          addSystemMsg(msg.user + ' 加入了聊天');
+          addSystemMsg(msg.user + ' 加入了');
           if (msg.users) updateOnline(msg.users);
         } else if (msg.type === 'leave') {
-          addSystemMsg(msg.user + ' 离开了聊天');
+          addSystemMsg(msg.user + ' 离开了');
           if (msg.users) updateOnline(msg.users);
         } else if (msg.type === 'message') {
           var d = new Date(msg.time);
           var t = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
           addChatMsg(msg.user, msg.text, t);
         } else if (msg.type === 'error') {
-          addSystemMsg('⚠ ' + msg.message);
+          addSystemMsg('⚠ ' + msg.message, 'error');
         }
-      } catch(ex) {}
+      } catch(ex) { console.log('[Chat] Parse error', ex); }
     };
-    ws.onclose = function() {
-      connected = false;
+    ws.onclose = function(e) {
+      trying = false;
+      console.log('[Chat] Disconnected', e.code, e.reason);
+      addSystemMsg('连接断开，3秒后重连...', 'error');
       if (reconnectTimer) clearTimeout(reconnectTimer);
       reconnectTimer = setTimeout(connect, 3000);
     };
-    ws.onerror = function() { ws.close(); };
+    ws.onerror = function(e) {
+      console.log('[Chat] Error', e);
+      trying = false;
+    };
   }
 
   function updateOnline(n) {
     var el = document.getElementById('pier-chat-online');
-    if (el) el.textContent = n + ' 人在线';
+    if (el) el.textContent = n + '人在线 ';
   }
 
-  function addSystemMsg(text) {
+  function addSystemMsg(text, type) {
     var el = document.getElementById('pier-chat-msgs');
     if (!el) return;
     var d = document.createElement('div');
-    d.style.cssText = 'text-align:center;font-size:12px;color:#999;padding:4px 0;';
+    d.style.cssText = 'text-align:center;font-size:12px;padding:8px;color:' + (type === 'error' ? '#e91e63' : '#999') + ';';
     d.textContent = text;
     el.appendChild(d);
     el.scrollTop = el.scrollHeight;
@@ -167,10 +198,11 @@ router.get('/:slug', async (req: Request, res: Response) => {
   function addChatMsg(user, text, time) {
     var el = document.getElementById('pier-chat-msgs');
     if (!el) return;
-    var isMe = user === userEmail;
+    var isMe = user === userEmail || user === '你';
+    var name = isMe ? '你' : (user.split('@')[0] || user);
     var d = document.createElement('div');
-    d.style.cssText = 'display:flex;flex-direction:column;align-items:' + (isMe ? 'flex-end' : 'flex-start') + ';';
-    d.innerHTML = '<div style="font-size:11px;color:#999;margin:0 4px 2px;">' + (isMe ? '你' : escapeHtml(user)) + ' · ' + time + '</div><div style="max-width:80%;background:' + (isMe ? 'linear-gradient(135deg,#ff6b9d,#c2185b);color:#fff' : '#f0f0f0;color:#333') + ';border-radius:12px;padding:8px 14px;word-break:break-word;">' + escapeHtml(text) + '</div>';
+    d.className = isMe ? 'pier-chat-msg-me' : 'pier-chat-msg-other';
+    d.innerHTML = '<div class="bubble">' + escapeHtml(text) + '</div><div class="pier-chat-msg-meta">' + name + ' · ' + time + '</div>';
     el.appendChild(d);
     el.scrollTop = el.scrollHeight;
   }
@@ -183,15 +215,16 @@ router.get('/:slug', async (req: Request, res: Response) => {
 
   window.toggleChat = function() {
     var overlay = document.getElementById('pier-chat-overlay');
+    var panel = document.getElementById('pier-chat-panel');
     var btn = document.getElementById('pier-chat-btn');
     if (overlay.style.display === 'flex') {
-      overlay.style.transform = 'translateY(100%)';
+      panel.style.transform = 'translateY(100%)';
       setTimeout(function(){ overlay.style.display = 'none'; }, 300);
       btn.style.display = 'flex';
     } else {
       overlay.style.display = 'flex';
       btn.style.display = 'none';
-      setTimeout(function(){ overlay.style.transform = 'translateY(0)'; }, 10);
+      setTimeout(function(){ panel.style.transform = 'translateY(0)'; }, 10);
       document.getElementById('pier-chat-input').focus();
     }
   };
@@ -201,7 +234,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
     var text = input.value.trim();
     if (!text) return;
     if (!ws || ws.readyState !== WebSocket.OPEN) {
-      addSystemMsg('⚠ 连接断开，正在重连...');
+      addSystemMsg('连接中，请稍候...', 'error');
       connect();
       return;
     }
