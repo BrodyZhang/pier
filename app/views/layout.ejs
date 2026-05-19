@@ -127,6 +127,7 @@
             padding: 12px 20px;
         }
         .nav .nav-links { display: flex; align-items: center; gap: 6px; }
+        .nav-email { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; font-size: 13px; color: #b0b0c8; }
         .nav a { color: #6c6c8a; text-decoration: none; font-size: 14px; transition: color 0.2s; }
         .nav a:hover { color: #ff6b9d; }
         .nav .brand { font-weight: 700; font-size: 18px; background: linear-gradient(135deg, #ff6b9d, #c2185b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-right: auto; }
@@ -256,15 +257,15 @@
             .nav .brand { font-size: 16px; }
             .nav-email { display: none; }
             .nav-toggle { display: block; }
-            .nav-links {
+            .nav .nav-links {
                 display: none; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0;
                 background: rgba(255,255,255,0.96); backdrop-filter: blur(20px);
                 border-bottom: 1px solid rgba(233,30,99,0.08); padding: 12px 16px; gap: 10px; z-index: 200;
                 box-shadow: 0 8px 24px rgba(0,0,0,0.06);
             }
-            .nav-links.open { display: flex; }
-            .nav-links a, .nav-links form, .nav-links .btn { width: 100%; }
-            .nav-links .btn { justify-content: center; margin: 0; }
+            .nav .nav-links.open { display: flex; }
+            .nav .nav-links a, .nav .nav-links form, .nav .nav-links .btn { width: 100%; }
+            .nav .nav-links .btn { justify-content: center; margin: 0; }
             .nav { position: relative; }
             table, thead, tbody, th, td, tr { display: block; }
             thead { display: none; }

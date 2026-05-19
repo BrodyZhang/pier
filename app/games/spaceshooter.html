@@ -140,7 +140,7 @@ function spawnLevel() {
     } else if (level === 3) {
         boss = {
             x: W/2, y: -80, w: 70, h: 60,
-            hp: 30, maxHp: 30, speed: 1.0,
+            hp: 15, maxHp: 15, speed: 1.0,
             direction: 1, shootTimer: 0,
             phase: 0, phaseTimer: 0
         };
@@ -606,7 +606,14 @@ function gameLoop() {
         updateBossBullets();
         checkEnemyCollision();
         
-        // Draw
+        // Draw - reset canvas state to prevent ghosting
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, W, H);
+        ctx.restore();
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
+        ctx.globalAlpha = 1;
         ctx.fillStyle = '#0a0a2e';
         ctx.fillRect(0, 0, W, H);
         

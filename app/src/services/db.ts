@@ -1,13 +1,22 @@
 import { Pool } from 'pg';
 
 function getConnectionString(): string {
-  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
-  const user = process.env.DB_USER || 'pier';
-  const pw = process.env.DB_PASSWORD || '';
-  const host = process.env.DB_HOST || 'localhost';
-  const port = process.env.DB_PORT || '5432';
-  const db = process.env.DB_NAME || 'pier';
-  return `postgres://${user}:${pw}@${host}:${port}/${db}`;
+  let url: string;
+  if (process.env.DATABASE_URL) {
+    url = process.env.DATABASE_URL;
+  } else {
+    const user = process.env.DB_USER || 'pier';
+    const pw = process.env.DB_PASSWORD || '';
+    const host = process.env.DB_HOST || 'localhost';
+    const port = process.env.DB_PORT || '5432';
+    const db = process.env.DB_NAME || 'pier';
+    url = `postgres://${user}:${pw}@${host}:${port}/${db}`;
+  }
+  // Ensure UTF-8 client encoding for Chinese text support
+  if (!url.includes('client_encoding')) {
+    url += (url.includes('?') ? '&' : '?') + 'client_encoding=utf8';
+  }
+  return url;
 }
 
 const connStr = getConnectionString();
