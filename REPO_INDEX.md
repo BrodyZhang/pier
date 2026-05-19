@@ -105,6 +105,7 @@ pier/
 | POST | `/api/dev/create` | requireDevApiKey | — | Create agent directly (AI) |
 | POST | `/api/dev/upload/:id` | requireDevApiKey | — | Upload HTML → dev_review |
 | POST | `/api/dev/approve/:id` | requireDevApiKey | — | Approve dev_review → completed |
+| POST | `/api/dev/delete/:id` | requireDevApiKey | — | Delete agent |
 
 ## Database Tables
 
