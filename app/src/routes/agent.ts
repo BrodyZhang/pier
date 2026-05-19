@@ -83,8 +83,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
       html = Buffer.from(raw, 'base64').toString('utf-8');
       if (!html.includes('<!DOCTYPE') && !html.includes('<html')) html = raw;
     } catch { html = raw; }
-    const disclaimer = `<div style="position:fixed;bottom:10px;right:10px;font-size:12px;color:rgba(255,255,255,0.3);z-index:9999;pointer-events:none;">AI 自动化学习中...</div>
-<div style="position:fixed;bottom:10px;left:10px;font-size:11px;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;">This page is for demonstration purposes only.</div>`;
+    const disclaimer = `<div style="position:fixed;bottom:10px;left:10px;right:10px;font-size:11px;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;text-align:center;">本页面由 AI 自动生成，为个人学习实验项目，内容仅供展示，不构成任何承诺或保证。</div>`;
     html = html.replace('</body>', `${disclaimer}</body>`);
 
     res.send(html);

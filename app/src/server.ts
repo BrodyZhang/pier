@@ -53,6 +53,7 @@ app.use((req, _res, next) => {
   _res.locals.role = req.session.role;
   _res.locals.isAdmin = req.session.role === 'admin';
   _res.locals.userEmail = req.session.userEmail || '';
+  _res.locals.adminEmail = process.env.ADMIN_EMAIL || '';
   next();
 });
 
@@ -88,8 +89,7 @@ app.get('/g/:slug', async (req, res) => {
       html = Buffer.from(raw, 'base64').toString('utf-8');
       if (!html.includes('<!DOCTYPE') && !html.includes('<html')) html = raw; // not actually base64
     } catch { html = raw; }
-    const disclaimer = `<div style="position:fixed;bottom:10px;right:10px;font-size:12px;color:rgba(255,255,255,0.3);z-index:9999;pointer-events:none;">AI 自动化学习中...</div>
-<div style="position:fixed;bottom:10px;left:10px;font-size:11px;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;">This page is for demonstration purposes only.</div>`;
+    const disclaimer = `<div style="position:fixed;bottom:10px;left:10px;right:10px;font-size:11px;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;text-align:center;">本页面由 AI 自动生成，为个人学习实验项目，内容仅供展示，不构成任何承诺或保证。</div>`;
     html = html.replace('</body>', `${disclaimer}</body>`);
     res.send(html);
   } catch (err) {

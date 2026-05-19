@@ -338,7 +338,9 @@
     <div class="container">
         <%- body %>
     </div>
-    <div class="watermark">AI automated</div>
+    <div class="watermark">
+        Pier · <%= typeof adminEmail !== 'undefined' && adminEmail ? '联系: ' + adminEmail + '（管理员可能无法及时查看）' : '' %>
+    </div>
     <script>
     (function() {
         var container = document.getElementById('hearts');
