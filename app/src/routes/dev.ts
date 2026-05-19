@@ -3,7 +3,7 @@ import { Router, Request, Response } from 'express';
 import pool from '../services/db';
 
 const router = Router();
-const ALLOWED_DEV_STATUSES = "'in_development','pending_review','dev_review'";
+const ALLOWED_DEV_STATUSES = "'in_development','pending_review','dev_review','completed'";
 
 
 // Helper: validate agent exists and is in ai-editable status
