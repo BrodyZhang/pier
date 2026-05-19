@@ -72,6 +72,10 @@
                         <% } else if (a.status === 'rejected') { %>
                             <span class="text-sm" style="color:#d32f2f;"><%= a.rejection_reason %></span>
                         <% } %>
+                        <form method="POST" action="/admin/requests/<%= a.id %>/rename" class="admin-form-inline">
+                            <button type="button" class="btn btn-sm btn-delete" onclick="var n=prompt('输入新名称','<%= a.name.replace(/'/g,"\\'") %>');if(n&&n.trim()){this.closest('form').querySelector('input').value=n.trim();this.closest('form').submit()}">改名</button>
+                            <input type="hidden" name="name" value="">
+                        </form>
                         <form method="POST" action="/admin/requests/<%= a.id %>/delete" class="admin-form-inline" onsubmit="return confirm('确定删除？');"><button type="submit" class="btn btn-sm btn-delete">删除</button></form>
                     </div>
                 </div>

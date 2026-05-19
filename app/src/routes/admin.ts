@@ -168,13 +168,30 @@ router.post('/requests/:id/reject-dev', async (req: Request, res: Response) => {
     const { review_comments } = req.body;
     await pool.query(
       `UPDATE agent_requests SET status = 'in_development', review_comments = $1,
-           review_log = COALESCE(review_log, '[]'::jsonb) || jsonb_build_array(jsonb_build_object('action','rejected_dev','comments',$1,'timestamp',NOW())),
-           updated_at = NOW() WHERE id = $2`,
+            review_log = COALESCE(review_log, '[]'::jsonb) || jsonb_build_array(jsonb_build_object('action','rejected_dev','comments',$1,'timestamp',NOW())),
+            updated_at = NOW() WHERE id = $2`,
       [review_comments || null, req.params.id]
     );
     res.redirect('/admin/requests');
   } catch (err) {
     console.error('Reject dev error:', err);
+    res.status(500).send('Server error');
+  }
+});
+
+router.post('/requests/:id/rename', async (req: Request, res: Response) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim() || name.trim().length > 50) {
+      return res.status(400).send('名称不能为空且不超过50个字符');
+    }
+    await pool.query(
+      'UPDATE agent_requests SET name = $1, updated_at = NOW() WHERE id = $2',
+      [name.trim(), req.params.id]
+    );
+    res.redirect('/admin/requests');
+  } catch (err) {
+    console.error('Admin rename error:', err);
     res.status(500).send('Server error');
   }
 });

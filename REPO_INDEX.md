@@ -97,6 +97,7 @@ pier/
 | POST | `/agent/:slug/unshare` | requireAuth | — | Revoke share |
 | GET | `/agent/:id/request-version` | requireAuth | `agent/request-version.ejs` | Form to request new version |
 | POST | `/agent/:id/request-version` | requireAuth | — | Submit new version request |
+| POST | `/agent/:id/rename` | requireAuth | — | Rename agent (owner or admin) |
 | GET | `/admin/requests` | requireAuth+requireAdmin | `admin/requests.ejs` | Pending/dev/completed |
 | GET | `/admin/requests/:id` | requireAuth+requireAdmin | `admin/review.ejs` | Review one request |
 | POST | `/admin/requests/:id/approve` | requireAuth+requireAdmin | — | Approve → in_development |
@@ -104,6 +105,7 @@ pier/
 | POST | `/admin/requests/:id/upload` | requireAuth+requireAdmin | — | Upload HTML, mark dev_review |
 | POST | `/admin/requests/:id/approve-dev` | requireAuth+requireAdmin | — | Approve dev_review → completed |
 | POST | `/admin/requests/:id/reject-dev` | requireAuth+requireAdmin | — | Reject dev → back to in_development |
+| POST | `/admin/requests/:id/rename` | requireAuth+requireAdmin | — | Rename agent |
 | POST | `/admin/requests/:id/delete` | requireAuth+requireAdmin | — | Delete agent |
 | GET | `/api/dev/agents` | requireDevApiKey | — | List in_development agents for AI |
 | GET | `/api/dev/pending` | requireDevApiKey | — | Pending task counts for AI |
