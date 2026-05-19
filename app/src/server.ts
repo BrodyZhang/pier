@@ -56,7 +56,7 @@ app.use((req, _res, next) => {
   _res.locals.role = req.session.role;
   _res.locals.isAdmin = req.session.role === 'admin';
   _res.locals.userEmail = req.session.userEmail || '';
-  _res.locals.adminEmail = process.env.ADMIN_EMAIL || '';
+  _res.locals.adminEmail = process.env.ADMIN_EMAIL || 'ailaopoonline@yeah.net';
   next();
 });
 
