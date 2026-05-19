@@ -11,9 +11,11 @@ router.get('/', (_req: Request, res: Response) => {
 router.get('/requests', async (_req: Request, res: Response) => {
   try {
     const result = await pool.query(
-      `SELECT ar.*, u.email as user_email
+      `SELECT ar.*, u.email as user_email,
+              parent.name as parent_name
        FROM agent_requests ar
        JOIN users u ON u.id = ar.user_id
+       LEFT JOIN agent_requests parent ON parent.id = ar.parent_id
        ORDER BY ar.created_at DESC`
     );
     const all = result.rows;
@@ -33,9 +35,11 @@ router.get('/requests', async (_req: Request, res: Response) => {
 router.get('/requests/:id', async (req: Request, res: Response) => {
   try {
     const result = await pool.query(
-      `SELECT ar.*, u.email as user_email
+      `SELECT ar.*, u.email as user_email,
+              parent.name as parent_name, parent.unique_slug as parent_slug
        FROM agent_requests ar
        JOIN users u ON u.id = ar.user_id
+       LEFT JOIN agent_requests parent ON parent.id = ar.parent_id
        WHERE ar.id = $1`,
       [req.params.id]
     );

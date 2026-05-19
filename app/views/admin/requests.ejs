@@ -53,6 +53,7 @@
                 <div class="flex flex-wrap flex-between flex-center gap-sm">
                     <div class="flex flex-wrap flex-center gap-sm">
                         <strong style="font-size:15px;color:#5c5c7a;"><%= a.name %></strong>
+                        <% if (a.version_number > 1) { %><span class="text-xs" style="background:rgba(156,39,176,0.1);color:#9c27b0;padding:2px 8px;border-radius:4px;">v<%= a.version_number %></span><% } %>
                         <span class="text-sm text-muted"><%= a.user_email %></span>
                         <span class="status status-<%= a.status === 'pending_review' ? 'pending' : a.status === 'in_development' || a.status === 'dev_review' ? 'dev' : a.status === 'completed' ? 'done' : 'rejected' %>">
                             <% if (a.status === 'pending_review') { %>待审核<% } else if (a.status === 'in_development') { %>开发中<% } else if (a.status === 'dev_review') { %>待验收<% } else if (a.status === 'completed') { %>已完成<% } else { %>已拒绝<% } %>
@@ -83,6 +84,7 @@
                 </div>
                 <div class="text-sm text-desc mt-1 desc-text"><%= a.description %></div>
                 <div class="text-xs text-muted mt-1"><%= new Date(a.created_at).toLocaleDateString() %></div>
+                <% if (a.parent_id) { %><div class="mt-1 text-xs" style="color:#9c27b0;">基于 v<%= a.version_number - 1 %> 的新版本<% if (a.parent_name) { %> (来自: <%= a.parent_name %>)<% } %></div><% } %>
                 <% if (a.review_notes) { %><div class="mt-1 text-sm" style="color:#2e7d32;background:rgba(76,175,80,0.06);padding:6px 10px;border-radius:8px;">审核说明: <%= a.review_notes %></div><% } %>
                 <% if (a.review_comments) { %><div class="mt-1 text-sm" style="color:#e65100;background:rgba(255,152,0,0.06);padding:6px 10px;border-radius:8px;">退回意见: <%= a.review_comments %></div><% } %>
                 <% if (a.status === 'dev_review') { %>

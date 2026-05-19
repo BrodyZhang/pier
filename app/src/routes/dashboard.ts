@@ -7,9 +7,11 @@ router.get('/', async (req: Request, res: Response) => {
   try {
     const agents = await pool.query(
       `SELECT ar.*, u.email as creator_email,
-        (SELECT COUNT(*) FROM agent_shares WHERE agent_id = ar.id) as share_count
+        (SELECT COUNT(*) FROM agent_shares WHERE agent_id = ar.id) as share_count,
+        parent.name as parent_name, parent.unique_slug as parent_slug
        FROM agent_requests ar
        JOIN users u ON u.id = ar.user_id
+       LEFT JOIN agent_requests parent ON parent.id = ar.parent_id
        WHERE ar.user_id = $1
        ORDER BY ar.created_at DESC`,
       [req.session.userId]

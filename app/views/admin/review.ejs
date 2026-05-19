@@ -15,7 +15,10 @@
         <div style="margin-top:16px;">
             <div style="margin-bottom:14px;">
                 <span class="review-label">名称</span>
-                <div class="review-value" style="font-size:18px;font-weight:600;"><%= agent.name %></div>
+                <div class="review-value" style="font-size:18px;font-weight:600;">
+                    <%= agent.name %>
+                    <% if (agent.version_number > 1) { %><span style="font-size:13px;color:#9c27b0;background:rgba(156,39,176,0.1);padding:2px 8px;border-radius:4px;margin-left:8px;">v<%= agent.version_number %></span><% } %>
+                </div>
             </div>
             <div style="margin-bottom:14px;">
                 <span class="review-label">用户</span>
@@ -25,6 +28,16 @@
                 <span class="review-label">提交时间</span>
                 <div class="review-value" style="font-size:14px;"><%= new Date(agent.created_at).toLocaleString() %></div>
             </div>
+            <% if (agent.parent_id) { %>
+            <div style="margin-bottom:14px;">
+                <span class="review-label">基于版本</span>
+                <div class="review-value" style="font-size:14px;color:#9c27b0;">
+                    v<%= agent.version_number - 1 %>
+                    <% if (agent.parent_name) { %> — <%= agent.parent_name %><% } %>
+                    <% if (agent.parent_slug) { %><a href="/agent/<%= agent.parent_slug %>" style="font-size:12px;color:#9c27b0;text-decoration:underline;">查看原版</a><% } %>
+                </div>
+            </div>
+            <% } %>
             <div style="margin-bottom:14px;">
                 <span class="review-label">状态</span>
                 <div style="margin-top:6px;">

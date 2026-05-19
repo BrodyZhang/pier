@@ -179,6 +179,36 @@ router.post('/:slug/share', requireAuth, async (req: Request, res: Response) => 
   }
 });
 
+// POST /:id/request-version — Request a new version of an existing agent
+router.post('/:id/request-version', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const parent = await pool.query(
+      `SELECT id, name, description, version_number, status, user_id
+       FROM agent_requests WHERE id = $1 AND status = 'completed'`,
+      [req.params.id]
+    );
+    if (parent.rows.length === 0) {
+      return res.status(404).send('Agent not found or not completed');
+    }
+    const p = parent.rows[0];
+    // Only owner can request version
+    if (p.user_id !== req.session.userId && req.session.role !== 'admin') {
+      return res.status(403).send('Access denied');
+    }
+    const newVersion = (p.version_number || 1) + 1;
+    const result = await pool.query(
+      `INSERT INTO agent_requests (user_id, name, description, parent_id, version_number)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id`,
+      [req.session.userId, p.name, p.description, p.id, newVersion]
+    );
+    res.redirect('/dashboard');
+  } catch (err) {
+    console.error('Request version error:', err);
+    res.status(500).send('Server error');
+  }
+});
+
 router.post('/:id/delete', requireAuth, async (req: Request, res: Response) => {
   try {
     const result = await pool.query(

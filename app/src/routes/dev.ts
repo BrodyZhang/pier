@@ -3,7 +3,7 @@ import { Router, Request, Response } from 'express';
 import pool from '../services/db';
 
 const router = Router();
-const ALLOWED_DEV_STATUSES = "'in_development','pending_review','dev_review','completed'";
+const ALLOWED_DEV_STATUSES = "'in_development','dev_review'";
 
 
 // Helper: validate agent exists and is in ai-editable status
@@ -24,7 +24,7 @@ router.get('/agents', async (req: Request, res: Response) => {
               u.email as user_email
        FROM agent_requests ar
        JOIN users u ON u.id = ar.user_id
-       WHERE ar.status = 'in_development' OR ar.status = 'pending_review'
+        WHERE ar.status = 'in_development'
        ORDER BY ar.created_at ASC`
     );
     res.json({ agents: result.rows });
