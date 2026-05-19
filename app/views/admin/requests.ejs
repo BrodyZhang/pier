@@ -8,11 +8,12 @@
 @media (max-width:640px) {
     .admin-form-inline { width:100%; }
     .admin-form-inline input { width:100%; max-width:100%; }
-    .admin-actions { flex-direction:column; align-items:stretch; gap:8px; }
-    .admin-actions form { width:100%; }
+    .admin-actions { flex-direction:row; flex-wrap:wrap; align-items:center; gap:4px; }
+    .admin-actions form { width:auto; flex:1; min-width:0; }
     .admin-form-reject { flex-direction:column; }
     .admin-form-reject textarea { width:100%; }
     .desc-text { max-width:100%; white-space:normal; }
+    .list-item { padding:10px; margin-bottom:8px; }
 }
 </style>
 <div class="card" style="padding:20px 28px;">

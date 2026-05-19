@@ -95,7 +95,8 @@ pier/
 | GET | `/agent/:slug/share` | requireAuth | `agent/share.ejs` | Manage sharing |
 | POST | `/agent/:slug/share` | requireAuth | — | Share with partner |
 | POST | `/agent/:slug/unshare` | requireAuth | — | Revoke share |
-| POST | `/agent/:id/request-version` | requireAuth | — | Request new version of completed agent |
+| GET | `/agent/:id/request-version` | requireAuth | `agent/request-version.ejs` | Form to request new version |
+| POST | `/agent/:id/request-version` | requireAuth | — | Submit new version request |
 | GET | `/admin/requests` | requireAuth+requireAdmin | `admin/requests.ejs` | Pending/dev/completed |
 | GET | `/admin/requests/:id` | requireAuth+requireAdmin | `admin/review.ejs` | Review one request |
 | POST | `/admin/requests/:id/approve` | requireAuth+requireAdmin | — | Approve → in_development |

@@ -1,0 +1,27 @@
+<style>
+.parent-info { background:rgba(156,39,176,0.04); border:1px solid rgba(156,39,176,0.12); border-radius:12px; padding:14px; margin-bottom:16px; }
+.parent-info .label { font-size:12px; color:#b0b0c8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px; }
+.parent-info .value { font-size:14px; color:#6c6c8a; }
+@media (max-width:640px) {
+  .parent-info { padding:10px; }
+}
+</style>
+<div class="card">
+  <h1>请求新版本</h1>
+  <p class="text-sm text-muted" style="margin-top:8px;">基于现有 agent 创建新版本，AI 将以原版本为基础进行改进。</p>
+</div>
+
+<div class="parent-info">
+  <div class="label">原版本</div>
+  <div class="value"><%= parent.name %> v<%= parent.version_number || 1 %></div>
+</div>
+
+<div class="card">
+  <form method="POST" action="/agent/<%= parent.id %>/request-version">
+    <label>名称</label>
+    <input type="text" name="name" value="<%= parent.name %>" required maxlength="50" placeholder="页面名称（最多50个字符）">
+    <label>描述</label>
+    <textarea name="description" rows="4" required maxlength="500" placeholder="描述页面内容和用途（最多500个字符）"><%= parent.description %></textarea>
+    <button type="submit" class="btn btn-success" style="margin-top:16px;width:100%;justify-content:center;">提交新版本请求</button>
+  </form>
+</div>

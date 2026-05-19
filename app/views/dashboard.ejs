@@ -3,10 +3,13 @@
 .dash-form { display:inline; }
 .btn-delete-dash { background:rgba(233,30,99,0.08);color:#c2185b;border:1px solid rgba(233,30,99,0.15);padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px; }
 @media (max-width:640px) {
-    .dash-actions { flex-direction:column; align-items:stretch; }
-    .dash-actions a, .dash-actions form { width:100%; }
+    .dash-actions { flex-direction:row; flex-wrap:wrap; align-items:center; gap:4px; }
+    .dash-actions a, .dash-actions form { width:auto; flex:1; min-width:0; }
     .dash-actions .btn, .dash-actions .btn-delete-dash { width:100%; justify-content:center; }
-    .dash-form { width:100%; }
+    .dash-form { width:auto; flex:1; }
+    table tr { background:rgba(255,255,255,0.7); border:1px solid rgba(233,30,99,0.08); border-radius:12px; margin-bottom:10px; padding:6px 10px; }
+    table td:last-child { border-bottom: none; }
+    table td { padding:6px 4px; }
 }
 </style>
 <div class="card">
@@ -48,9 +51,7 @@
                                 <% } %>
                                 <% if (a.status === 'completed') { %>
                                     <a href="/agent/<%= a.unique_slug %>/share" class="btn btn-primary btn-sm">分享</a>
-                                    <form method="POST" action="/agent/<%= a.id %>/request-version" class="dash-form">
-                                        <button type="submit" class="btn btn-sm" style="background:rgba(156,39,176,0.1);color:#9c27b0;border:1px solid rgba(156,39,176,0.2);padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;">请求新版本</button>
-                                    </form>
+                                    <a href="/agent/<%= a.id %>/request-version" class="btn btn-sm" style="background:rgba(156,39,176,0.1);color:#9c27b0;border:1px solid rgba(156,39,176,0.2);padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">请求新版本</a>
                                 <% } %>
                                 <% if (a.status === 'rejected' && a.rejection_reason) { %>
                                     <span class="text-sm" style="color:#d32f2f;padding:4px 0;"><%= a.rejection_reason %></span>

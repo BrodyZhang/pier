@@ -179,12 +179,34 @@ router.post('/:slug/share', requireAuth, async (req: Request, res: Response) => 
   }
 });
 
-// POST /:id/request-version — Request a new version of an existing agent
+// GET /:id/request-version — Show form for requesting a new version
+router.get('/:id/request-version', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const parent = await pool.query(
+      `SELECT id, name, description, version_number, user_id
+       FROM agent_requests WHERE id = $1::uuid AND status = 'completed'`,
+      [req.params.id]
+    );
+    if (parent.rows.length === 0) {
+      return res.status(404).send('Agent not found or not completed');
+    }
+    const p = parent.rows[0];
+    if (p.user_id !== req.session.userId && req.session.role !== 'admin') {
+      return res.status(403).send('Access denied');
+    }
+    res.render('agent/request-version', { title: 'Request New Version', parent: p, error: null });
+  } catch (err) {
+    console.error('Request version form error:', err);
+    res.status(500).send('Server error');
+  }
+});
+
+// POST /:id/request-version — Submit a new version request
 router.post('/:id/request-version', requireAuth, async (req: Request, res: Response) => {
   try {
     const parent = await pool.query(
       `SELECT id, name, description, version_number, status, user_id
-       FROM agent_requests WHERE id = $1 AND status = 'completed'`,
+       FROM agent_requests WHERE id = $1::uuid AND status = 'completed'`,
       [req.params.id]
     );
     if (parent.rows.length === 0) {
@@ -195,12 +217,18 @@ router.post('/:id/request-version', requireAuth, async (req: Request, res: Respo
     if (p.user_id !== req.session.userId && req.session.role !== 'admin') {
       return res.status(403).send('Access denied');
     }
+    const { name, description } = req.body;
+    if (!name || !name.trim()) {
+      return res.render('agent/request-version', { title: 'Request New Version', parent: p, error: '名称不能为空' });
+    }
+    if (name.trim().length > 50) {
+      return res.render('agent/request-version', { title: 'Request New Version', parent: p, error: '名称不能超过50个字符' });
+    }
     const newVersion = (p.version_number || 1) + 1;
-    const result = await pool.query(
+    await pool.query(
       `INSERT INTO agent_requests (user_id, name, description, parent_id, version_number)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id`,
-      [req.session.userId, p.name, p.description, p.id, newVersion]
+       VALUES ($1, $2, $3, $4, $5)`,
+      [req.session.userId, name.trim(), (description || '').trim(), p.id, newVersion]
     );
     res.redirect('/dashboard');
   } catch (err) {
