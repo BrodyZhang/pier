@@ -1,128 +1,66 @@
----
-name: deploy
-description: Use when the user asks you to deploy, push, or release the project. Follows the full CI/CD pipeline: commit, push, wait for GitHub Actions, verify on VPS.
----
+# Deploy Skill — Test-First Deployment Workflow
 
-# Deploy Workflow
+## Critical Rule: NEVER deploy to prod before test verification + human confirmation
 
-## Prerequisites
+This is the **most important rule** in the project. Violating it causes prod outages.
 
-- GitHub Actions workflow at `.github/workflows/deploy.yml`
-- Secrets set in GitHub: DOCKER_USERNAME, DOCKER_PASSWORD, VPS_HOST, VPS_USER, SSH_PRIVATE_KEY
-- VPS has Docker and docker-compose installed (only requirements on VPS host)
-- Domain ailaopo.online points to VPS IP
-- Let's Encrypt certs exist on VPS at /etc/letsencrypt
-- GitHub variable `PROD_VERSION` for production version pinning
+## Deployment Flow (Mandatory)
 
-## Everything Runs Inside Docker
-
-**Never install anything on the VPS host directly.** Every component runs inside a container. See [`docs/deployment-architecture.md`](../../docs/deployment-architecture.md) for full infrastructure documentation.
-
-| Component | Container | Notes |
-|-----------|-----------|-------|
-| nginx (reverse proxy) | `pier-router-1` | `Dockerfile.router`, nginx:alpine |
-| Node.js (test) | `pier-app-test-1` | `app-test` service, always `:latest` |
-| Node.js (prod) | `pier-app-prod-1` | `app-prod` service, pinned by `PROD_VERSION` |
-| PostgreSQL | `pier-db-1` | `postgres:16-alpine` image |
-
-- No nginx, Node.js, or PostgreSQL installed on VPS host
-- All debugging via `sudo docker logs <container>` or `sudo docker exec -it <container> sh`
-- All config changes: modify files in repo, rebuild and redeploy via GitHub Actions
-
-## Architecture: 3 Environments
-
-| Environment | Domain | DB | Deploy Trigger |
-|-------------|--------|----|----------------|
-| **Dev** | Local machine | `pier_dev` | Manual `npm run dev` |
-| **Test** | `test.ailaopo.online` (HTTPS) | `pier_test` | Git push → CI/CD (auto) |
-| **Prod** | `ailaopo.online` (HTTPS) | `pier_prod` | Manual SSH promote (only after test confirmed) |
-
-- `app-test` always runs `:latest` (every push redeploys it)
-- `app-prod` is NEVER restarted by push deploy
-- Databases auto-created by `initDB()` in `db.ts`
-
-## Steps
-
-### 1. Commit and Push
-```bash
-git add -A
-git commit -m "<type>: <description>"
-git push origin master
+```
+Code Change → Push → Test Deploy (auto) → Verify on test.ailaopo.online → Human says "OK" → Prod Deploy (manual PROD_VERSION update)
 ```
 
-### 2. Wait for Build
-- GitHub Actions builds Docker image from `Dockerfile`
-- Pushes to Docker Hub with two tags: `:latest` and `:YYYYMMDD-RUNNUMBER`
-- SSHes to VPS, builds router image, pulls app-test only, runs `docker compose up -d router app-test db`
+### Step 1: Make code changes
+- Commit with clear message
+- Push to master
 
-### 3. Verify on Test
-- Check GitHub Actions tab for green checkmark
-- Open `https://test.ailaopo.online/` to verify test deployment
-- Test all features: register, login, submit agent, admin flows
+### Step 2: Wait for Deploy to VPS workflow (deploy.yml)
+- GitHub Actions will build-and-push the image AND deploy to test
+- Monitor the workflow to completion
+- **If the deploy (SSH) step fails**: fix it, commit and push again
+- **If the build step fails**: fix the compilation error, commit and push again
 
-## Production Promotion
+### Step 3: Verify on test.ailaopo.online
+- After the workflow succeeds, verify: `curl https://test.ailaopo.online/`
+- Check: page loads (200 OK), content looks correct, login/register works
+- If anything is wrong: fix locally, commit, push again (back to Step 1)
 
-**Only after you confirm test is working:**
+### Step 4: Ask human for confirmation
+- Report what was deployed and what changed
+- State clearly: `"Test is verified at https://test.ailaopo.online/. Ready for prod? [MANUAL] Please confirm."`
+- **Wait for the human to explicitly say "OK" or "deploy prod"**
+- Do NOT update PROD_VERSION without human confirmation
 
-### Automated (Recommended)
+### Step 5: Promote to prod
+- After human confirms: update `PROD_VERSION` file with the build number (e.g. `v20260519-00000081`)
+- Commit and push
+- Monitor `Deploy Prod` workflow (deploy-prod.yml) to completion
 
-1. Update `PROD_VERSION` file in repo root with the build number (e.g. `20260517-00000069`)
-2. Commit and push
-3. `deploy-prod.yml` workflow auto-triggers, SSHes to VPS, updates `.env`, pulls image, restarts app-prod
+### Step 6: Verify prod
+- Check: `curl https://ailaopo.online/` returns 200
+- Verify the feature works on production
 
-```bash
-echo "20260517-00000069" > PROD_VERSION
-git add PROD_VERSION && git commit -m "prod: promote to build #69" && git push
-```
+## What NOT to Do
 
-This is the **only approved method**. It ensures the version is tracked in git and deployment is auditable.
+- ❌ NEVER push to prod while test is on an older version
+- ❌ NEVER skip test verification
+- ❌ NEVER deploy prod without explicit human confirmation
+- ❌ NEVER update PROD_VERSION in the same commit as code changes (always separate commits)
+- ❌ NEVER assume a build succeeded without checking the workflow status
 
-### Manual (Fallback — only if workflow fails)
+## deploy.yml SSH Failure Recovery
 
-```bash
-ssh azureuser@<VPS_IP>
-cd ~/pier
-git pull origin master
-# Update .env
-sed -i 's/^PROD_VERSION=.*/PROD_VERSION=v20260517-00000069/' .env
-docker compose pull app-prod
-docker compose up -d app-prod
-```
+The deploy.yml (test deploy) SSH step has been known to fail. If it does:
 
-### Revert
+1. Check if the build-and-push succeeded (it usually does)
+2. The image IS on Docker Hub even if SSH deploy failed
+3. Fix the SSH script → commit → push again → new build triggers
 
-```bash
-# 1. Update PROD_VERSION file to a previous known-good version
-echo "20260517-00000042" > PROD_VERSION
-git add PROD_VERSION && git commit -m "prod: revert to build #42" && git push
-# deploy-prod.yml will handle the revert automatically
-```
+DO NOT manually run deploy-prod to work around a deploy.yml failure. Only deploy-prod after test verification is complete AND human confirms.
 
-Or to pin to `latest` for emergency rollback:
+## Version Tracking
 
-```bash
-# SSH to VPS and edit .env manually
-sed -i 's/^PROD_VERSION=.*/PROD_VERSION=latest/' ~/pier/.env
-cd ~/pier && docker compose pull app-prod && docker compose up -d app-prod
-```
-
-## Deploy to an Empty VPS (First Time)
-
-### 1. SSH Setup
-[MANUAL] The human must:
-- `ssh azureuser@<VPS_IP>`
-- Install Docker
-- Clone repo: `git clone https://github.com/BrodyZhang/pier ~/pier`
-- Run: `cd ~/pier && docker compose up -d`
-
-### 2. SSL Certificate
-[MANUAL] The human must:
-- On VPS: `certbot certonly --standalone -d ailaopo.online -d www.ailaopo.online` (stop router first)
-- For test domain: `certbot certonly --standalone -d test.ailaopo.online` (stop router first)
-- Certs at `/etc/letsencrypt/live/` are mounted read-only into router container
-
-### 3. GitHub Secrets & Variables
-[MANUAL] The human must set these in GitHub repo Settings → Secrets and variables → Actions:
-- **Secrets**: DOCKER_USERNAME, DOCKER_PASSWORD, VPS_HOST, VPS_USER, SSH_PRIVATE_KEY, SESSION_SECRET, ADMIN_EMAIL
-- **Variables**: (none required — npm build args, etc.)
-- **PROD_VERSION**: managed via `PROD_VERSION` file in repo root (no separate variable needed)
+- `build number` = `github.run_number` from GitHub Actions
+- `PROD_VERSION` = selected build number (promoted manually)
+- Build tags: `brodyzhang2026/pier:v20260519-000000NN`
+- `latest` tag always points to the most recent build (test uses this)

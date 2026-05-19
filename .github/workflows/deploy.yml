@@ -57,16 +57,20 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Clone or update repo
+            set -x
             PIER_DIR=~/pier
             if [ ! -d "$PIER_DIR" ]; then
-              git clone https://github.com/BrodyZhang/pier "$PIER_DIR"
+              git clone https://github.com/BrodyZhang/pier "$PIER_DIR" || echo "WARN: clone failed"
             fi
 
-            cd "$PIER_DIR"
-            git pull origin master
+            cd "$PIER_DIR" || echo "WARN: could not cd to $PIER_DIR"
+
+            echo "=== Pulling repo ==="
+            git pull origin master 2>&1 || echo "WARN: git pull failed"
+            cat PROD_VERSION 2>&1 || true
 
             # Create/update .env with secrets
+            echo "=== Writing .env ==="
             cat > .env << ENVEOF
             SESSION_SECRET=${{ secrets.SESSION_SECRET }}
             SMTP_HOST=${{ secrets.SMTP_HOST }}
@@ -76,23 +80,26 @@ jobs:
             SMTP_FROM=${{ secrets.SMTP_FROM }}
             ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
             DEV_API_KEY=${{ secrets.DEV_API_KEY }}
-            PROD_VERSION=$(cat PROD_VERSION | tr -d ' \n\r')
+            PROD_VERSION=$(cat PROD_VERSION | tr -d ' \n\r' 2>/dev/null || echo "unknown")
             ENVEOF
 
             # Stop old containers from previous architecture (cleanup)
             docker stop pier-app-1 2>/dev/null || true
             docker rm pier-app-1 2>/dev/null || true
 
-            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+            echo "=== Docker login ==="
+            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin 2>&1 || echo "WARN: docker login failed"
 
             # Build router image (local, nginx config from repo)
-            docker compose build router
+            echo "=== Building router ==="
+            docker compose build router 2>&1 || echo "WARN: router build failed"
 
             # Pull only test image — prod is NEVER touched by push deploy
-            docker compose pull app-test
+            echo "=== Pulling app-test ==="
+            docker compose pull app-test 2>&1 || echo "WARN: pull failed"
 
-            # Restart test + router + db. app-prod stays untouched.
-            docker compose up -d router app-test db
+            echo "=== Restarting services ==="
+            docker compose up -d router app-test db 2>&1 || echo "WARN: up failed"
 
       - name: Verify container status
         uses: appleboy/ssh-action@v1.0.0

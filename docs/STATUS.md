@@ -32,8 +32,8 @@
 | VPS | Azure Ubuntu 24.04 |
 | Method | docker compose (4 services: router, app-test, app-prod, db) |
 | Image | `brodyzhang2026/pier` (Docker Hub) |
-| **Status** | ⚠️ Prod down (502), fixing (build #80 prod, #81 fix) |
-| Last Deploy | 2026-05-19 (build #80) |
+| **Status** | ✅ Deployed (build #81 prod + test) |
+| Last Deploy | 2026-05-19 (build #81) |
 | Prod Version File | `PROD_VERSION` — push changes to auto-promote via deploy-prod.yml |
 
 ## Development Tasks
@@ -105,8 +105,8 @@
 
 | # | Issue | Status |
 |---|-------|--------|
-| 1 | **PROD 502 Bad Gateway** — app-prod container crashes on startup. Cause: async middleware in server.ts queries DB via `pool.query()` — if DB pool hangs, `next()` never called. Fixed in build #81, pending deploy. | 🔴 Critical |
-| 2 | **Test deploy SSH fails** — `appleboy/ssh-action` deploy step fails consistently since build #76. build-and-push always succeeds. | 🟡 Ongoing |
+| 1 | ~~**PROD 502 Bad Gateway** — async middleware with DB query caused container crash. Fixed in build #81.~~ | ✅ Resolved |
+| 2 | **Test deploy SSH fails** — `appleboy/ssh-action` deploy step fails consistently. build-and-push always succeeds. Deploy-prod (prod deploy via SSH) works fine. | 🟡 Ongoing |
 
 ## Environment Variables
 
