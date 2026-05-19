@@ -99,4 +99,24 @@ router.post('/upload/:id', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/dev/approve/:id — Admin approves dev_review, setting status to completed
+router.post('/approve/:id', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      `UPDATE agent_requests SET status = 'completed',
+       review_log = COALESCE(review_log, '[]'::jsonb) || jsonb_build_array(jsonb_build_object('action','approved_dev','timestamp',NOW())),
+       updated_at = NOW() WHERE id = $1 AND status = 'dev_review'
+       RETURNING id`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Agent not found or not in dev_review status' });
+    }
+    res.json({ success: true, status: 'completed' });
+  } catch (err) {
+    console.error('Dev approve error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 export default router;
