@@ -141,6 +141,55 @@ router.post('/create', async (req: Request, res: Response) => {
   }
 });
 
+// POST /api/dev/update/:id — Update agent name/description (supports _base64 for Chinese text)
+router.post('/update/:id', async (req: Request, res: Response) => {
+  try {
+    const exists = await pool.query('SELECT id FROM agent_requests WHERE id = $1', [req.params.id]);
+    if (exists.rows.length === 0) {
+      return res.status(404).json({ error: 'Agent not found' });
+    }
+
+    const updates: string[] = [];
+    const values: any[] = [];
+    let idx = 1;
+
+    if (req.body.name_base64) {
+      const name = Buffer.from(req.body.name_base64, 'base64').toString('utf-8');
+      updates.push(`name = $${idx++}`);
+      values.push(name);
+    } else if (req.body.name) {
+      updates.push(`name = $${idx++}`);
+      values.push(req.body.name);
+    }
+
+    if (req.body.description_base64) {
+      const description = Buffer.from(req.body.description_base64, 'base64').toString('utf-8');
+      updates.push(`description = $${idx++}`);
+      values.push(description);
+    } else if (req.body.description) {
+      updates.push(`description = $${idx++}`);
+      values.push(req.body.description);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'name, name_base64, description, or description_base64 required' });
+    }
+
+    updates.push(`updated_at = NOW()`);
+    values.push(req.params.id);
+
+    await pool.query(
+      `UPDATE agent_requests SET ${updates.join(', ')} WHERE id = $${idx}`,
+      values
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Dev update error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // POST /api/dev/delete/:id — Delete an agent (for cleanup)
 router.post('/delete/:id', async (req: Request, res: Response) => {
   try {
@@ -174,6 +223,21 @@ router.post('/approve/:id', async (req: Request, res: Response) => {
     res.json({ success: true, status: 'completed' });
   } catch (err) {
     console.error('Dev approve error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/dev/lookup/:slug — Look up agent by unique_slug
+router.get('/lookup/:slug', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, unique_slug, name, description, status FROM agent_requests WHERE unique_slug = $1',
+      [req.params.slug]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Agent not found' });
+    res.json({ agent: result.rows[0] });
+  } catch (err) {
+    console.error('Dev lookup error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
