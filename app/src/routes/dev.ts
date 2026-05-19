@@ -6,7 +6,7 @@ const router = Router();
 // Helper: validate agent exists and is in ai-editable status
 async function getDevAgent(id: string): Promise<any> {
   const result = await pool.query(
-    `SELECT id, unique_slug, status FROM agent_requests WHERE id = $1 AND status IN ('in_development', 'pending_review')`,
+    `SELECT id, unique_slug, status FROM agent_requests WHERE id = $1 AND status IN ('in_development', 'pending_review', 'dev_review')`,
     [id]
   );
   return result.rows[0] || null;
