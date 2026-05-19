@@ -1,3 +1,20 @@
+<style>
+.admin-form-inline { display:flex; align-items:center; gap:6px; }
+.admin-form-inline input { width:160px; max-width:160px; padding:6px 10px; font-size:13px; }
+.admin-form-reject { display:flex; flex-wrap:wrap; align-items:flex-start; gap:8px; }
+.admin-form-reject textarea { flex:1; min-width:120px; padding:6px 10px; font-size:13px; min-height:36px; resize:none; }
+.btn-delete { background:rgba(233,30,99,0.08);color:#c2185b;border:1px solid rgba(233,30,99,0.15);padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px; }
+.desc-text { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+@media (max-width:640px) {
+    .admin-form-inline { width:100%; }
+    .admin-form-inline input { width:100%; max-width:100%; }
+    .admin-actions { flex-direction:column; align-items:stretch; gap:8px; }
+    .admin-actions form { width:100%; }
+    .admin-form-reject { flex-direction:column; }
+    .admin-form-reject textarea { width:100%; }
+    .desc-text { max-width:100%; white-space:normal; }
+}
+</style>
 <div class="card" style="padding:20px 28px;">
     <div class="flex flex-wrap flex-between flex-center" style="gap:12px;">
         <h1>管理后台</h1>
@@ -41,37 +58,37 @@
                             <% if (a.status === 'pending_review') { %>待审核<% } else if (a.status === 'in_development') { %>开发中<% } else if (a.status === 'dev_review') { %>待验收<% } else if (a.status === 'completed') { %>已完成<% } else { %>已拒绝<% } %>
                         </span>
                     </div>
-                    <div class="flex flex-wrap flex-center gap-sm">
+                    <div class="flex flex-wrap flex-center gap-sm admin-actions">
                         <% if (a.status === 'pending_review') { %>
-                            <form method="POST" action="/admin/requests/<%= a.id %>/approve" class="flex flex-center gap-sm" style="flex-wrap:wrap;">
-                                <input type="text" name="review_notes" placeholder="审核说明（最多200字）" required maxlength="200" style="width:160px;max-width:160px;padding:6px 10px;font-size:13px;">
+                            <form method="POST" action="/admin/requests/<%= a.id %>/approve" class="admin-form-inline">
+                                <input type="text" name="review_notes" placeholder="审核说明（最多200字）" required maxlength="200">
                                 <button type="submit" class="btn btn-success btn-sm">批准</button>
                             </form>
-                            <form method="POST" action="/admin/requests/<%= a.id %>/reject" class="flex flex-center gap-sm">
-                                <input type="text" name="reason" placeholder="拒绝原因（最多200字）" required maxlength="200" style="width:140px;max-width:140px;padding:6px 10px;font-size:13px;">
+                            <form method="POST" action="/admin/requests/<%= a.id %>/reject" class="admin-form-inline">
+                                <input type="text" name="reason" placeholder="拒绝原因（最多200字）" required maxlength="200">
                                 <button type="submit" class="btn btn-danger btn-sm">拒绝</button>
                             </form>
                         <% } else if (a.status === 'in_development') { %>
                             <% if (a.unique_slug) { %><a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">预览</a><% } %>
                         <% } else if (a.status === 'dev_review') { %>
                             <% if (a.unique_slug) { %><a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">预览</a><% } %>
-                            <form method="POST" action="/admin/requests/<%= a.id %>/approve-dev" style="display:inline;"><button type="submit" class="btn btn-success btn-sm">通过</button></form>
+                            <form method="POST" action="/admin/requests/<%= a.id %>/approve-dev" class="admin-form-inline"><button type="submit" class="btn btn-success btn-sm">通过</button></form>
                         <% } else if (a.status === 'completed') { %>
                             <% if (a.unique_slug) { %><a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">查看</a><% } %>
                         <% } else if (a.status === 'rejected') { %>
                             <span class="text-sm" style="color:#d32f2f;"><%= a.rejection_reason %></span>
                         <% } %>
-                        <form method="POST" action="/admin/requests/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除？');"><button type="submit" class="btn btn-sm" style="background:rgba(233,30,99,0.08);color:#c2185b;border:1px solid rgba(233,30,99,0.15);padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;">删除</button></form>
+                        <form method="POST" action="/admin/requests/<%= a.id %>/delete" class="admin-form-inline" onsubmit="return confirm('确定删除？');"><button type="submit" class="btn btn-sm btn-delete">删除</button></form>
                     </div>
                 </div>
-                <div class="text-sm text-desc mt-1" style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><%= a.description %></div>
+                <div class="text-sm text-desc mt-1 desc-text"><%= a.description %></div>
                 <div class="text-xs text-muted mt-1"><%= new Date(a.created_at).toLocaleDateString() %></div>
                 <% if (a.review_notes) { %><div class="mt-1 text-sm" style="color:#2e7d32;background:rgba(76,175,80,0.06);padding:6px 10px;border-radius:8px;">审核说明: <%= a.review_notes %></div><% } %>
                 <% if (a.review_comments) { %><div class="mt-1 text-sm" style="color:#e65100;background:rgba(255,152,0,0.06);padding:6px 10px;border-radius:8px;">退回意见: <%= a.review_comments %></div><% } %>
                 <% if (a.status === 'dev_review') { %>
                     <div class="mt-2">
-                        <form method="POST" action="/admin/requests/<%= a.id %>/reject-dev" class="flex flex-wrap flex-center gap-sm">
-                            <textarea name="review_comments" rows="1" required placeholder="请详细描述需要修改的地方...（最多200字）" maxlength="200" style="flex:1;min-width:120px;padding:6px 10px;font-size:13px;min-height:36px;resize:none;"><%= a.review_comments || '' %></textarea>
+                        <form method="POST" action="/admin/requests/<%= a.id %>/reject-dev" class="admin-form-reject">
+                            <textarea name="review_comments" rows="1" required placeholder="请详细描述需要修改的地方...（最多200字）" maxlength="200"><%= a.review_comments || '' %></textarea>
                             <button type="submit" class="btn btn-danger btn-sm">退回修改</button>
                         </form>
                     </div>
