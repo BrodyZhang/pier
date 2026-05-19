@@ -181,8 +181,10 @@ function spawnParticles(x, y, color, count) {
 }
 
 function drawPlayer() {
-    const p = player;
-    ctx.save();
+    try {
+        const p = player;
+        if (!p) return;
+        ctx.save();
     ctx.translate(p.x, p.y);
     
     // Invincible flash
@@ -240,11 +242,14 @@ function drawPlayer() {
     ctx.fill();
     
     ctx.restore();
+    } catch (e) { ctx.restore(); }
 }
 
 function drawEnemy(e) {
-    ctx.save();
-    ctx.translate(e.x, e.y);
+    try {
+        if (!e) return;
+        ctx.save();
+        ctx.translate(e.x, e.y);
     
     if (boss) {
         // Boss is drawn separately
@@ -338,9 +343,11 @@ function drawBoss() {
     ctx.fillRect(-b.w/2, -b.h/2 - 12, b.w * hpRatio, 6);
     
     ctx.restore();
+    } catch (e) { ctx.restore(); }
 }
 
 function updatePlayer() {
+    if (!player) return;
     const p = player;
     if (p.invincible > 0) p.invincible--;
     if (p.cooldown > 0) p.cooldown--;
@@ -608,36 +615,39 @@ function drawBossBullets() {
 }
 
 function gameLoop() {
-    if (!gameRunning) {
+    try {
+        if (!gameRunning) {
+            drawStars();
+            drawParticles();
+            requestAnimationFrame(gameLoop);
+            return;
+        }
+        
+        frameCount++;
+        
+        // Update
+        updatePlayer();
+        updateEnemies();
+        updateBoss();
+        updateBullets();
+        updateBossBullets();
+        checkEnemyCollision();
+        
+        // Draw
+        ctx.fillStyle = '#0a0a2e';
+        ctx.fillRect(0, 0, W, H);
+        
         drawStars();
+        drawBullets();
+        drawBossBullets();
+        
+        for (const e of enemies) { if (e) drawEnemy(e); }
+        drawBoss();
+        if (player) drawPlayer();
         drawParticles();
-        requestAnimationFrame(gameLoop);
-        return;
+    } catch(e) {
+        console.error('Game error:', e);
     }
-    
-    frameCount++;
-    
-    // Update
-    updatePlayer();
-    updateEnemies();
-    updateBoss();
-    updateBullets();
-    updateBossBullets();
-    checkEnemyCollision();
-    
-    // Draw
-    ctx.fillStyle = '#0a0a2e';
-    ctx.fillRect(0, 0, W, H);
-    
-    drawStars();
-    drawBullets();
-    drawBossBullets();
-    
-    for (const e of enemies) drawEnemy(e);
-    drawBoss();
-    drawPlayer();
-    drawParticles();
-    
     requestAnimationFrame(gameLoop);
 }
 
