@@ -122,11 +122,12 @@ router.post('/requests/:id/upload', async (req: Request, res: Response) => {
     }
 
     const content = file.data.toString('utf-8');
+    const b64content = Buffer.from(content, 'utf-8').toString('base64');
 
     await pool.query('DELETE FROM agent_files WHERE agent_id = $1', [req.params.id]);
     await pool.query(
       'INSERT INTO agent_files (agent_id, content) VALUES ($1, $2)',
-      [req.params.id, content]
+      [req.params.id, b64content]
     );
 
     await pool.query(

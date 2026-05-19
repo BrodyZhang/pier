@@ -81,7 +81,13 @@ app.get('/g/:slug', async (req, res) => {
       [agent.rows[0].id]
     );
     if (file.rows.length === 0) return res.status(404).send('Game content not found');
-    let html = file.rows[0].content;
+    let raw = file.rows[0].content;
+    // Content may be base64-encoded (new format) or plain text (legacy)
+    let html: string;
+    try {
+      html = Buffer.from(raw, 'base64').toString('utf-8');
+      if (!html.includes('<!DOCTYPE') && !html.includes('<html')) html = raw; // not actually base64
+    } catch { html = raw; }
     const disclaimer = `<div style="position:fixed;bottom:10px;right:10px;font-size:12px;color:rgba(255,255,255,0.3);z-index:9999;pointer-events:none;">AI 自动化学习中...</div>
 <div style="position:fixed;bottom:10px;left:10px;font-size:11px;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;">This page is for demonstration purposes only.</div>`;
     html = html.replace('</body>', `${disclaimer}</body>`);

@@ -77,7 +77,12 @@ router.get('/:slug', async (req: Request, res: Response) => {
       return res.render('agent/not-ready', { title: a.name, name: a.name });
     }
 
-    let html = file.rows[0].content;
+    let raw = file.rows[0].content;
+    let html: string;
+    try {
+      html = Buffer.from(raw, 'base64').toString('utf-8');
+      if (!html.includes('<!DOCTYPE') && !html.includes('<html')) html = raw;
+    } catch { html = raw; }
     const disclaimer = `<div style="position:fixed;bottom:10px;right:10px;font-size:12px;color:rgba(255,255,255,0.3);z-index:9999;pointer-events:none;">AI 自动化学习中...</div>
 <div style="position:fixed;bottom:10px;left:10px;font-size:11px;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;">This page is for demonstration purposes only.</div>`;
     html = html.replace('</body>', `${disclaimer}</body>`);

@@ -88,10 +88,13 @@ router.post('/upload/:id', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'html (string) or html_base64 (base64 string) is required' });
     }
 
+    // Store as base64 to bypass DB encoding issues with Chinese text
+    const b64content = Buffer.from(html, 'utf-8').toString('base64');
+
     await pool.query('DELETE FROM agent_files WHERE agent_id = $1', [req.params.id]);
     await pool.query(
       'INSERT INTO agent_files (agent_id, content) VALUES ($1, $2)',
-      [req.params.id, html]
+      [req.params.id, b64content]
     );
 
     await pool.query(
