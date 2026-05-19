@@ -5,6 +5,7 @@ import express from 'express';
 import session from 'express-session';
 import fileUpload from 'express-fileupload';
 import path from 'path';
+import fs from 'fs';
 import expressLayouts from 'express-ejs-layouts';
 import pgSession from 'connect-pg-simple';
 import pool, { initDB } from './services/db';
@@ -61,13 +62,37 @@ app.use('/agent', agentRoutes);
 app.use('/admin', requireAuth, requireAdmin, adminRoutes);
 app.use('/api/dev', requireDevApiKey, devRoutes);
 
-import fs from 'fs';
-
 app.get('/', (_req, res) => {
   res.render('index', { user: null });
 });
 
-// Serve pre-built game files directly from filesystem (for games stored on disk)
+// Serve game HTML from database by slug (public, no auth)
+app.get('/g/:slug', async (req, res) => {
+  try {
+    const agent = await pool.query(
+      `SELECT id FROM agent_requests WHERE unique_slug = $1::uuid AND status IN ('completed','dev_review')`,
+      [req.params.slug]
+    );
+    if (agent.rows.length === 0) {
+      return res.status(404).send('Game not found');
+    }
+    const file = await pool.query(
+      'SELECT content FROM agent_files WHERE agent_id = $1 ORDER BY created_at DESC LIMIT 1',
+      [agent.rows[0].id]
+    );
+    if (file.rows.length === 0) return res.status(404).send('Game content not found');
+    let html = file.rows[0].content;
+    const disclaimer = `<div style="position:fixed;bottom:10px;right:10px;font-size:12px;color:rgba(255,255,255,0.3);z-index:9999;pointer-events:none;">AI 自动化学习中...</div>
+<div style="position:fixed;bottom:10px;left:10px;font-size:11px;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;">This page is for demonstration purposes only.</div>`;
+    html = html.replace('</body>', `${disclaimer}</body>`);
+    res.send(html);
+  } catch (err) {
+    console.error('Game serve error:', err);
+    res.status(500).send('Server error');
+  }
+});
+
+// Serve pre-built game files directly from filesystem
 app.get('/g/file/:name', (req, res) => {
   const { name } = req.params;
   if (!/^[a-zA-Z0-9_-]+$/.test(name)) return res.status(400).send('Invalid name');
