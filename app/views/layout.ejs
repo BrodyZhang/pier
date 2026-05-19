@@ -221,6 +221,55 @@
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(233,30,99,0.2); border-radius: 3px; }
+        .list-item {
+            background: rgba(255,255,255,0.75);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,182,193,0.2);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .list-item:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(233,30,99,0.08); }
+        .flex { display: flex; }
+        .flex-wrap { flex-wrap: wrap; }
+        .flex-between { justify-content: space-between; }
+        .flex-center { align-items: center; }
+        .gap { gap: 10px; }
+        .gap-sm { gap: 6px; }
+        .text-sm { font-size: 13px; }
+        .text-xs { font-size: 11px; }
+        .text-muted { color: #b0b0c8; }
+        .text-desc { color: #8c8caa; }
+        .mt-1 { margin-top: 4px; }
+        .mt-2 { margin-top: 8px; }
+        .mb-1 { margin-bottom: 4px; }
+        .mb-2 { margin-bottom: 8px; }
+        @media (max-width: 640px) {
+            .container { padding: 12px; }
+            .card { padding: 16px; margin: 12px 0; border-radius: 14px; }
+            h1 { font-size: 22px; }
+            .nav .container { padding: 10px 12px; }
+            .nav a { margin-left: 12px; font-size: 13px; }
+            .nav .brand { font-size: 16px; }
+            table, thead, tbody, th, td, tr { display: block; }
+            thead { display: none; }
+            td { padding: 10px 12px; border: none; border-bottom: 1px solid rgba(233,30,99,0.06); }
+            td:last-child { border-bottom: 2px solid rgba(233,30,99,0.1); }
+            td:before { content: attr(data-label); display: block; font-size: 11px; color: #b0b0c8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 2px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .stat-card { padding: 12px; }
+            .stat-card .num { font-size: 22px; }
+            .tabs { overflow-x: auto; flex-wrap: nowrap; }
+            .tab-btn { padding: 6px 12px; font-size: 13px; flex-shrink: 0; }
+            .badge-count { min-width: 18px; height: 18px; font-size: 10px; padding: 0 4px; }
+            .btn { padding: 8px 18px; font-size: 14px; }
+            .btn-sm { padding: 5px 12px; font-size: 12px; }
+            input, textarea, select { padding: 10px 12px; font-size: 14px; }
+            .list-item { padding: 12px; }
+            .hearts { display: none; }
+        }
         .hearts {
             position: fixed;
             top: 0;

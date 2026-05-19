@@ -1,76 +1,54 @@
 <div class="card" style="padding:20px 28px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+    <div class="flex flex-wrap flex-between flex-center" style="gap:12px;">
         <h1>管理后台</h1>
-        <div style="font-size:13px;color:rgba(255,255,255,0.4);">
-            API:
-            <code>GET /api/dev/agents</code>
-            <code style="margin-left:4px;">GET /api/dev/pending</code>
+        <div class="text-sm text-muted">
+            API: <code>GET /api/dev/agents</code> <code>GET /api/dev/pending</code>
         </div>
     </div>
 </div>
 
 <div class="stats-grid">
-    <div class="stat-card">
-        <div class="num" style="color:#ffc107;"><%= pending.length %></div>
-        <div class="label">待审核</div>
-    </div>
-    <div class="stat-card">
-        <div class="num" style="color:#667eea;"><%= dev.length %></div>
-        <div class="label">开发中</div>
-    </div>
-    <div class="stat-card">
-        <div class="num" style="color:#38ef7d;"><%= devReview.length %></div>
-        <div class="label">待验收</div>
-    </div>
-    <div class="stat-card">
-        <div class="num" style="color:rgba(255,255,255,0.5);"><%= completed.length %></div>
-        <div class="label">已完成</div>
-    </div>
+    <div class="stat-card"><div class="num" style="color:#ffc107;"><%= pending.length %></div><div class="label">待审核</div></div>
+    <div class="stat-card"><div class="num" style="color:#9c27b0;"><%= dev.length %></div><div class="label">开发中</div></div>
+    <div class="stat-card"><div class="num" style="color:#4caf50;"><%= devReview.length %></div><div class="label">待验收</div></div>
+    <div class="stat-card"><div class="num" style="color:#b0b0c8;"><%= completed.length %></div><div class="label">已完成</div></div>
 </div>
 
 <div class="tabs" id="tabs">
     <button class="tab-btn active" data-tab="all">全部</button>
-    <button class="tab-btn" data-tab="pending">
-        待审核 <span class="badge-count badge-pending"><%= pending.length %></span>
-    </button>
-    <button class="tab-btn" data-tab="dev">
-        开发中 <span class="badge-count badge-dev"><%= dev.length %></span>
-    </button>
-    <button class="tab-btn" data-tab="devReview">
-        待验收 <span class="badge-count badge-review"><%= devReview.length %></span>
-    </button>
-    <button class="tab-btn" data-tab="completed">
-        已完成 <span class="badge-count badge-done"><%= completed.length %></span>
-    </button>
-    <button class="tab-btn" data-tab="rejected">
-        已拒绝 <span class="badge-count badge-done"><%= rejected.length %></span>
-    </button>
+    <button class="tab-btn" data-tab="pending">待审核 <span class="badge-count badge-pending"><%= pending.length %></span></button>
+    <button class="tab-btn" data-tab="dev">开发中 <span class="badge-count badge-dev"><%= dev.length %></span></button>
+    <button class="tab-btn" data-tab="devReview">待验收 <span class="badge-count badge-review"><%= devReview.length %></span></button>
+    <button class="tab-btn" data-tab="completed">已完成 <span class="badge-count badge-done"><%= completed.length %></span></button>
+    <button class="tab-btn" data-tab="rejected">已拒绝 <span class="badge-count badge-done"><%= rejected.length %></span></button>
 </div>
 
-<% var allItems = [...pending, ...dev, ...devReview, ...completed, ...rejected]; %>
-<div id="all" class="tab-content active">
+<% var tabs = { all: [...pending, ...dev, ...devReview, ...completed, ...rejected], pending: pending, dev: dev, devReview: devReview, completed: completed, rejected: rejected }; %>
+<% Object.keys(tabs).forEach(function(tab) { %>
+<div id="<%= tab %>" class="tab-content<%= tab === 'all' ? ' active' : '' %>">
     <div class="card">
-        <% if (allItems.length === 0) { %>
+        <% var items = tabs[tab]; %>
+        <% if (items.length === 0) { %>
             <div class="empty-state"><p>暂无请求</p></div>
         <% } else { %>
-            <% allItems.forEach(function(a) { %>
-            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin-bottom:12px;">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
-                    <div>
-                        <strong style="font-size:15px;"><%= a.name %></strong>
-                        <span style="font-size:12px;color:rgba(255,255,255,0.4);margin-left:8px;"><%= a.user_email %></span>
-                        <span class="status status-<%= a.status === 'pending_review' ? 'pending' : a.status === 'in_development' ? 'dev' : a.status === 'dev_review' ? 'dev' : a.status === 'completed' ? 'done' : 'rejected' %>" style="margin-left:8px;">
+            <% items.forEach(function(a) { %>
+            <div class="list-item">
+                <div class="flex flex-wrap flex-between flex-center gap-sm">
+                    <div class="flex flex-wrap flex-center gap-sm">
+                        <strong style="font-size:15px;color:#5c5c7a;"><%= a.name %></strong>
+                        <span class="text-sm text-muted"><%= a.user_email %></span>
+                        <span class="status status-<%= a.status === 'pending_review' ? 'pending' : a.status === 'in_development' || a.status === 'dev_review' ? 'dev' : a.status === 'completed' ? 'done' : 'rejected' %>">
                             <% if (a.status === 'pending_review') { %>待审核<% } else if (a.status === 'in_development') { %>开发中<% } else if (a.status === 'dev_review') { %>待验收<% } else if (a.status === 'completed') { %>已完成<% } else { %>已拒绝<% } %>
                         </span>
                     </div>
-                    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                    <div class="flex flex-wrap flex-center gap-sm">
                         <% if (a.status === 'pending_review') { %>
-                            <form method="POST" action="/admin/requests/<%= a.id %>/approve" style="display:inline-flex;align-items:center;gap:6px;">
-                                <input type="text" name="review_notes" placeholder="审核说明（最多200字）" required maxlength="200" style="width:160px;padding:6px 10px;font-size:13px;">
+                            <form method="POST" action="/admin/requests/<%= a.id %>/approve" class="flex flex-center gap-sm" style="flex-wrap:wrap;">
+                                <input type="text" name="review_notes" placeholder="审核说明（最多200字）" required maxlength="200" style="width:160px;max-width:160px;padding:6px 10px;font-size:13px;">
                                 <button type="submit" class="btn btn-success btn-sm">批准</button>
                             </form>
-                            <form method="POST" action="/admin/requests/<%= a.id %>/reject" style="display:inline-flex;align-items:center;gap:6px;">
-                                <input type="text" name="reason" placeholder="拒绝原因（最多200字）" required maxlength="200" style="width:140px;padding:6px 10px;font-size:13px;">
+                            <form method="POST" action="/admin/requests/<%= a.id %>/reject" class="flex flex-center gap-sm">
+                                <input type="text" name="reason" placeholder="拒绝原因（最多200字）" required maxlength="200" style="width:140px;max-width:140px;padding:6px 10px;font-size:13px;">
                                 <button type="submit" class="btn btn-danger btn-sm">拒绝</button>
                             </form>
                         <% } else if (a.status === 'in_development') { %>
@@ -81,165 +59,29 @@
                         <% } else if (a.status === 'completed') { %>
                             <% if (a.unique_slug) { %><a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">查看</a><% } %>
                         <% } else if (a.status === 'rejected') { %>
-                            <span style="font-size:12px;color:#ff6b6b;"><%= a.rejection_reason %></span>
+                            <span class="text-sm" style="color:#d32f2f;"><%= a.rejection_reason %></span>
                         <% } %>
-                        <form method="POST" action="/admin/requests/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除？');"><button type="submit" class="btn btn-danger btn-sm" style="background:rgba(255,255,255,0.1);">删除</button></form>
+                        <form method="POST" action="/admin/requests/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除？');"><button type="submit" class="btn btn-sm" style="background:rgba(233,30,99,0.08);color:#c2185b;border:1px solid rgba(233,30,99,0.15);padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;">删除</button></form>
                     </div>
                 </div>
-                <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:8px;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><%= a.description %></div>
-                <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;"><%= new Date(a.created_at).toLocaleDateString() %></div>
-            </div>
-            <% }) %>
-        <% } %>
-    </div>
-</div>
-
-<div id="pending" class="tab-content">
-    <div class="card">
-        <% if (pending.length === 0) { %>
-            <div class="empty-state"><p>暂无待审核请求</p></div>
-        <% } else { %>
-            <% pending.forEach(function(a) { %>
-            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin-bottom:12px;">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
-                    <div>
-                        <strong style="font-size:15px;"><%= a.name %></strong>
-                        <span style="font-size:12px;color:rgba(255,255,255,0.4);margin-left:8px;"><%= a.user_email %></span>
+                <div class="text-sm text-desc mt-1" style="max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><%= a.description %></div>
+                <div class="text-xs text-muted mt-1"><%= new Date(a.created_at).toLocaleDateString() %></div>
+                <% if (a.review_notes) { %><div class="mt-1 text-sm" style="color:#2e7d32;background:rgba(76,175,80,0.06);padding:6px 10px;border-radius:8px;">审核说明: <%= a.review_notes %></div><% } %>
+                <% if (a.review_comments) { %><div class="mt-1 text-sm" style="color:#e65100;background:rgba(255,152,0,0.06);padding:6px 10px;border-radius:8px;">退回意见: <%= a.review_comments %></div><% } %>
+                <% if (a.status === 'dev_review') { %>
+                    <div class="mt-2">
+                        <form method="POST" action="/admin/requests/<%= a.id %>/reject-dev" class="flex flex-wrap flex-center gap-sm">
+                            <textarea name="review_comments" rows="1" required placeholder="请详细描述需要修改的地方...（最多200字）" maxlength="200" style="flex:1;min-width:120px;padding:6px 10px;font-size:13px;min-height:36px;resize:none;"><%= a.review_comments || '' %></textarea>
+                            <button type="submit" class="btn btn-danger btn-sm">退回修改</button>
+                        </form>
                     </div>
-                    <div style="display:flex;gap:6px;align-items:center;">
-                        <form method="POST" action="/admin/requests/<%= a.id %>/approve" style="display:inline-flex;align-items:center;gap:6px;">
-                                <input type="text" name="review_notes" placeholder="审核说明（最多200字）" required maxlength="200" style="width:180px;padding:6px 10px;font-size:13px;">
-                                <button type="submit" class="btn btn-success btn-sm">批准</button>
-                            </form>
-                            <form method="POST" action="/admin/requests/<%= a.id %>/reject" style="display:inline-flex;align-items:center;gap:6px;">
-                                <input type="text" name="reason" placeholder="拒绝原因（最多200字）" required maxlength="200" style="width:140px;padding:6px 10px;font-size:13px;">
-                                <button type="submit" class="btn btn-danger btn-sm">拒绝</button>
-                            </form>
-                        <form method="POST" action="/admin/requests/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除？');"><button type="submit" class="btn btn-danger btn-sm" style="background:rgba(255,255,255,0.1);">删除</button></form>
-                    </div>
-                </div>
-                <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-top:8px;"><%= a.description %></div>
-                <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;"><%= new Date(a.created_at).toLocaleDateString() %></div>
-            </div>
-            <% }) %>
-        <% } %>
-    </div>
-</div>
-
-<div id="dev" class="tab-content">
-    <div class="card">
-        <% if (dev.length === 0) { %>
-            <div class="empty-state"><p>暂无开发中的请求</p></div>
-        <% } else { %>
-            <% dev.forEach(function(a) { %>
-            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin-bottom:12px;">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
-                    <div>
-                        <strong style="font-size:15px;"><%= a.name %></strong>
-                        <span style="font-size:12px;color:rgba(255,255,255,0.4);margin-left:8px;"><%= a.user_email %></span>
-                    </div>
-                    <div style="display:flex;gap:6px;align-items:center;">
-                        <% if (a.unique_slug) { %><a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">预览</a><% } %>
-                        <form method="POST" action="/admin/requests/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除？');"><button type="submit" class="btn btn-danger btn-sm" style="background:rgba(255,255,255,0.1);">删除</button></form>
-                    </div>
-                </div>
-                <% if (a.review_notes) { %>
-                <div style="margin-top:8px;font-size:12px;color:#38efd7;background:rgba(56,239,125,0.06);padding:6px 10px;border-radius:6px;">审核说明: <%= a.review_notes %></div>
                 <% } %>
-                <% if (a.review_comments) { %>
-                <div style="margin-top:6px;font-size:12px;color:rgba(255,165,0,0.9);background:rgba(255,165,0,0.06);padding:6px 10px;border-radius:6px;">退回意见: <%= a.review_comments %></div>
-                <% } %>
-                <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;"><%= new Date(a.created_at).toLocaleDateString() %></div>
             </div>
             <% }) %>
         <% } %>
     </div>
 </div>
-
-<div id="devReview" class="tab-content">
-    <div class="card">
-        <% if (devReview.length === 0) { %>
-            <div class="empty-state"><p>暂无待验收的开发结果</p></div>
-        <% } else { %>
-            <% devReview.forEach(function(a) { %>
-            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin-bottom:12px;">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
-                    <div>
-                        <strong style="font-size:15px;"><%= a.name %></strong>
-                        <span style="font-size:12px;color:rgba(255,255,255,0.4);margin-left:8px;"><%= a.user_email %></span>
-                    </div>
-                    <div style="display:flex;gap:6px;align-items:center;">
-                        <% if (a.unique_slug) { %><a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">预览</a><% } %>
-                        <form method="POST" action="/admin/requests/<%= a.id %>/approve-dev" style="display:inline;"><button type="submit" class="btn btn-success btn-sm">通过</button></form>
-                        <form method="POST" action="/admin/requests/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除？');"><button type="submit" class="btn btn-danger btn-sm" style="background:rgba(255,255,255,0.1);">删除</button></form>
-                    </div>
-                </div>
-                <% if (a.review_notes) { %>
-                <div style="margin-top:8px;font-size:12px;color:#38efd7;background:rgba(56,239,125,0.06);padding:6px 10px;border-radius:6px;">审核说明: <%= a.review_notes %></div>
-                <% } %>
-                <% if (a.review_comments) { %>
-                <div style="margin-top:6px;font-size:12px;color:rgba(255,165,0,0.9);background:rgba(255,165,0,0.06);padding:6px 10px;border-radius:6px;">退回意见: <%= a.review_comments %></div>
-                <% } %>
-                <div style="margin-top:8px;">
-                    <form method="POST" action="/admin/requests/<%= a.id %>/reject-dev" style="display:flex;gap:6px;">
-                        <textarea name="review_comments" rows="1" required placeholder="请详细描述需要修改的地方...（最多200字）" maxlength="200" style="flex:1;padding:6px 10px;font-size:13px;min-height:36px;resize:none;"><%= a.review_comments || '' %></textarea>
-                        <button type="submit" class="btn btn-danger btn-sm">退回修改</button>
-                    </form>
-                </div>
-            </div>
-            <% }) %>
-        <% } %>
-    </div>
-</div>
-
-<div id="completed" class="tab-content">
-    <div class="card">
-        <% if (completed.length === 0) { %>
-            <div class="empty-state"><p>暂无完成的请求</p></div>
-        <% } else { %>
-            <% completed.forEach(function(a) { %>
-            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin-bottom:12px;">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
-                    <div>
-                        <strong style="font-size:15px;"><%= a.name %></strong>
-                        <span style="font-size:12px;color:rgba(255,255,255,0.4);margin-left:8px;"><%= a.user_email %></span>
-                        <span style="font-size:11px;color:#38ef7d;margin-left:8px;">✓</span>
-                    </div>
-                    <div style="display:flex;gap:6px;align-items:center;">
-                        <% if (a.unique_slug) { %><a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">查看</a><% } %>
-                        <span style="font-size:12px;color:rgba(255,255,255,0.4);"><%= a.unique_slug %></span>
-                        <form method="POST" action="/admin/requests/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除？');"><button type="submit" class="btn btn-danger btn-sm" style="background:rgba(255,255,255,0.1);">删除</button></form>
-                    </div>
-                </div>
-                <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;"><%= new Date(a.created_at).toLocaleDateString() %></div>
-            </div>
-            <% }) %>
-        <% } %>
-    </div>
-</div>
-
-<div id="rejected" class="tab-content">
-    <div class="card">
-        <% if (rejected.length === 0) { %>
-            <div class="empty-state"><p>暂无被拒绝的请求</p></div>
-        <% } else { %>
-            <% rejected.forEach(function(a) { %>
-            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;margin-bottom:12px;">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
-                    <div>
-                        <strong style="font-size:15px;"><%= a.name %></strong>
-                        <span style="font-size:12px;color:rgba(255,255,255,0.4);margin-left:8px;"><%= a.user_email %></span>
-                        <span style="font-size:11px;color:#ff6b6b;margin-left:8px;">✗</span>
-                    </div>
-                    <form method="POST" action="/admin/requests/<%= a.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除？');"><button type="submit" class="btn btn-danger btn-sm" style="background:rgba(255,255,255,0.1);">删除</button></form>
-                </div>
-                <div style="font-size:13px;color:#ff6b6b;margin-top:8px;">拒绝原因: <%= a.rejection_reason %></div>
-                <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;"><%= new Date(a.created_at).toLocaleDateString() %></div>
-            </div>
-            <% }) %>
-        <% } %>
-    </div>
-</div>
+<% }) %>
 
 <script>
 (function() {

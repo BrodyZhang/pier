@@ -1,5 +1,5 @@
 <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+    <div class="flex flex-wrap flex-between flex-center gap">
         <h1>控制台</h1>
         <a href="/agent/new" class="btn btn-primary">新建请求</a>
     </div>
@@ -9,57 +9,63 @@
     <h2>我的请求</h2>
     <% if (agents.length === 0) { %>
         <div class="empty-state">
-            <div style="font-size:40px;margin-bottom:8px;"></div>
+            <div style="font-size:40px;margin-bottom:8px;">💕</div>
             <p>还没有请求。<a href="/agent/new" style="color:#e91e63;text-decoration:none;">创建第一个吧！</a></p>
         </div>
     <% } else { %>
-        <table>
-            <tr><th>名称</th><th>状态</th><th>创建时间</th><th></th></tr>
-            <% agents.forEach(function(a) { %>
-                <tr>
-                    <td><strong><%= a.name %></strong></td>
-                    <td>
-                        <span class="status status-<%= a.status === 'pending_review' ? 'pending' : a.status === 'in_development' ? 'dev' : a.status === 'dev_review' ? 'dev' : a.status === 'completed' ? 'done' : 'rejected' %>">
-                            <% if (a.status === 'pending_review') { %>待审核<% } else if (a.status === 'in_development' || a.status === 'dev_review') { %>开发中<% } else if (a.status === 'completed') { %>已完成<% } else { %>已拒绝<% } %>
-                        </span>
-                    </td>
-                    <td style="font-size:13px;color:#b0b0c8;"><%= new Date(a.created_at).toLocaleDateString() %></td>
-                    <td>
-                        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                            <% if (a.status === 'completed' && a.unique_slug) { %>
-                                <a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">查看</a>
-                                <a href="/agent/<%= a.unique_slug %>/share" class="btn btn-primary btn-sm">分享</a>
-                            <% } %>
-                            <% if (a.status === 'rejected' && a.rejection_reason) { %>
-                                <span style="font-size:13px;color:#d32f2f;padding:4px 0;"><%= a.rejection_reason %></span>
-                            <% } %>
-                            <form method="POST" action="/agent/<%= a.unique_slug %>/delete" style="display:inline;" onsubmit="return confirm('确定删除「<%= a.name %>」？此操作不可恢复。');">
-                                <button type="submit" class="btn btn-sm" style="background:rgba(233,30,99,0.08);color:#c2185b;border:1px solid rgba(233,30,99,0.15);padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;">删除</button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-            <% }) %>
-        </table>
+        <div style="overflow-x:auto;">
+            <table>
+                <tr><th>名称</th><th>状态</th><th>创建时间</th><th></th></tr>
+                <% agents.forEach(function(a) { %>
+                    <tr>
+                        <td data-label="名称"><strong><%= a.name %></strong></td>
+                        <td data-label="状态">
+                            <span class="status status-<%= a.status === 'pending_review' ? 'pending' : a.status === 'in_development' || a.status === 'dev_review' ? 'dev' : a.status === 'completed' ? 'done' : 'rejected' %>">
+                                <% if (a.status === 'pending_review') { %>待审核<% } else if (a.status === 'in_development' || a.status === 'dev_review') { %>开发中<% } else if (a.status === 'completed') { %>已完成<% } else { %>已拒绝<% } %>
+                            </span>
+                        </td>
+                        <td data-label="创建时间" class="text-sm text-muted"><%= new Date(a.created_at).toLocaleDateString() %></td>
+                        <td data-label="操作">
+                            <div class="flex flex-wrap flex-center gap-sm">
+                                <% if ((a.status === 'completed' || a.status === 'dev_review') && a.unique_slug) { %>
+                                    <a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">查看</a>
+                                <% } %>
+                                <% if (a.status === 'completed' && a.unique_slug) { %>
+                                    <a href="/agent/<%= a.unique_slug %>/share" class="btn btn-primary btn-sm">分享</a>
+                                <% } %>
+                                <% if (a.status === 'rejected' && a.rejection_reason) { %>
+                                    <span class="text-sm" style="color:#d32f2f;padding:4px 0;"><%= a.rejection_reason %></span>
+                                <% } %>
+                                <form method="POST" action="/agent/<%= a.unique_slug %>/delete" style="display:inline;" onsubmit="return confirm('确定删除「<%= a.name %>」？此操作不可恢复。');">
+                                    <button type="submit" class="btn btn-sm" style="background:rgba(233,30,99,0.08);color:#c2185b;border:1px solid rgba(233,30,99,0.15);padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px;">删除</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                <% }) %>
+            </table>
+        </div>
     <% } %>
 </div>
 
 <% if (sharedAgents.length > 0) { %>
 <div class="card">
     <h2>分享给我的</h2>
-    <table>
-        <tr><th>名称</th><th>创建者</th><th></th></tr>
-        <% sharedAgents.forEach(function(a) { %>
-            <tr>
-                <td><strong><%= a.name %></strong></td>
-                <td style="color:#6c6c8a;"><%= a.creator_email %></td>
-                <td>
-                    <% if (a.unique_slug) { %>
-                        <a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">查看</a>
-                    <% } %>
-                </td>
-            </tr>
-        <% }) %>
-    </table>
+    <div style="overflow-x:auto;">
+        <table>
+            <tr><th>名称</th><th>创建者</th><th></th></tr>
+            <% sharedAgents.forEach(function(a) { %>
+                <tr>
+                    <td data-label="名称"><strong><%= a.name %></strong></td>
+                    <td data-label="创建者" style="color:#6c6c8a;"><%= a.creator_email %></td>
+                    <td data-label="操作">
+                        <% if (a.unique_slug) { %>
+                            <a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">查看</a>
+                        <% } %>
+                    </td>
+                </tr>
+            <% }) %>
+        </table>
+    </div>
 </div>
 <% } %>
