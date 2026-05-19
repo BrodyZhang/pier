@@ -32,8 +32,8 @@
 | VPS | Azure Ubuntu 24.04 |
 | Method | docker compose (4 services: router, app-test, app-prod, db) |
 | Image | `brodyzhang2026/pier` (Docker Hub) |
-| **Status** | ✅ Deployed (build #72 prod, #73 test) |
-| Last Deploy | 2026-05-17 15:00 UTC |
+| **Status** | ⚠️ Prod down (502), fixing (build #80 prod, #81 fix) |
+| Last Deploy | 2026-05-19 (build #80) |
 | Prod Version File | `PROD_VERSION` — push changes to auto-promote via deploy-prod.yml |
 
 ## Development Tasks
@@ -77,7 +77,14 @@
 - [x] Consistent v prefix for version tags (deploy.yml + PROD_VERSION + deploy-prod.yml)
 - [x] Review history log (JSONB review_log column, full audit trail on admin review page)
 - [x] User self-delete agents (delete button on dashboard for own agents)
-- [x] Improved admin requests UI: one-layer tabs with inline actions, character limits, daily limit 20
+- [x] Improved admin requests UI: one-layer tabs with inline actions
+- [x] Character limits: name 50, description 500, review notes/comments 200
+- [x] Registration daily limit: 100 → 20
+- [x] Light theme: soft pink gradient background, white cards, pink accents
+- [x] Floating heart bubbles: 35 animated hearts in layout.ejs
+- [x] User email in nav header (from session)
+- [x] Homepage "开始创建" redirects to /agent/new if logged in
+- [x] Sync middleware fix: store userEmail in session instead of DB query
 
 ### Next (Priority Order)
 1. ✅ ~~Register/login flow~~ (tested on test.ailaopo.online)
@@ -98,7 +105,8 @@
 
 | # | Issue | Status |
 |---|-------|--------|
-| 1 | None currently | ✅ All resolved |
+| 1 | **PROD 502 Bad Gateway** — app-prod container crashes on startup. Cause: async middleware in server.ts queries DB via `pool.query()` — if DB pool hangs, `next()` never called. Fixed in build #81, pending deploy. | 🔴 Critical |
+| 2 | **Test deploy SSH fails** — `appleboy/ssh-action` deploy step fails consistently since build #76. build-and-push always succeeds. | 🟡 Ongoing |
 
 ## Environment Variables
 
@@ -117,6 +125,6 @@
 | `SMTP_PASS` | ✅ | GitHub secret — Resend API key |
 | `SMTP_FROM` | ✅ | GitHub secret — `noreply@ailaopo.online` |
 | `DEV_API_KEY` | ✅ | GitHub secret — Bearer token for AI dev API |
-| `PROD_VERSION` | ✅ | File in repo — `v20260517-00000072` (with `v` prefix) |
+| `PROD_VERSION` | ✅ | File in repo — `v20260519-00000081` (with `v` prefix) |
 
 **Format note:** Docker Hub password/token is passed via stdin in the SSH script (line in deploy.yml). Consider using a read-only token for pull-only operations to minimize risk.
