@@ -15,7 +15,8 @@ pier/
 │       ├── repo-index/SKILL.md         # Skill: maintain REPO_INDEX.md
 │       ├── deploy/SKILL.md             # Skill: deployment workflow
 │       ├── ci-monitor/SKILL.md         # Skill: monitor CI/CD, verify website
-│       └── code-style/SKILL.md         # Skill: code conventions
+│       ├── code-style/SKILL.md         # Skill: code conventions
+│       └── agent-dev/SKILL.md          # Skill: AI agent development with base64 encoding
 │
 ├── app/                                # Node.js + TypeScript application
 │   ├── games/
@@ -94,18 +95,26 @@ pier/
 | GET | `/agent/:slug/share` | requireAuth | `agent/share.ejs` | Manage sharing |
 | POST | `/agent/:slug/share` | requireAuth | — | Share with partner |
 | POST | `/agent/:slug/unshare` | requireAuth | — | Revoke share |
+| POST | `/agent/:id/request-version` | requireAuth | — | Request new version of completed agent |
 | GET | `/admin/requests` | requireAuth+requireAdmin | `admin/requests.ejs` | Pending/dev/completed |
 | GET | `/admin/requests/:id` | requireAuth+requireAdmin | `admin/review.ejs` | Review one request |
 | POST | `/admin/requests/:id/approve` | requireAuth+requireAdmin | — | Approve → in_development |
 | POST | `/admin/requests/:id/reject` | requireAuth+requireAdmin | — | Reject with reason |
-| POST | `/admin/requests/:id/upload` | requireAuth+requireAdmin | — | Upload HTML, mark complete |
-| GET | `/api/dev/agents` | requireDevApiKey | — | List agents for AI development |
+| POST | `/admin/requests/:id/upload` | requireAuth+requireAdmin | — | Upload HTML, mark dev_review |
+| POST | `/admin/requests/:id/approve-dev` | requireAuth+requireAdmin | — | Approve dev_review → completed |
+| POST | `/admin/requests/:id/reject-dev` | requireAuth+requireAdmin | — | Reject dev → back to in_development |
+| POST | `/admin/requests/:id/delete` | requireAuth+requireAdmin | — | Delete agent |
+| GET | `/api/dev/agents` | requireDevApiKey | — | List in_development agents for AI |
 | GET | `/api/dev/pending` | requireDevApiKey | — | Pending task counts for AI |
 | GET | `/api/dev/rejected` | requireDevApiKey | — | Rejected agents for re-iteration |
-| POST | `/api/dev/create` | requireDevApiKey | — | Create agent directly (AI) |
-| POST | `/api/dev/upload/:id` | requireDevApiKey | — | Upload HTML → dev_review |
+| POST | `/api/dev/create` | requireDevApiKey | — | Create agent directly (AI, supports _base64) |
+| POST | `/api/dev/upload/:id` | requireDevApiKey | — | Upload HTML → dev_review (supports html_base64) |
+| POST | `/api/dev/update/:id` | requireDevApiKey | — | Update name/description (supports _base64) |
 | POST | `/api/dev/approve/:id` | requireDevApiKey | — | Approve dev_review → completed |
 | POST | `/api/dev/delete/:id` | requireDevApiKey | — | Delete agent |
+| GET | `/api/dev/lookup/:slug` | requireDevApiKey | — | Lookup agent by unique_slug |
+| GET | `/g/:slug` | — | — | Public game serving (completed/dev_review only) |
+| GET | `/g/file/:name` | — | — | Serve pre-built game file from filesystem |
 
 ## Database Tables
 
@@ -115,7 +124,7 @@ Defined in `app/src/services/db.ts:initDB()`:
 |-------|---------|---------|
 | `users` | id (UUID PK), email (unique), role, registration_date, created_at, last_login_at | User accounts |
 | `verification_codes` | id (UUID PK), email, code (6-digit), expires_at, used, created_at | Login/register codes |
-| `agent_requests` | id (UUID PK), user_id (FK), name, description, status, rejection_reason, review_notes, review_comments, unique_slug, created_at, updated_at | Agent requests |
+| `agent_requests` | id (UUID PK), user_id (FK), name, description, status, rejection_reason, review_notes, review_comments, review_log (JSONB), unique_slug, parent_id (FK self-ref), version_number (INT, default 1), created_at, updated_at | Agent requests with versioning |
 | `agent_versions` | id (UUID PK), agent_id (FK), version_number, request_description, html_file_path, created_at | Version history |
 | `agent_files` | id (SERIAL PK), agent_id (FK), content (TEXT), created_at | Agent HTML pages (DB storage) |
 | `agent_shares` | id (UUID PK), agent_id (FK unique), partner_email, partner_user_id (FK), created_at | Two-person access |
