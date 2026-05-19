@@ -102,7 +102,7 @@ router.post('/upload/:id', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/dev/create — AI creates a new agent directly (for testing or auto-generation)
+// POST /api/dev/create — AI creates a new agent directly
 router.post('/create', async (req: Request, res: Response) => {
   try {
     const { name, description, userId } = req.body;
@@ -112,10 +112,14 @@ router.post('/create', async (req: Request, res: Response) => {
     const slug = crypto.randomUUID();
     const result = await pool.query(
       `INSERT INTO agent_requests (user_id, name, description, status, unique_slug)
-       VALUES ($1, $2, $3, 'in_development', $4)
+       SELECT COALESCE($1::uuid, id), $2, $3, 'in_development', $4
+       FROM users WHERE role = 'admin' ORDER BY created_at ASC LIMIT 1
        RETURNING id, unique_slug, status`,
-      [userId || '00000000-0000-0000-0000-000000000000', name, description, slug]
+      [userId || null, name, description, slug]
     );
+    if (result.rows.length === 0) {
+      return res.status(500).json({ error: 'No admin user found' });
+    }
     await pool.query(
       `INSERT INTO agent_versions (agent_id, version_number, request_description)
        VALUES ($1, 1, 'Dev API creation')`,
