@@ -194,6 +194,16 @@ router.get('/:id/request-version', requireAuth, async (req: Request, res: Respon
     if (p.user_id !== req.session.userId && req.session.role !== 'admin') {
       return res.status(403).send('Access denied');
     }
+    // Check for existing pending version
+    const pending = await pool.query(
+      `SELECT id FROM agent_requests
+       WHERE parent_id = $1 AND status IN ('pending_review','in_development','dev_review')
+       LIMIT 1`,
+      [req.params.id]
+    );
+    if (pending.rows.length > 0) {
+      return res.status(400).send('该 agent 已有未完成的版本请求，请等待处理完成后再申请新版本');
+    }
     res.render('agent/request-version', { title: 'Request New Version', parent: p, error: null });
   } catch (err) {
     console.error('Request version form error:', err);
@@ -213,13 +223,25 @@ router.post('/:id/request-version', requireAuth, async (req: Request, res: Respo
       return res.status(404).send('Agent not found or not completed');
     }
     const p = parent.rows[0];
-    // Only owner can request version
     if (p.user_id !== req.session.userId && req.session.role !== 'admin') {
       return res.status(403).send('Access denied');
+    }
+    // Check for existing pending version
+    const pending = await pool.query(
+      `SELECT id FROM agent_requests
+       WHERE parent_id = $1 AND status IN ('pending_review','in_development','dev_review')
+       LIMIT 1`,
+      [req.params.id]
+    );
+    if (pending.rows.length > 0) {
+      return res.status(400).send('该 agent 已有未完成的版本请求');
     }
     const { name, description } = req.body;
     if (!name || !name.trim()) {
       return res.render('agent/request-version', { title: 'Request New Version', parent: p, error: '名称不能为空' });
+    }
+    if (!description || !description.trim()) {
+      return res.render('agent/request-version', { title: 'Request New Version', parent: p, error: '描述不能为空' });
     }
     if (name.trim().length > 50) {
       return res.render('agent/request-version', { title: 'Request New Version', parent: p, error: '名称不能超过50个字符' });
@@ -228,11 +250,38 @@ router.post('/:id/request-version', requireAuth, async (req: Request, res: Respo
     await pool.query(
       `INSERT INTO agent_requests (user_id, name, description, parent_id, version_number)
        VALUES ($1, $2, $3, $4, $5)`,
-      [req.session.userId, name.trim(), (description || '').trim(), p.id, newVersion]
+      [req.session.userId, name.trim(), description.trim(), p.id, newVersion]
     );
     res.redirect('/dashboard');
   } catch (err) {
     console.error('Request version error:', err);
+    res.status(500).send('Server error');
+  }
+});
+
+// POST /:id/rename — Rename an agent (owner or admin)
+router.post('/:id/rename', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const agent = await pool.query(
+      'SELECT id, user_id FROM agent_requests WHERE id = $1::uuid',
+      [req.params.id]
+    );
+    if (agent.rows.length === 0) return res.status(404).send('Agent not found');
+    const a = agent.rows[0];
+    if (a.user_id !== req.session.userId && req.session.role !== 'admin') {
+      return res.status(403).send('Access denied');
+    }
+    const { name } = req.body;
+    if (!name || !name.trim() || name.trim().length > 50) {
+      return res.status(400).send('名称不能为空且不超过50个字符');
+    }
+    await pool.query(
+      'UPDATE agent_requests SET name = $1, updated_at = NOW() WHERE id = $2',
+      [name.trim(), req.params.id]
+    );
+    res.redirect('back');
+  } catch (err) {
+    console.error('Rename error:', err);
     res.status(500).send('Server error');
   }
 });

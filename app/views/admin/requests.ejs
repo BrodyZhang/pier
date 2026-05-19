@@ -5,6 +5,7 @@
 .admin-form-reject textarea { flex:1; min-width:120px; padding:6px 10px; font-size:13px; min-height:36px; resize:none; }
 .btn-delete { background:rgba(233,30,99,0.08);color:#c2185b;border:1px solid rgba(233,30,99,0.15);padding:6px 16px;border-radius:8px;cursor:pointer;font-size:13px; }
 .desc-text { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.admin-list-item { background:rgba(255,255,255,0.8); border:1px solid rgba(233,30,99,0.1); border-radius:14px; padding:14px; margin-bottom:10px; box-shadow:0 2px 8px rgba(233,30,99,0.04); }
 @media (max-width:640px) {
     .admin-form-inline { width:100%; }
     .admin-form-inline input { width:100%; max-width:100%; }
@@ -13,33 +14,23 @@
     .admin-form-reject { flex-direction:column; }
     .admin-form-reject textarea { width:100%; }
     .desc-text { max-width:100%; white-space:normal; }
-    .list-item { padding:12px; margin-bottom:10px; box-shadow:0 2px 8px rgba(233,30,99,0.06); }
-    .list-item .flex-wrap .status { margin-top:4px; }
+    .admin-list-item { padding:12px; margin-bottom:10px; box-shadow:0 2px 8px rgba(233,30,99,0.06); }
+    .admin-list-item .flex-wrap .status { margin-top:4px; }
+    .admin-actions .btn { font-size:13px; padding:8px 12px; }
 }
 </style>
 <div class="card" style="padding:20px 28px;">
     <div class="flex flex-wrap flex-between flex-center" style="gap:12px;">
         <h1>管理后台</h1>
-        <div class="text-sm text-muted">
-            API: <code>GET /api/dev/agents</code> <code>GET /api/dev/pending</code>
-        </div>
     </div>
-</div>
-
-<div class="stats-grid">
-    <div class="stat-card"><div class="num" style="color:#ffc107;"><%= pending.length %></div><div class="label">待审核</div></div>
-    <div class="stat-card"><div class="num" style="color:#9c27b0;"><%= dev.length %></div><div class="label">开发中</div></div>
-    <div class="stat-card"><div class="num" style="color:#4caf50;"><%= devReview.length %></div><div class="label">待验收</div></div>
-    <div class="stat-card"><div class="num" style="color:#b0b0c8;"><%= completed.length %></div><div class="label">已完成</div></div>
-</div>
-
-<div class="tabs" id="tabs">
-    <button class="tab-btn active" data-tab="all">全部</button>
-    <button class="tab-btn" data-tab="pending">待审核 <span class="badge-count badge-pending"><%= pending.length %></span></button>
-    <button class="tab-btn" data-tab="dev">开发中 <span class="badge-count badge-dev"><%= dev.length %></span></button>
-    <button class="tab-btn" data-tab="devReview">待验收 <span class="badge-count badge-review"><%= devReview.length %></span></button>
-    <button class="tab-btn" data-tab="completed">已完成 <span class="badge-count badge-done"><%= completed.length %></span></button>
-    <button class="tab-btn" data-tab="rejected">已拒绝 <span class="badge-count badge-done"><%= rejected.length %></span></button>
+    <div class="tabs" id="tabs" style="margin-top:16px;">
+        <button class="tab-btn active" data-tab="all">全部 <span class="badge-count badge-done"><%= pending.length + dev.length + devReview.length + completed.length + rejected.length %></span></button>
+        <button class="tab-btn" data-tab="pending">待审核 <span class="badge-count badge-pending"><%= pending.length %></span></button>
+        <button class="tab-btn" data-tab="dev">开发中 <span class="badge-count badge-dev"><%= dev.length %></span></button>
+        <button class="tab-btn" data-tab="devReview">待验收 <span class="badge-count badge-review"><%= devReview.length %></span></button>
+        <button class="tab-btn" data-tab="completed">已完成 <span class="badge-count badge-done"><%= completed.length %></span></button>
+        <button class="tab-btn" data-tab="rejected">已拒绝 <span class="badge-count badge-done"><%= rejected.length %></span></button>
+    </div>
 </div>
 
 <% var tabs = { all: [...pending, ...dev, ...devReview, ...completed, ...rejected], pending: pending, dev: dev, devReview: devReview, completed: completed, rejected: rejected }; %>
@@ -51,7 +42,7 @@
             <div class="empty-state"><p>暂无请求</p></div>
         <% } else { %>
             <% items.forEach(function(a) { %>
-            <div class="list-item">
+            <div class="admin-list-item">
                 <div class="flex flex-wrap flex-between flex-center gap-sm">
                     <div class="flex flex-wrap flex-center gap-sm">
                         <strong style="font-size:15px;color:#5c5c7a;"><%= a.name %></strong>
@@ -72,12 +63,12 @@
                                 <button type="submit" class="btn btn-danger btn-sm">拒绝</button>
                             </form>
                         <% } else if (a.status === 'in_development') { %>
-                            <% if (a.unique_slug) { %><a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">预览</a><% } %>
+                            <% if (a.unique_slug) { %><a href="/agent/<%= a.unique_slug %>" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">预览</a><% } %>
                         <% } else if (a.status === 'dev_review') { %>
-                            <% if (a.unique_slug) { %><a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">预览</a><% } %>
+                            <% if (a.unique_slug) { %><a href="/agent/<%= a.unique_slug %>" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">预览</a><% } %>
                             <form method="POST" action="/admin/requests/<%= a.id %>/approve-dev" class="admin-form-inline"><button type="submit" class="btn btn-success btn-sm">通过</button></form>
                         <% } else if (a.status === 'completed') { %>
-                            <% if (a.unique_slug) { %><a href="/agent/<%= a.unique_slug %>" class="btn btn-outline btn-sm">查看</a><% } %>
+                            <% if (a.unique_slug) { %><a href="/agent/<%= a.unique_slug %>" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">查看</a><% } %>
                         <% } else if (a.status === 'rejected') { %>
                             <span class="text-sm" style="color:#d32f2f;"><%= a.rejection_reason %></span>
                         <% } %>

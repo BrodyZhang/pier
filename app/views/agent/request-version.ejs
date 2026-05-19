@@ -7,7 +7,7 @@
 }
 </style>
 <div class="card">
-  <h1>请求新版本</h1>
+  <h1>请求升级</h1>
   <p class="text-sm text-muted" style="margin-top:8px;">基于现有 agent 创建新版本，AI 将以原版本为基础进行改进。</p>
 </div>
 
@@ -17,11 +17,12 @@
 </div>
 
 <div class="card">
+  <% if (typeof error !== 'undefined' && error) { %><div class="error"><%= error %></div><% } %>
   <form method="POST" action="/agent/<%= parent.id %>/request-version">
-    <label>名称</label>
-    <input type="text" name="name" value="<%= parent.name %>" required maxlength="50" placeholder="页面名称（最多50个字符）">
+    <label>名称 <span class="text-xs text-muted">建议包含版本号便于区分</span></label>
+    <input type="text" name="name" value="<%= parent.name %> v<%= (parent.version_number || 1) + 1 %>" required maxlength="50" placeholder="页面名称（最多50个字符）">
     <label>描述</label>
     <textarea name="description" rows="4" required maxlength="500" placeholder="描述页面内容和用途（最多500个字符）"><%= parent.description %></textarea>
-    <button type="submit" class="btn btn-success" style="margin-top:16px;width:100%;justify-content:center;">提交新版本请求</button>
+    <button type="submit" class="btn btn-success" style="margin-top:16px;width:100%;justify-content:center;">提交升级请求</button>
   </form>
 </div>
