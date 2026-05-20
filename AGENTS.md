@@ -20,26 +20,40 @@ All changes must be made by AI agents. You (the AI) are the sole developer.
 4. Always verify: TypeScript compiles (via Docker build since no local node).
 5. Commit with clear messages. Push to trigger deploy.
 
-## ⚠️ Role Split: Dev/Test vs Prod
+## ⚠️ CRITICAL: Deployment Rules (Test-First, Human-Confirm)
 
-**This session = dev + test only.** A separate agent session handles prod deployment.
+**Violating these rules caused prod outages. They MUST be followed EVERY time.**
 
-I do NOT deploy prod, update PROD_VERSION, or touch production.
-
-### My Flow
+### The Mandatory Flow
 
 ```
-Code Change → Push → Auto-deploy test → Verify on test.ailaopo.online → Report
+Code Change → Push → Auto-deploy test → Verify on test.ailaopo.online → Human says "OK" → Promote to prod
 ```
 
 ### Step-by-Step
 
 1. **Make code changes → commit → push** (auto-triggers `deploy.yml`)
 2. **Wait for deploy.yml to complete** (build + deploy to test)
-3. **Verify test**: `curl.exe -sI https://test.ailaopo.online/` returns 200
-4. **Report** to the user what was deployed
+3. **Verify test**: `curl.exe -sI https://test.ailaopo.online/` returns 200, content is correct
+4. **Ask human**: "Test is ready at test.ailaopo.online. Deploy to prod?" — WAIT for explicit "OK"
+5. **Update PROD_VERSION** in a SEPARATE commit, push
+6. **Verify prod**: `curl.exe -sI https://ailaopo.online/` returns 200
+
+### Absolute Prohibitions
+
+- ❌ **NEVER deploy prod without test verification**
+- ❌ **NEVER deploy prod without human confirmation**
+- ❌ **NEVER update PROD_VERSION in the same commit as code changes**
+- ❌ **NEVER let test be older than prod** — if test is behind, fix deploy.yml first
+- ❌ **NEVER use deploy-prod.yml as a workaround for deploy.yml failures**
 
 ### deploy.yml (Test Deploy) Fails Often
+
+If the SSH deploy step fails but build-and-push succeeded:
+- The image IS on Docker Hub (build succeeded)
+- Fix the script, commit, push again
+- DO NOT promote to prod as a workaround
+- DO NOT manually SSH into VPS to deploy
 
 If the SSH deploy step fails but build-and-push succeeded:
 - The image IS on Docker Hub (build succeeded)
@@ -58,6 +72,7 @@ Use `.\scripts\poll-tasks.ps1 -Continuous` to continuously poll for pending/reje
 - **New views**: Follow `layout.ejs` pattern. Include disclaimers where needed.
 - **Docker**: After changing Dockerfile/docker-compose, note that image rebuild is needed.
 - **Deploy (test)**: After push, monitor via CI monitor skill. Wait for build, check status, verify website.
+- **Deploy (prod)**: Only after test verification + human OK. Update `PROD_VERSION` file in a SEPARATE commit. `deploy-prod.yml` handles the rest.
 
 ## Manual Steps Reference
 
