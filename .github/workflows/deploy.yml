@@ -59,8 +59,8 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
 
-          # Run deploy script via SSH, capture output
-          ssh -o ConnectTimeout=30 "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" 'bash -s' << 'RSCRIPT' 2>&1 | tee /tmp/deploy.log
+          # Run deploy script via SSH, capture output to file (no tee)
+          ssh -o ConnectTimeout=30 "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" 'bash -s' > /tmp/deploy.log 2>&1 << 'RSCRIPT'
           set -x
 
           ok() { echo "[OK] $1"; }
@@ -105,15 +105,17 @@ jobs:
           $DC up -d router app-test db && ok "services restarted" || die "services restart"
           RSCRIPT
 
-          RC=${PIPESTATUS[0]}
+          RC=$?
           if [ "$RC" -ne 0 ]; then
-            echo "::error title=Deploy Failed::exit code $RC"
-            echo "--- Last 15 lines of deploy output ---"
-            tail -15 /tmp/deploy.log
-            echo "--- End ---"
+            echo "::error title=Deploy SSH::exited with code $RC"
+            echo "=== Begin deploy log (last 20 lines) ==="
+            tail -20 /tmp/deploy.log 2>/dev/null | while IFS= read -r line; do
+              echo "::warning::$line"
+            done
+            echo "=== End deploy log ==="
             exit "$RC"
           fi
-          echo "::notice::Deploy completed successfully"
+          echo "::notice::Deploy complete"
 
       - name: Verify container status
         uses: appleboy/ssh-action@v1.0.0
