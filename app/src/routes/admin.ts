@@ -72,7 +72,7 @@ router.post('/requests/:id/approve', async (req: Request, res: Response) => {
     await pool.query(
       `UPDATE agent_requests
        SET status = 'in_development', unique_slug = $1, review_notes = $2,
-           review_log = COALESCE(review_log, '[]'::jsonb) || jsonb_build_array(jsonb_build_object('action','approved','notes',$2,'timestamp',NOW())),
+           review_log = COALESCE(review_log, '[]'::jsonb) || jsonb_build_array(jsonb_build_object('action','approved','notes',$2::text,'timestamp',NOW())),
            updated_at = NOW()
        WHERE id = $3`,
       [slug, review_notes || null, req.params.id]
