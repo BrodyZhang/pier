@@ -22,11 +22,27 @@
 </div>
 
 <div class="card" style="border:1px solid rgba(211,47,47,0.2);">
-    <h2 style="color:#d32f2f;">危险操作</h2>
+    <h2 style="color:#d32f2f;">注销账号</h2>
     <p style="font-size:14px;color:#8c8caa;margin-bottom:14px;">注销账号将永久删除你的所有数据和请求，此操作不可撤销。</p>
-    <form method="POST" action="/profile/delete" onsubmit="return confirm('确定要注销账号吗？所有数据将被永久删除，无法恢复。');">
-        <button type="submit" class="btn btn-danger">注销账号</button>
-    </form>
+
+    <% if (typeof deleteSent !== 'undefined' && deleteSent) { %>
+        <% if (typeof deleteError !== 'undefined' && deleteError) { %>
+        <div class="error"><%= deleteError %></div>
+        <% } %>
+        <p style="font-size:13px;color:#666;margin-bottom:10px;">验证码已发送到 <%= user.email %></p>
+        <form method="POST" action="/profile/delete/confirm">
+            <label for="deleteCode">输入验证码</label>
+            <input type="text" id="deleteCode" name="code" maxlength="6" placeholder="6位验证码" required style="max-width:200px;">
+            <div style="margin-top:12px;display:flex;gap:10px;">
+                <button type="submit" class="btn btn-danger">确认注销</button>
+                <a href="/profile" class="btn btn-outline">取消</a>
+            </div>
+        </form>
+    <% } else { %>
+        <form method="POST" action="/profile/delete/send-code">
+            <button type="submit" class="btn btn-danger">发送验证码并注销</button>
+        </form>
+    <% } %>
 </div>
 
 <div class="card">
