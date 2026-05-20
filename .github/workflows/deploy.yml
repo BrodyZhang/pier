@@ -51,71 +51,71 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Deploy to VPS
-        shell: bash
-        run: |
-          # Setup SSH
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            PIER_DIR=~/pier
+            if [ ! -d "$PIER_DIR" ]; then
+              git clone https://github.com/BrodyZhang/pier "$PIER_DIR"
+            fi
 
-          # Run deploy script via SSH, capture output to file (no tee)
-          ssh -o ConnectTimeout=30 "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" 'bash -s' > /tmp/deploy.log 2>&1 << 'RSCRIPT'
-          set -x
+            cd "$PIER_DIR"
 
-          ok() { echo "[OK] $1"; }
-          die() { echo "[FAIL] $1"; exit 1; }
+            echo "=== Resetting local changes ==="
+            git reset --hard HEAD
+            git clean -fd || true
 
-          PIER_DIR=~/pier
-          [ -d "$PIER_DIR" ] || git clone https://github.com/BrodyZhang/pier "$PIER_DIR"
-          cd "$PIER_DIR" || die "cd failed"
+            echo "=== Pulling repo ==="
+            git pull origin master
 
-          git reset --hard HEAD && ok "git reset" || die "git reset"
-          git clean -fd 2>/dev/null; ok "git clean"
+            # Create/update .env with secrets (quoted heredoc prevents bash reinterpretation)
+            echo "=== Writing .env ==="
+            cat > .env << 'ENVEOF'
+            SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+            SMTP_HOST=${{ secrets.SMTP_HOST }}
+            SMTP_PORT=${{ secrets.SMTP_PORT }}
+            SMTP_USER=${{ secrets.SMTP_USER }}
+            SMTP_PASS=${{ secrets.SMTP_PASS }}
+            SMTP_FROM=${{ secrets.SMTP_FROM }}
+            ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
+            DEV_API_KEY=${{ secrets.DEV_API_KEY }}
+            ENVEOF
+            echo "PROD_VERSION=$(cat PROD_VERSION | tr -d ' \n\r' 2>/dev/null || echo "unknown")" >> .env
 
-          git pull origin master && ok "git pull" || die "git pull"
+            # Stop old containers from previous architecture (cleanup)
+            docker stop pier-app-1 2>/dev/null || true
+            docker rm pier-app-1 2>/dev/null || true
 
-          cat > .env << 'ENVEOF'
-          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
-          SMTP_HOST=${{ secrets.SMTP_HOST }}
-          SMTP_PORT=${{ secrets.SMTP_PORT }}
-          SMTP_USER=${{ secrets.SMTP_USER }}
-          SMTP_PASS=${{ secrets.SMTP_PASS }}
-          SMTP_FROM=${{ secrets.SMTP_FROM }}
-          ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
-          DEV_API_KEY=${{ secrets.DEV_API_KEY }}
-          ENVEOF
-          ok ".env written"
-          echo "PROD_VERSION=$(cat PROD_VERSION | tr -d ' \n\r' 2>/dev/null || echo "unknown")" >> .env
-          ok "PROD_VERSION written"
+            # Docker login via heredoc — prevents bash expansion of special chars in password
+            echo "=== Docker login ==="
+            docker login -u '${{ secrets.DOCKER_USERNAME }}' --password-stdin << 'DOCKEREOF'
+            ${{ secrets.DOCKER_PASSWORD }}
+            DOCKEREOF
 
-          docker stop pier-app-1 2>/dev/null; docker rm pier-app-1 2>/dev/null; ok "cleanup"
+            # Detect docker compose variant
+            DC=""
+            if docker compose version >/dev/null 2>&1; then
+              DC="docker compose"
+            elif docker-compose version >/dev/null 2>&1; then
+              DC="docker-compose"
+            else
+              echo "ERROR: no docker compose found" >&2
+              exit 1
+            fi
+            echo "Using: $DC"
 
-          echo "=== Docker login ==="
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin && ok "docker login" || die "docker login"
+            echo "=== Building router ==="
+            $DC build router
 
-          DC=""
-          if docker compose version >/dev/null 2>&1; then DC="docker compose"; ok "found docker compose"
-          elif docker-compose version >/dev/null 2>&1; then DC="docker-compose"; ok "found docker-compose"
-          else die "no docker compose"
-          fi
+            echo "=== Pulling app-test ==="
+            $DC pull app-test
 
-          $DC build router && ok "router built" || die "router build"
-          $DC pull app-test && ok "app-test pulled" || die "app-test pull"
-          $DC up -d router app-test db && ok "services restarted" || die "services restart"
-          RSCRIPT
-
-          RC=$?
-          if [ "$RC" -ne 0 ]; then
-            echo "::error title=Deploy SSH::exited with code $RC"
-            echo "=== Begin deploy log (last 20 lines) ==="
-            tail -20 /tmp/deploy.log 2>/dev/null | while IFS= read -r line; do
-              echo "::warning::$line"
-            done
-            echo "=== End deploy log ==="
-            exit "$RC"
-          fi
-          echo "::notice::Deploy complete"
+            echo "=== Restarting services ==="
+            $DC up -d router app-test db
 
       - name: Verify container status
         uses: appleboy/ssh-action@v1.0.0
