@@ -70,23 +70,20 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            set -ex
+            set -x
+
+            ok() { echo "[OK] $1"; }
+            die() { echo "[FAIL] $1"; exit 1; }
+
             PIER_DIR=~/pier
-            if [ ! -d "$PIER_DIR" ]; then
-              git clone https://github.com/BrodyZhang/pier "$PIER_DIR"
-            fi
+            [ -d "$PIER_DIR" ] || git clone https://github.com/BrodyZhang/pier "$PIER_DIR"
+            cd "$PIER_DIR" || die "cd failed"
 
-            cd "$PIER_DIR"
+            git reset --hard HEAD && ok "git reset" || die "git reset"
+            git clean -fd 2>/dev/null; ok "git clean"
 
-            echo "=== Resetting local changes ==="
-            git reset --hard HEAD
-            git clean -fd || true
+            git pull origin master && ok "git pull" || die "git pull"
 
-            echo "=== Pulling repo ==="
-            git pull origin master
-
-            # Create/update .env with secrets (quoted heredoc prevents bash reinterpretation of secrets)
-            echo "=== Writing .env ==="
             cat > .env << 'ENVEOF'
             SESSION_SECRET=${{ secrets.SESSION_SECRET }}
             SMTP_HOST=${{ secrets.SMTP_HOST }}
@@ -97,35 +94,24 @@ jobs:
             ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
             DEV_API_KEY=${{ secrets.DEV_API_KEY }}
             ENVEOF
+            ok ".env written"
             echo "PROD_VERSION=$(cat PROD_VERSION | tr -d ' \n\r' 2>/dev/null || echo "unknown")" >> .env
+            ok "PROD_VERSION written"
 
-            # Stop old containers from previous architecture (cleanup)
-            docker stop pier-app-1 2>/dev/null || true
-            docker rm pier-app-1 2>/dev/null || true
+            docker stop pier-app-1 2>/dev/null; docker rm pier-app-1 2>/dev/null; ok "cleanup old containers"
 
             echo "=== Docker login ==="
-            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin && ok "docker login" || die "docker login"
 
-            # Detect docker compose variant
             DC=""
-            if docker compose version >/dev/null 2>&1; then
-              DC="docker compose"
-            elif docker-compose version >/dev/null 2>&1; then
-              DC="docker-compose"
-            else
-              echo "ERROR: neither 'docker compose' nor 'docker-compose' found" >&2
-              exit 1
+            if docker compose version >/dev/null 2>&1; then DC="docker compose"; ok "found docker compose"
+            elif docker-compose version >/dev/null 2>&1; then DC="docker-compose"; ok "found docker-compose"
+            else die "no docker compose"
             fi
-            echo "Using: $DC"
 
-            echo "=== Building router ==="
-            $DC build router
-
-            echo "=== Pulling app-test ==="
-            $DC pull app-test
-
-            echo "=== Restarting services ==="
-            $DC up -d router app-test db
+            $DC build router && ok "router built" || die "router build"
+            $DC pull app-test && ok "app-test pulled" || die "app-test pull"
+            $DC up -d router app-test db && ok "services restarted" || die "services restart"
 
       - name: Verify container status
         uses: appleboy/ssh-action@v1.0.0
