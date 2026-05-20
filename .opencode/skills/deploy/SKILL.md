@@ -1,13 +1,20 @@
-# Deploy Skill — Test-First Deployment Workflow
+# Deploy Skill — Dev + Test Only
 
-## Critical Rule: NEVER deploy to prod before test verification + human confirmation
+## Role Split
 
-This is the **most important rule** in the project. Violating it causes prod outages.
+**This session** = development + test environment.
+**Separate session** = production deployment (handled by another agent).
 
-## Deployment Flow (Mandatory)
+I NEVER deploy to prod, update PROD_VERSION, or touch production. I only:
+1. Develop features / fix bugs
+2. Push to GitHub (auto-deploys to test via deploy.yml)
+3. Verify on test.ailaopo.online
+4. Report results — the prod agent handles promotion
+
+## My Flow
 
 ```
-Code Change → Push → Test Deploy (auto) → Verify on test.ailaopo.online → Human says "OK" → Prod Deploy (manual PROD_VERSION update)
+Code Change → Push → Test Deploy (auto) → Verify on test.ailaopo.online → Report to user
 ```
 
 ### Step 1: Make code changes
@@ -21,32 +28,20 @@ Code Change → Push → Test Deploy (auto) → Verify on test.ailaopo.online �
 - **If the build step fails**: fix the compilation error, commit and push again
 
 ### Step 3: Verify on test.ailaopo.online
-- After the workflow succeeds, verify: `curl https://test.ailaopo.online/`
+- After the workflow succeeds, verify locally: `curl.exe -sI https://test.ailaopo.online/` (PowerShell)
 - Check: page loads (200 OK), content looks correct, login/register works
 - If anything is wrong: fix locally, commit, push again (back to Step 1)
 
-### Step 4: Ask human for confirmation
-- Report what was deployed and what changed
-- State clearly: `"Test is verified at https://test.ailaopo.online/. Ready for prod? [MANUAL] Please confirm."`
-- **Wait for the human to explicitly say "OK" or "deploy prod"**
-- Do NOT update PROD_VERSION without human confirmation
-
-### Step 5: Promote to prod
-- After human confirms: update `PROD_VERSION` file with the build number (e.g. `v20260519-00000081`)
-- Commit and push
-- Monitor `Deploy Prod` workflow (deploy-prod.yml) to completion
-
-### Step 6: Verify prod
-- Check: `curl https://ailaopo.online/` returns 200
-- Verify the feature works on production
+### Step 4: Report
+- Summarize what was deployed and what changed
+- Tell the user test is ready
+- **Do NOT ask "deploy to prod?"** — that's the other session's job
 
 ## What NOT to Do
 
-- ❌ NEVER push to prod while test is on an older version
-- ❌ NEVER skip test verification
-- ❌ NEVER deploy prod without explicit human confirmation
-- ❌ NEVER update PROD_VERSION in the same commit as code changes (always separate commits)
-- ❌ NEVER assume a build succeeded without checking the workflow status
+- ❌ NEVER deploy prod, update PROD_VERSION, or push deploy-prod
+- ❌ NEVER commit or push from the VPS — always from the dev machine (VPS is for running, not developing)
+- ❌ NEVER ask the human to run `curl` to verify deployment — run it locally yourself using PowerShell's `curl.exe`
 
 ## deploy.yml SSH Failure Recovery
 
