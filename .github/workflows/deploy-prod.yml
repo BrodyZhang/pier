@@ -34,20 +34,18 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            set -x
+            set -e
             PIER_DIR=~/pier
-            cd "$PIER_DIR" || echo "WARN: ~/pier not found"
+            cd "$PIER_DIR"
 
             echo "=== Pulling repo ==="
-            git pull origin master 2>&1 || echo "WARN: git pull failed"
+            git pull origin master 2>&1
 
-            # Read version from the file in the repo
             PROD_VER="${{ steps.version.outputs.VERSION }}"
-
             echo "=== Promoting prod to $PROD_VER ==="
 
             # Login to Docker Hub
-            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin 2>&1
+            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
 
             # Write new PROD_VERSION to .env
             if grep -q '^PROD_VERSION=' .env; then
@@ -57,23 +55,24 @@ jobs:
             fi
 
             echo "=== .env contents ==="
-            cat .env 2>&1 || echo "WARN: no .env"
+            cat .env
 
             echo "=== Pulling app-prod ==="
-            docker compose pull app-prod 2>&1 || echo "WARN: pull failed"
+            docker compose pull app-prod
 
             echo "=== Restarting app-prod ==="
-            docker compose down app-prod 2>&1 || true
-            docker compose up -d app-prod 2>&1 || echo "WARN: up failed"
+            docker compose down app-prod
+            docker compose up -d app-prod
 
-            echo "=== Container status ==="
-            docker compose ps 2>&1 || true
-
-            echo "=== app-prod logs ==="
-            docker logs pier-app-prod-1 --tail 5 2>&1 || true
-
-            # Clean up old images
-            docker image prune -f 2>&1 || true
+            echo "=== Waiting for container to start ==="
+            sleep 5
+            CONTAINER_STATUS=$(docker inspect --format='{{.State.Status}}' pier-app-prod-1 2>/dev/null || echo "missing")
+            echo "Container status: $CONTAINER_STATUS"
+            if [ "$CONTAINER_STATUS" != "running" ]; then
+              echo "=== Container failed to start! Logs: ==="
+              docker logs pier-app-prod-1 --tail 20
+              exit 1
+            fi
 
             echo "=== Prod promoted to $PROD_VER ==="
 
@@ -84,11 +83,18 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -e
             sleep 10
-            cd ~/pier && docker compose ps
-            echo "---"
-            echo "Checking app-prod logs..."
+            echo "=== Container status ==="
+            docker compose ps
+            echo "=== app-prod logs ==="
             docker logs pier-app-prod-1 --tail 3
-            echo "---"
-            echo "Checking HTTPS..."
-            curl -s -o /dev/null -w "HTTP %{http_code}" https://ailaopo.online/ || echo " (check failed)"
+            echo "=== Checking HTTPS ==="
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" https://ailaopo.online/)
+            echo "HTTP $HTTP_CODE"
+            if [ "$HTTP_CODE" != "200" ]; then
+              echo "ERROR: prod returned $HTTP_CODE, expected 200"
+              docker logs pier-app-prod-1 --tail 20
+              exit 1
+            fi
+            echo "=== Prod verified OK ==="
