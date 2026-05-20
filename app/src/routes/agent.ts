@@ -93,11 +93,12 @@ router.get('/:slug', async (req: Request, res: Response) => {
 <style>
 #pier-chat-btn{position:fixed;bottom:20px;right:20px;z-index:10000;width:52px;height:52px;border-radius:50%;background:#fff;border:3px solid #ff6b9d;color:#ff6b9d;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(233,30,99,0.3);display:flex;align-items:center;justify-content:center;transition:transform .2s;}
 #pier-chat-btn:active{transform:scale(0.9)}
-#pier-chat-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:10001;background:rgba(0,0,0,0.35);display:none;align-items:flex-end;justify-content:center;}
-#pier-chat-panel{width:100%;max-width:360px;background:#fff;border-radius:16px 16px 0 0;height:55vh;display:flex;flex-direction:column;box-shadow:0 -6px 30px rgba(0,0,0,0.2);transform:translateY(100%);transition:transform .3s ease;}
+#pier-chat-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:10001;background:rgba(0,0,0,0.35);display:none;align-items:flex-end;justify-content:flex-end;padding:20px;padding-bottom:env(safe-area-inset-bottom,20px);}
+@media(max-width:600px){ #pier-chat-overlay{justify-content:center;padding:0;} }
+#pier-chat-panel{width:100%;max-width:360px;background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.2);transform:translateY(100%);transition:transform .3s ease;height:55vh;display:flex;flex-direction:column;margin-bottom:80px;}
+@media(max-width:600px){ #pier-chat-panel{max-width:100%;border-radius:16px 16px 0 0;margin-bottom:0;height:55vh;} }
 @media(max-width:400px){ #pier-chat-panel{max-width:100%;} }
 @media(max-width:480px){
-  #pier-chat-panel{height:55vh;border-radius:12px 12px 0 0;}
   #pier-chat-panel.keyboard{height:42vh;}
   #pier-chat-header{padding:12px 14px 10px}
   #pier-chat-title{font-size:15px}
@@ -122,12 +123,12 @@ router.get('/:slug', async (req: Request, res: Response) => {
 .pier-msg-me .bubble{background:#ff6b9d;color:#fff;padding:10px 14px;border-radius:18px 18px 4px 18px;font-size:14px;line-height:1.4;word-break:break-word;}
 .pier-msg-other .bubble{background:#fff;color:#333;padding:10px 14px;border-radius:18px 18px 18px 4px;font-size:14px;line-height:1.4;word-break:break-word;box-shadow:0 1px 2px rgba(0,0,0,0.08);}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-#pier-chat-input-area{padding:10px 14px 16px;background:#fff;display:flex;gap:10px;align-items:flex-end;border-top:1px solid #f0f0f0;}
+#pier-chat-input-area{padding:10px 14px 16px;background:#fff;display:flex;gap:10px;align-items:flex-end;border-top:1px solid #f0f0f0;border-radius:0 0 16px 16px;}
 #pier-chat-input{flex:1;border:none;background:#f5f5f5;border-radius:20px;padding:12px 16px;font-size:14px;outline:none;min-height:44px;max-height:70px;resize:none;}
 #pier-chat-input:focus{background:#eee}
 #pier-chat-send{background:#ff6b9d;color:#fff;border:none;border-radius:50%;width:44px;height:44px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 #pier-chat-send:active{transform:scale(0.9)}
-#pier-chat-footer{padding:6px 14px 10px;font-size:10px;color:#ccc;text-align:center;background:#fff;}
+#pier-chat-footer{padding:6px 14px 10px;font-size:10px;color:#ccc;text-align:center;background:#fff;border-radius:0 0 16px 16px;}
 </style>
 <div id="pier-chat-btn" onclick="toggleChat()">💬</div>
 <div id="pier-chat-overlay" onclick="toggleChat()">
