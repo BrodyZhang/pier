@@ -319,7 +319,7 @@
             <button class="nav-toggle" id="navToggle" aria-label="菜单">☰</button>
             <div class="nav-links" id="navLinks">
                 <% if (typeof userId !== 'undefined' && userId) { %>
-                    <span class="nav-email-mobile"><%= typeof userEmail !== 'undefined' ? userEmail : '' %></span>
+                    <span class="nav-email-mobile" style="display:none"><%= typeof userEmail !== 'undefined' ? userEmail : '' %></span>
                     <span class="nav-email"><%= typeof userEmail !== 'undefined' ? userEmail : '' %></span>
                     <a href="/dashboard">控制台</a>
                     <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
