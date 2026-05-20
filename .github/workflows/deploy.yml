@@ -57,7 +57,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            set -e
+            set -ex
             PIER_DIR=~/pier
             if [ ! -d "$PIER_DIR" ]; then
               git clone https://github.com/BrodyZhang/pier "$PIER_DIR"
@@ -66,14 +66,15 @@ jobs:
             cd "$PIER_DIR"
 
             echo "=== Resetting any local changes ==="
-            git checkout -- . 2>&1
+            git reset --hard HEAD 2>&1
+            git clean -fd 2>&1 || true
 
             echo "=== Pulling repo ==="
             git pull origin master 2>&1
 
-            # Create/update .env with secrets
-            echo "=== Writing .env ==="
-            cat > .env << ENVEOF
+            # Create/update .env with secrets (quoted heredoc prevents bash reinterpretation of secrets)
+            echo "=== Writing .env (static vars) ==="
+            cat > .env << 'ENVEOF'
             SESSION_SECRET=${{ secrets.SESSION_SECRET }}
             SMTP_HOST=${{ secrets.SMTP_HOST }}
             SMTP_PORT=${{ secrets.SMTP_PORT }}
@@ -82,8 +83,9 @@ jobs:
             SMTP_FROM=${{ secrets.SMTP_FROM }}
             ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
             DEV_API_KEY=${{ secrets.DEV_API_KEY }}
-            PROD_VERSION=$(cat PROD_VERSION | tr -d ' \n\r' 2>/dev/null || echo "unknown")
             ENVEOF
+            echo "=== Writing PROD_VERSION (dynamic) ==="
+            echo "PROD_VERSION=$(cat PROD_VERSION | tr -d ' \n\r' 2>/dev/null || echo "unknown")" >> .env
 
             # Stop old containers from previous architecture (cleanup)
             docker stop pier-app-1 2>/dev/null || true
@@ -92,16 +94,28 @@ jobs:
             echo "=== Docker login ==="
             echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
 
+            # Detect docker compose variant
+            DC=""
+            if docker compose version >/dev/null 2>&1; then
+              DC="docker compose"
+            elif docker-compose version >/dev/null 2>&1; then
+              DC="docker-compose"
+            else
+              echo "ERROR: neither 'docker compose' nor 'docker-compose' found" >&2
+              exit 1
+            fi
+            echo "Using: $DC"
+
             # Build router image (local, nginx config from repo)
             echo "=== Building router ==="
-            docker compose build router
+            $DC build router
 
             # Pull only test image — prod is NEVER touched by push deploy
             echo "=== Pulling app-test ==="
-            docker compose pull app-test
+            $DC pull app-test
 
             echo "=== Restarting services ==="
-            docker compose up -d router app-test db
+            $DC up -d router app-test db
 
       - name: Verify container status
         uses: appleboy/ssh-action@v1.0.0
