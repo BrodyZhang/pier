@@ -77,6 +77,19 @@ This avoids restarting `app-prod` and prevents the image tag error.
 
 **Fix:** Use single quotes: `echo '$PASSWORD' | docker login ...` — single quotes prevent all bash expansion. Safe for alphanumeric Docker Hub tokens.
 
+## Database Configuration (CRITICAL)
+
+Prod and test MUST use separate databases to avoid data loss.
+
+| Environment | Database URL | Database Name |
+|-------------|-------------|---------------|
+| app-test | `postgres://pier:pier@db:5432/pier_test` | `pier_test` |
+| app-prod | `postgres://pier:pier@db:5432/pier_prod` | `pier_prod` |
+
+**WARNING:** NEVER change prod's `DATABASE_URL` without explicit human confirmation. Changing it to a different database name will cause the new container to connect to an empty database, making it appear that all data is lost. Always verify the database name in `docker-compose.yml` before deploying.
+
+**Root cause of past data-loss incident:** Commit `7f7fca3` changed prod's DATABASE_URL from `pier_prod` to `pier` (the default/empty database). deploy-prod's `git pull` picked up this change, and the new container started pointing to the empty `pier` database. All prod data was still in `pier_prod` but the app couldn't see it.
+
 ## Version Tracking
 
 - `build number` = `github.run_number` from GitHub Actions
