@@ -50,19 +50,26 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Deploy to VPS
+      - name: Test SSH connectivity
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Error handler that creates a visible GitHub annotation
-            err_handler() {
-              echo "::error title=Deploy SSH Error::Command failed at line $1 (exit code $2). See VPS logs for details."
-              exit "$2"
-            }
-            trap 'err_handler $LINENO $?' ERR
+            echo "SSH_OK"
+            whoami
+            hostname
+            echo "DONE"
+
+      - name: Deploy to VPS
+        if: success()
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
             set -ex
             PIER_DIR=~/pier
             if [ ! -d "$PIER_DIR" ]; then
@@ -71,15 +78,15 @@ jobs:
 
             cd "$PIER_DIR"
 
-            echo "::debug::Resetting local changes"
+            echo "=== Resetting local changes ==="
             git reset --hard HEAD
             git clean -fd || true
 
-            echo "::debug::Pulling repo"
+            echo "=== Pulling repo ==="
             git pull origin master
 
             # Create/update .env with secrets (quoted heredoc prevents bash reinterpretation of secrets)
-            echo "::debug::Writing .env"
+            echo "=== Writing .env ==="
             cat > .env << 'ENVEOF'
             SESSION_SECRET=${{ secrets.SESSION_SECRET }}
             SMTP_HOST=${{ secrets.SMTP_HOST }}
@@ -96,7 +103,7 @@ jobs:
             docker stop pier-app-1 2>/dev/null || true
             docker rm pier-app-1 2>/dev/null || true
 
-            echo "::debug::Docker login"
+            echo "=== Docker login ==="
             echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
 
             # Detect docker compose variant
@@ -109,17 +116,15 @@ jobs:
               echo "ERROR: neither 'docker compose' nor 'docker-compose' found" >&2
               exit 1
             fi
-            echo "::notice::Using $DC"
+            echo "Using: $DC"
 
-            # Build router image (local, nginx config from repo)
-            echo "::debug::Building router"
+            echo "=== Building router ==="
             $DC build router
 
-            # Pull only test image — prod is NEVER touched by push deploy
-            echo "::debug::Pulling app-test"
+            echo "=== Pulling app-test ==="
             $DC pull app-test
 
-            echo "::debug::Restarting services"
+            echo "=== Restarting services ==="
             $DC up -d router app-test db
 
       - name: Verify container status
