@@ -5,12 +5,14 @@ declare module 'express-session' {
     userId?: string;
     role?: 'user' | 'admin';
     userEmail?: string;
+    userName?: string;
   }
 }
 
 export interface User {
   id: string;
   email: string;
+  name?: string;
   role: 'user' | 'admin';
   registration_date: string;
   created_at: string;

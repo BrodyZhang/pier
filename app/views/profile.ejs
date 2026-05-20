@@ -1,0 +1,39 @@
+<div class="card">
+    <h1>个人设置</h1>
+    <p style="color:#8c8caa;font-size:14px;margin-top:4px;"><%= user.email %></p>
+</div>
+
+<% if (typeof error !== 'undefined' && error) { %>
+<div class="error"><%= error %></div>
+<% } %>
+<% if (typeof success !== 'undefined' && success) { %>
+<div class="success"><%= success %></div>
+<% } %>
+
+<div class="card">
+    <h2>修改名称</h2>
+    <form method="POST" action="/profile">
+        <label for="name">显示名称</label>
+        <input type="text" id="name" name="name" value="<%= user.name || '' %>" maxlength="50" placeholder="输入你的名称" required>
+        <div style="margin-top:16px;">
+            <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+    </form>
+</div>
+
+<div class="card" style="border:1px solid rgba(211,47,47,0.2);">
+    <h2 style="color:#d32f2f;">危险操作</h2>
+    <p style="font-size:14px;color:#8c8caa;margin-bottom:14px;">注销账号将永久删除你的所有数据和请求，此操作不可撤销。</p>
+    <form method="POST" action="/profile/delete" onsubmit="return confirm('确定要注销账号吗？所有数据将被永久删除，无法恢复。');">
+        <button type="submit" class="btn btn-danger">注销账号</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>账户信息</h2>
+    <table>
+        <tr><td data-label="邮箱">邮箱</td><td><%= user.email %></td></tr>
+        <tr><td data-label="角色">角色</td><td><%= user.role === 'admin' ? '管理员' : '用户' %></td></tr>
+        <tr><td data-label="注册日期">注册日期</td><td><%= user.registration_date ? new Date(user.registration_date).toLocaleDateString('zh-CN') : '' %></td></tr>
+    </table>
+</div>

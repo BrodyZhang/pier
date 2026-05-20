@@ -16,6 +16,7 @@ import authRoutes from './routes/auth';
 import dashboardRoutes from './routes/dashboard';
 import agentRoutes from './routes/agent';
 import adminRoutes from './routes/admin';
+import profileRoutes from './routes/profile';
 import devRoutes from './routes/dev';
 
 const app = express();
@@ -56,6 +57,7 @@ app.use((req, _res, next) => {
   _res.locals.role = req.session.role;
   _res.locals.isAdmin = req.session.role === 'admin';
   _res.locals.userEmail = req.session.userEmail || '';
+  _res.locals.userName = req.session.userName || '';
   _res.locals.adminEmail = process.env.ADMIN_EMAIL || 'ailaopoonline@yeah.net';
   _res.locals.contactEmail = process.env.CONTACT_EMAIL || 'ailaopoonline@yeah.net';
   next();
@@ -65,6 +67,7 @@ app.use('/auth', authRoutes);
 app.use('/dashboard', requireAuth, dashboardRoutes);
 app.use('/agent', agentRoutes);
 app.use('/admin', requireAuth, requireAdmin, adminRoutes);
+app.use('/profile', profileRoutes);
 app.use('/api/dev', requireDevApiKey, devRoutes);
 
 app.get('/', (_req, res) => {

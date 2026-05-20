@@ -322,6 +322,7 @@
                     <span class="nav-email-mobile" style="display:none"><%= typeof userEmail !== 'undefined' ? userEmail : '' %></span>
                     <span class="nav-email"><%= typeof userEmail !== 'undefined' ? userEmail : '' %></span>
                     <a href="/dashboard">控制台</a>
+                    <a href="/profile">个人设置</a>
                     <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
                         <a href="/admin/requests">管理后台</a>
                     <% } %>
