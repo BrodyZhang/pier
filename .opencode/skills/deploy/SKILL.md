@@ -58,6 +58,25 @@ The deploy.yml (test deploy) SSH step has been known to fail. If it does:
 
 DO NOT manually run deploy-prod to work around a deploy.yml failure. Only deploy-prod after test verification is complete AND human confirms.
 
+## Known Root Causes & Fixes
+
+### `docker compose up` fails with "image not found" for PROD_VERSION tag
+
+**Root cause:** `docker compose up -d router app-test db` triggers dependency resolution. Router has `depends_on: app-prod`, and `app-prod` uses `${PROD_VERSION:-latest}`. The PROD_VERSION tag (e.g. `v20260519-00000126`) doesn't exist on Docker Hub because deploy.yml only pushes `:latest` at that point.
+
+**Fix:** Use `--no-deps` flag to skip dependency resolution:
+```bash
+docker compose up -d app-test --no-deps
+docker compose up -d router --no-deps
+```
+This avoids restarting `app-prod` and prevents the image tag error.
+
+### `echo "$PASSWORD"` leaks special chars in bash
+
+**Root cause:** When using `echo "$DOCKER_PASSWORD" | docker login ...`, bash expands `$` and backticks in the password, corrupting it.
+
+**Fix:** Use single quotes: `echo '$PASSWORD' | docker login ...` — single quotes prevent all bash expansion. Safe for alphanumeric Docker Hub tokens.
+
 ## Version Tracking
 
 - `build number` = `github.run_number` from GitHub Actions

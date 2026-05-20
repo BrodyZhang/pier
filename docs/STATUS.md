@@ -32,8 +32,8 @@
 | VPS | Azure Ubuntu 24.04 |
 | Method | docker compose (4 services: router, app-test, app-prod, db) |
 | Image | `brodyzhang2026/pier` (Docker Hub) |
-| **Status** | ✅ Deployed (test: build #96, prod: build #96) |
-| Last Deploy | 2026-05-19 (build #96) |
+| **Status** | ✅ Deployed (test: build #140, prod: build #140) |
+| Last Deploy | 2026-05-20 (build #140) |
 | Prod Version File | `PROD_VERSION` — push changes to auto-promote via deploy-prod.yml |
 
 ## Development Tasks
@@ -122,7 +122,7 @@
 | # | Issue | Status |
 |---|-------|--------|
 | 1 | ~~**PROD 502 Bad Gateway** — async middleware with DB query caused container crash. Fixed in build #81.~~ | ✅ Resolved |
-| 2 | **Test deploy SSH fails** — `appleboy/ssh-action` deploy step fails consistently. build-and-push always succeeds. Deploy-prod (prod deploy via SSH) works fine. | 🟡 Ongoing |
+| 2 | ~~**Test deploy SSH fails (#132-#139)** — `docker compose up -d router app-test db` triggered `depends_on: app-prod`, which tried to resolve `${PROD_VERSION:-latest}` tag that didn't exist on Docker Hub. Fixed in build #140 by using `--no-deps`.~~ | ✅ Resolved |
 | 3 | ~~**Approve endpoint 500** — caused by invalid UUID format in test IDs. Works correctly with valid UUIDs.~~ | ✅ Resolved |
 
 ## Environment Variables
@@ -142,6 +142,6 @@
 | `SMTP_PASS` | ✅ | GitHub secret — Resend API key |
 | `SMTP_FROM` | ✅ | GitHub secret — `noreply@ailaopo.online` |
 | `DEV_API_KEY` | ✅ | GitHub secret — Bearer token for AI dev API |
-| `PROD_VERSION` | ✅ | File in repo — `v20260519-00000096` (with `v` prefix) |
+| `PROD_VERSION` | ✅ | File in repo — `v20260520-00000140` (with `v` prefix) |
 
 **Format note:** Docker Hub password/token is passed via stdin in the SSH script (line in deploy.yml). Consider using a read-only token for pull-only operations to minimize risk.
