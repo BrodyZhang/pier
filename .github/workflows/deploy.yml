@@ -65,6 +65,9 @@ jobs:
 
             cd "$PIER_DIR"
 
+            echo "=== Resetting any local changes ==="
+            git checkout -- . 2>&1
+
             echo "=== Pulling repo ==="
             git pull origin master 2>&1
 
