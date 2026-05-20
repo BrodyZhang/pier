@@ -114,8 +114,11 @@ jobs:
             echo "=== Pulling app-test ==="
             $DC pull app-test
 
-            echo "=== Restarting services ==="
-            $DC up -d router app-test db
+            echo "=== Restarting app-test (no-deps to avoid prod image resolve) ==="
+            $DC up -d app-test --no-deps
+
+            echo "=== Restarting router (no-deps to avoid prod image resolve) ==="
+            $DC up -d router --no-deps
 
       - name: Verify container status
         uses: appleboy/ssh-action@v1.0.0
