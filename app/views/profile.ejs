@@ -49,6 +49,7 @@
     <h2>账户信息</h2>
     <table>
         <tr><td data-label="邮箱">邮箱</td><td><%= user.email %></td></tr>
+        <tr><td data-label="名称">显示名称</td><td><%= user.name || '未设置' %></td></tr>
         <tr><td data-label="角色">角色</td><td><%= user.role === 'admin' ? '管理员' : '用户' %></td></tr>
         <tr><td data-label="注册日期">注册日期</td><td><%= user.registration_date ? new Date(user.registration_date).toLocaleDateString('zh-CN') : '' %></td></tr>
     </table>

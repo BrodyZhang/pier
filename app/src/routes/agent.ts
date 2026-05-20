@@ -59,6 +59,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
     const isCreator = a.user_id === userId;
 
     const userEmail = req.session.userEmail || '';
+    const userName = req.session.userName || userEmail;
 
     const share = await pool.query(
       'SELECT partner_user_id FROM agent_shares WHERE agent_id = $1',
@@ -89,7 +90,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
     html = html.replace('</body>', `${disclaimer}</body>`);
 
     // Inject real-time chat
-    const chatHtml = `<div id="pier-chat-root" data-slug="${req.params.slug}" data-email="${userEmail}" style="display:none;"></div>
+    const chatHtml = `<div id="pier-chat-root" data-slug="${req.params.slug}" data-email="${userEmail}" data-name="${userName}" style="display:none;"></div>
 <style>
 #pier-chat-btn{position:fixed;bottom:20px;right:20px;z-index:10000;width:52px;height:52px;border-radius:50%;background:#fff;border:3px solid #ff6b9d;color:#ff6b9d;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(233,30,99,0.3);display:flex;align-items:center;justify-content:center;transition:transform .2s;}
 #pier-chat-btn:active{transform:scale(0.9)}
@@ -148,7 +149,8 @@ router.get('/:slug', async (req: Request, res: Response) => {
 <script>
 (function(){
   var slug = document.getElementById('pier-chat-root').getAttribute('data-slug');
-  var userEmail = document.getElementById('pier-chat-root').getAttribute('data-email') || '游客';
+  var userEmail = document.getElementById('pier-chat-root').getAttribute('data-email') || '';
+  var userName = document.getElementById('pier-chat-root').getAttribute('data-name') || userEmail || '游客';
   var wsUrl = (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host + '/ws?slug=' + encodeURIComponent(slug);
   var ws = null;
   var reconnectTimer = null;
@@ -161,7 +163,7 @@ router.get('/:slug', async (req: Request, res: Response) => {
     ws.onopen = function() {
       trying = false;
       addSystemMsg('已连接', 'success');
-      ws.send(JSON.stringify({type:'join',userEmail:userEmail}));
+      ws.send(JSON.stringify({type:'join',userEmail:userEmail,userName:userName}));
     };
     ws.onmessage = function(e) {
       try {
@@ -210,11 +212,10 @@ router.get('/:slug', async (req: Request, res: Response) => {
   function addChatMsg(user, text, time) {
     var el = document.getElementById('pier-chat-msgs');
     if (!el) return;
-    var isMe = user === userEmail || user === '你';
-    var shortEmail = isMe ? '' : (user.indexOf('@') > 0 ? user.split('@')[0] : user);
+    var isMe = user === userName || user === '我';
     var d = document.createElement('div');
     d.className = 'pier-msg ' + (isMe ? 'pier-msg-me' : 'pier-msg-other');
-    d.innerHTML = (shortEmail ? '<div class="pier-msg-name">' + escapeHtml(shortEmail) + '</div>' : '') + '<div class="bubble">' + escapeHtml(text) + '</div><div class="pier-msg-time">' + (isMe ? '我 ' : '') + time + '</div>';
+    d.innerHTML = '<div class="bubble">' + escapeHtml(text) + '</div><div class="pier-msg-time">' + (isMe ? '我 ' : escapeHtml(user) + ' ') + time + '</div>';
     el.appendChild(d);
     el.scrollTop = el.scrollHeight;
   }

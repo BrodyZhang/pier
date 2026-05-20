@@ -120,6 +120,7 @@ app.get('/g/file/:name', (req, res) => {
 interface ChatClient {
   ws: WebSocket;
   userEmail: string;
+  userName: string;
   lastMessageTime: number;
 }
 
@@ -135,7 +136,7 @@ wss.on('connection', (ws, req) => {
   if (!rooms.has(slug)) rooms.set(slug, new Map());
   const room = rooms.get(slug)!;
 
-  const client: ChatClient = { ws, userEmail: '', lastMessageTime: 0 };
+  const client: ChatClient = { ws, userEmail: '', userName: '', lastMessageTime: 0 };
   room.set(ws, client);
 
   ws.send(JSON.stringify({ type: 'users', count: room.size }));
@@ -146,7 +147,8 @@ wss.on('connection', (ws, req) => {
 
       if (msg.type === 'join') {
         client.userEmail = msg.userEmail || 'Anonymous';
-        broadcast(room, { type: 'join', user: client.userEmail, users: room.size }, ws);
+        client.userName = msg.userName || client.userEmail;
+        broadcast(room, { type: 'join', user: client.userName, users: room.size }, ws);
         return;
       }
 
@@ -166,17 +168,17 @@ wss.on('connection', (ws, req) => {
         }
 
         const safeText = msg.text.substring(0, 500);
-        broadcast(room, { type: 'message', text: safeText, user: client.userEmail, time: now }, null);
+          broadcast(room, { type: 'message', text: safeText, user: client.userName, time: now }, null);
         return;
       }
     } catch { /* ignore malformed */ }
   });
 
   ws.on('close', () => {
-    const email = client.userEmail;
+    const uname = client.userName;
     room.delete(ws);
     if (room.size === 0) rooms.delete(slug);
-    else if (email) broadcast(room, { type: 'leave', user: email, users: room.size }, null);
+    else if (uname) broadcast(room, { type: 'leave', user: uname, users: room.size }, null);
   });
 });
 
