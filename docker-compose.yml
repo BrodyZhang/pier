@@ -37,7 +37,7 @@ services:
   app-prod:
     image: brodyzhang2026/pier:${PROD_VERSION:-latest}
     environment:
-      - DATABASE_URL=postgres://pier:pier@db:5432/pier
+      - DATABASE_URL=postgres://pier:pier@db:5432/pier_prod
       - SESSION_SECRET=${SESSION_SECRET:-change-me}
       - SMTP_HOST=${SMTP_HOST:-}
       - SMTP_PORT=${SMTP_PORT:-465}
