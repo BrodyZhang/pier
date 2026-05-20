@@ -50,68 +50,70 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Test SSH connectivity
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            echo "SSH_OK"
-            whoami
-            hostname
-            echo "DONE"
-
       - name: Deploy to VPS
-        if: success()
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            set -x
+        shell: bash
+        run: |
+          # Setup SSH
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
 
-            ok() { echo "[OK] $1"; }
-            die() { echo "[FAIL] $1"; exit 1; }
+          # Run deploy script via SSH, capture output
+          ssh -o ConnectTimeout=30 "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" 'bash -s' << 'RSCRIPT' 2>&1 | tee /tmp/deploy.log
+          set -x
 
-            PIER_DIR=~/pier
-            [ -d "$PIER_DIR" ] || git clone https://github.com/BrodyZhang/pier "$PIER_DIR"
-            cd "$PIER_DIR" || die "cd failed"
+          ok() { echo "[OK] $1"; }
+          die() { echo "[FAIL] $1"; exit 1; }
 
-            git reset --hard HEAD && ok "git reset" || die "git reset"
-            git clean -fd 2>/dev/null; ok "git clean"
+          PIER_DIR=~/pier
+          [ -d "$PIER_DIR" ] || git clone https://github.com/BrodyZhang/pier "$PIER_DIR"
+          cd "$PIER_DIR" || die "cd failed"
 
-            git pull origin master && ok "git pull" || die "git pull"
+          git reset --hard HEAD && ok "git reset" || die "git reset"
+          git clean -fd 2>/dev/null; ok "git clean"
 
-            cat > .env << 'ENVEOF'
-            SESSION_SECRET=${{ secrets.SESSION_SECRET }}
-            SMTP_HOST=${{ secrets.SMTP_HOST }}
-            SMTP_PORT=${{ secrets.SMTP_PORT }}
-            SMTP_USER=${{ secrets.SMTP_USER }}
-            SMTP_PASS=${{ secrets.SMTP_PASS }}
-            SMTP_FROM=${{ secrets.SMTP_FROM }}
-            ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
-            DEV_API_KEY=${{ secrets.DEV_API_KEY }}
-            ENVEOF
-            ok ".env written"
-            echo "PROD_VERSION=$(cat PROD_VERSION | tr -d ' \n\r' 2>/dev/null || echo "unknown")" >> .env
-            ok "PROD_VERSION written"
+          git pull origin master && ok "git pull" || die "git pull"
 
-            docker stop pier-app-1 2>/dev/null; docker rm pier-app-1 2>/dev/null; ok "cleanup old containers"
+          cat > .env << 'ENVEOF'
+          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+          SMTP_HOST=${{ secrets.SMTP_HOST }}
+          SMTP_PORT=${{ secrets.SMTP_PORT }}
+          SMTP_USER=${{ secrets.SMTP_USER }}
+          SMTP_PASS=${{ secrets.SMTP_PASS }}
+          SMTP_FROM=${{ secrets.SMTP_FROM }}
+          ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
+          DEV_API_KEY=${{ secrets.DEV_API_KEY }}
+          ENVEOF
+          ok ".env written"
+          echo "PROD_VERSION=$(cat PROD_VERSION | tr -d ' \n\r' 2>/dev/null || echo "unknown")" >> .env
+          ok "PROD_VERSION written"
 
-            echo "=== Docker login ==="
-            echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin && ok "docker login" || die "docker login"
+          docker stop pier-app-1 2>/dev/null; docker rm pier-app-1 2>/dev/null; ok "cleanup"
 
-            DC=""
-            if docker compose version >/dev/null 2>&1; then DC="docker compose"; ok "found docker compose"
-            elif docker-compose version >/dev/null 2>&1; then DC="docker-compose"; ok "found docker-compose"
-            else die "no docker compose"
-            fi
+          echo "=== Docker login ==="
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u ${{ secrets.DOCKER_USERNAME }} --password-stdin && ok "docker login" || die "docker login"
 
-            $DC build router && ok "router built" || die "router build"
-            $DC pull app-test && ok "app-test pulled" || die "app-test pull"
-            $DC up -d router app-test db && ok "services restarted" || die "services restart"
+          DC=""
+          if docker compose version >/dev/null 2>&1; then DC="docker compose"; ok "found docker compose"
+          elif docker-compose version >/dev/null 2>&1; then DC="docker-compose"; ok "found docker-compose"
+          else die "no docker compose"
+          fi
+
+          $DC build router && ok "router built" || die "router build"
+          $DC pull app-test && ok "app-test pulled" || die "app-test pull"
+          $DC up -d router app-test db && ok "services restarted" || die "services restart"
+          RSCRIPT
+
+          RC=${PIPESTATUS[0]}
+          if [ "$RC" -ne 0 ]; then
+            echo "::error title=Deploy Failed::exit code $RC"
+            echo "--- Last 15 lines of deploy output ---"
+            tail -15 /tmp/deploy.log
+            echo "--- End ---"
+            exit "$RC"
+          fi
+          echo "::notice::Deploy completed successfully"
 
       - name: Verify container status
         uses: appleboy/ssh-action@v1.0.0
