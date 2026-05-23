@@ -517,6 +517,12 @@ export const publicRouter = Router();
 
 publicRouter.get('/p/:slug', async (req: Request, res: Response) => {
   try {
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(req.params.slug)) {
+      return res.status(404).send('页面未找到');
+    }
+
     const agent = await pool.query(
       `SELECT ar.id, ar.name, ar.description, ar.unique_slug,
               u.email as creator_email
