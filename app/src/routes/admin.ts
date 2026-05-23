@@ -68,14 +68,15 @@ router.post('/requests/:id/approve', async (req: Request, res: Response) => {
   try {
     const slug = crypto.randomUUID();
     const { review_notes } = req.body;
+    const logEntry = JSON.stringify([{ action: 'approved', notes: review_notes || null, timestamp: new Date().toISOString() }]);
 
     await pool.query(
       `UPDATE agent_requests
        SET status = 'in_development', unique_slug = $1, review_notes = $2,
-           review_log = COALESCE(review_log, '[]'::jsonb) || jsonb_build_array(jsonb_build_object('action','approved','notes',$2::text,'timestamp',NOW())),
+           review_log = COALESCE(review_log, '[]'::jsonb) || $3::jsonb,
            updated_at = NOW()
-       WHERE id = $3`,
-      [slug, review_notes || null, req.params.id]
+       WHERE id = $4`,
+      [slug, review_notes || null, logEntry, req.params.id]
     );
 
     await pool.query(
@@ -166,11 +167,12 @@ router.post('/requests/:id/approve-dev', async (req: Request, res: Response) => 
 router.post('/requests/:id/reject-dev', async (req: Request, res: Response) => {
   try {
     const { review_comments } = req.body;
+    const logEntry = JSON.stringify([{ action: 'rejected_dev', comments: review_comments || null, timestamp: new Date().toISOString() }]);
     await pool.query(
       `UPDATE agent_requests SET status = 'in_development', review_comments = $1,
-            review_log = COALESCE(review_log, '[]'::jsonb) || jsonb_build_array(jsonb_build_object('action','rejected_dev','comments',$1,'timestamp',NOW())),
-            updated_at = NOW() WHERE id = $2`,
-      [review_comments || null, req.params.id]
+            review_log = COALESCE(review_log, '[]'::jsonb) || $2::jsonb,
+            updated_at = NOW() WHERE id = $3`,
+      [review_comments || null, logEntry, req.params.id]
     );
     res.redirect('/admin/requests');
   } catch (err) {
