@@ -50,6 +50,14 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Debug - check VPS hostname & connectivity
+        run: |
+          echo "Resolving VPS_HOST..."
+          host '${{ secrets.VPS_HOST }}' 2>&1 || echo "host command failed"
+          nslookup '${{ secrets.VPS_HOST }}' 2>&1 || echo "nslookup failed"
+          echo "Testing TCP connectivity..."
+          timeout 5 bash -c 'echo | nc -w 3 '${{ secrets.VPS_HOST }}' 22 && echo "SSH port OPEN" || echo "SSH port TIMEOUT/CLOSED"' || echo "nc failed"
+
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1
         with:
