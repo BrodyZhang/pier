@@ -11,6 +11,9 @@ on:
       - 'docker-compose.yml'
       - '.github/workflows/deploy-test.yml'
 
+permissions:
+  contents: write
+
 env:
   VPS_HOST: ${{ secrets.VPS_HOST }}
   VPS_USER: ${{ secrets.VPS_USER }}
@@ -62,6 +65,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Write TEST_VERSION and push
+        run: |
+          echo "${{ needs.build-and-push.outputs.version }}" > TEST_VERSION
+          git config user.name "pier-ci"
+          git config user.email "ci@pier"
+          git add TEST_VERSION
+          git commit -m "chore: update TEST_VERSION to ${{ needs.build-and-push.outputs.version }}" || echo "Nothing to commit"
+          git pull --rebase origin master
+          git push
+
       - name: Deploy to VPS
         shell: bash
         env:
@@ -72,7 +88,7 @@ jobs:
           chmod 600 /tmp/ssh_key
           trap 'rm -f /tmp/ssh_key' EXIT
 
-          # Write .env with all secrets, scp to VPS
+          # Write .env with secrets only (no TEST_VERSION — read from file on VPS)
           cat > /tmp/pier.env << ENVEOF
           SESSION_SECRET=${SESSION_SECRET}
           SMTP_HOST=${SMTP_HOST}
@@ -82,7 +98,6 @@ jobs:
           SMTP_FROM=${SMTP_FROM}
           ADMIN_EMAIL=${ADMIN_EMAIL}
           DEV_API_KEY=${DEV_API_KEY}
-          TEST_VERSION=${{ needs.build-and-push.outputs.version }}
           ENVEOF
 
           scp -o StrictHostKeyChecking=no -i /tmp/ssh_key \
@@ -117,6 +132,10 @@ jobs:
               exit 1
             fi
             echo "Using: ${DC}"
+
+            # Read TEST_VERSION from file (fallback to latest)
+            export TEST_VERSION="$(cat "$PIER_DIR/TEST_VERSION" 2>/dev/null || echo 'latest')"
+            echo "=== Deploying TEST_VERSION=${TEST_VERSION} ==="
 
             echo "=== Pulling router (fallback to build if not found) ==="
             ${DC} pull router 2>/dev/null || (echo "Image not found, building locally..." && ${DC} build router)

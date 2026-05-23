@@ -160,5 +160,6 @@ Defined in `app/src/services/db.ts:initDB()`:
 | `scripts/poll-tasks.ps1` | PowerShell script: `.\scripts\poll-tasks.ps1` (single) or `-Continuous` (loop every N seconds) |
 | `.github/workflows/task-monitor.yml` | Scheduled GitHub Action — checks for tasks every 30 min, reports in Actions tab |
 | `PROD_VERSION` | File containing current prod build version (e.g. `20260517-00000066`). Push changes → auto-promote prod |
+| `TEST_VERSION` | File containing current test build version. Auto-updated by deploy-test.yml CI on each push |
 | `.github/workflows/deploy-prod.yml` | Triggered by PROD_VERSION changes. SSHes to VPS, updates .env, pulls image, restarts app-prod |
 

@@ -107,6 +107,7 @@
 - [x] Test/prod email distinction (APP_ENV env var, "[测试环境]" prefix)
 - [x] Nav: User email/name links to /profile instead of separate "个人设置"
 - [x] AGENTS.md: mandatory plan-first, summarize-after workflow
+- [x] TEST_VERSION git file: test version stored in repo (like PROD_VERSION), auto-updated by CI
 
 ### Next (Priority Order)
 1. ✅ ~~Register/login flow~~ (tested on test.ailaopo.online)
@@ -154,5 +155,6 @@
 | `DEV_API_KEY` | ✅ | GitHub secret — Bearer token for AI dev API |
 | `PROD_VERSION` | ✅ | File in repo — `v20260523-00000153` (with `v` prefix) |
 | `APP_ENV` | ✅ | docker-compose.yml — `test` for app-test, `prod` for app-prod |
+| `TEST_VERSION` | ✅ | File in repo — auto-updated by CI on each test deploy |
 
 **Format note:** Docker Hub password/token is passed via stdin in the SSH script (line in deploy-test.yml). Consider using a read-only token for pull-only operations to minimize risk.
