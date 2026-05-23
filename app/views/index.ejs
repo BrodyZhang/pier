@@ -60,9 +60,9 @@
     <p style="font-size:14px;color:#8c8caa;margin-bottom:16px;">看看别人制作的专属告白页，为你的创作寻找灵感。</p>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;">
         <% showcasedAgents.forEach(function(a) { %>
-            <a href="/p/<%= a.unique_slug %>" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:block;background:rgba(255,255,255,0.7);border:1px solid rgba(255,182,193,0.2);border-radius:14px;padding:18px;transition:transform 0.2s,box-shadow 0.2s;color:inherit;">
-                <div style="font-size:16px;font-weight:600;color:#5c5c7a;margin-bottom:6px;"><%= a.name %></div>
-                <div style="font-size:13px;color:#8c8caa;line-height:1.5;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;"><%= a.short_desc %></div>
+            <a href="/p/<%= a.unique_slug %>" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:block;background:var(--surface-card);border:1px solid var(--border-card);border-radius:14px;padding:18px;transition:transform 0.2s,box-shadow 0.2s;color:inherit;">
+                <div style="font-size:16px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;"><%= a.name %></div>
+                <div style="font-size:13px;color:var(--text-desc);line-height:1.5;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;"><%= a.short_desc %></div>
                 <div style="margin-top:10px;font-size:13px;color:#ff6b9d;">查看详情 →</div>
             </a>
         <% }) %>
