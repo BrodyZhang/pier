@@ -72,10 +72,6 @@ app.use('/admin', requireAuth, requireAdmin, adminRoutes);
 app.use('/profile', profileRoutes);
 app.use('/api/dev', requireDevApiKey, devRoutes);
 
-app.get('/favicon.ico', (_req, res) => {
-  res.sendFile(path.join(__dirname, '../public/favicon.svg'));
-});
-
 app.get('/', (_req, res) => {
   res.render('index', { user: null });
 });
