@@ -472,6 +472,36 @@ router.post('/:id/rename', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+router.post('/:id/toggle-public', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const agent = await pool.query(
+      'SELECT id, user_id, is_public FROM agent_requests WHERE id = $1::uuid',
+      [req.params.id]
+    );
+    if (agent.rows.length === 0) return res.status(404).send('Agent not found');
+    const a = agent.rows[0];
+    if (a.user_id !== req.session.userId && req.session.role !== 'admin') {
+      return res.status(403).send('Access denied');
+    }
+    if (a.is_public) {
+      // Switching to private — also un-showcase
+      await pool.query(
+        `UPDATE agent_requests SET is_public = false, showcased = false, updated_at = NOW() WHERE id = $1`,
+        [req.params.id]
+      );
+    } else {
+      await pool.query(
+        `UPDATE agent_requests SET is_public = true, updated_at = NOW() WHERE id = $1`,
+        [req.params.id]
+      );
+    }
+    res.redirect('/dashboard');
+  } catch (err) {
+    console.error('Toggle public error:', err);
+    res.status(500).send('Server error');
+  }
+});
+
 router.post('/:id/delete', requireAuth, async (req: Request, res: Response) => {
   try {
     const result = await pool.query(
@@ -528,7 +558,7 @@ publicRouter.get('/p/:slug', async (req: Request, res: Response) => {
               u.email as creator_email
        FROM agent_requests ar
        JOIN users u ON u.id = ar.user_id
-       WHERE ar.unique_slug = $1::uuid AND ar.status = 'completed'`,
+       WHERE ar.unique_slug = $1::uuid AND ar.status = 'completed' AND ar.is_public = true`,
       [req.params.slug]
     );
 

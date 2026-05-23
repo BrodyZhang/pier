@@ -179,11 +179,15 @@
             </div>
             <div class="flex flex-wrap gap-sm">
                 <a href="/agent/<%= agent.unique_slug %>" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">查看告白页</a>
-                <form method="POST" action="/admin/requests/<%= agent.id %>/toggle-showcase" style="display:inline;">
-                    <button type="submit" class="btn btn-sm" style="background:<%= agent.showcased ? 'rgba(233,30,99,0.12)' : 'rgba(255,215,0,0.12)' %>;color:<%= agent.showcased ? '#c2185b' : '#b8860b' %>;border:1px solid <%= agent.showcased ? 'rgba(233,30,99,0.2)' : 'rgba(255,215,0,0.3)' %>;padding:8px 18px;border-radius:10px;cursor:pointer;font-size:14px;">
-                        <%= agent.showcased ? '取消推荐' : '推荐到首页' %>
-                    </button>
-                </form>
+                <% if (agent.is_public) { %>
+                    <form method="POST" action="/admin/requests/<%= agent.id %>/toggle-showcase" style="display:inline;">
+                        <button type="submit" class="btn btn-sm" style="background:<%= agent.showcased ? 'rgba(233,30,99,0.12)' : 'rgba(255,215,0,0.12)' %>;color:<%= agent.showcased ? '#c2185b' : '#b8860b' %>;border:1px solid <%= agent.showcased ? 'rgba(233,30,99,0.2)' : 'rgba(255,215,0,0.3)' %>;padding:8px 18px;border-radius:10px;cursor:pointer;font-size:14px;">
+                            <%= agent.showcased ? '取消推荐' : '推荐到首页' %>
+                        </button>
+                    </form>
+                <% } else { %>
+                    <span style="font-size:13px;color:#b0b0c8;padding:8px 0;">🔒 私密，无法推荐</span>
+                <% } %>
             </div>
         </div>
     </div>

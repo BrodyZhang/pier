@@ -210,6 +210,14 @@ router.post('/requests/:id/delete', async (req: Request, res: Response) => {
 
 router.post('/requests/:id/toggle-showcase', async (req: Request, res: Response) => {
   try {
+    const agent = await pool.query(
+      'SELECT is_public FROM agent_requests WHERE id = $1',
+      [req.params.id]
+    );
+    if (agent.rows.length === 0) return res.status(404).send('Agent not found');
+    if (!agent.rows[0].is_public) {
+      return res.status(400).send('私密页面无法推荐到首页');
+    }
     await pool.query(
       `UPDATE agent_requests SET showcased = NOT showcased, updated_at = NOW() WHERE id = $1`,
       [req.params.id]

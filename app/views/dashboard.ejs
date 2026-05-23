@@ -65,7 +65,17 @@
                                     <a href="/agent/<%= a.unique_slug %>" target="_blank" rel="noopener noreferrer" class="btn-dash btn-dash-view">查看</a>
                                 <% } %>
                                 <% if (a.status === 'completed') { %>
-                                    <a href="/p/<%= a.unique_slug %>" target="_blank" rel="noopener noreferrer" class="btn-dash" style="background:rgba(76,175,80,0.1);color:var(--green-800);border:1px solid rgba(76,175,80,0.2);">公开页</a>
+                                    <span style="font-size:13px;padding:4px 8px;border-radius:6px;background:<%= a.is_public ? 'rgba(76,175,80,0.1)' : 'rgba(255,152,0,0.1)' %>;color:<%= a.is_public ? 'var(--green-800)' : '#e65100' %>;">
+                                        <%= a.is_public ? '🌐 公开' : '🔒 私密' %>
+                                    </span>
+                                    <form method="POST" action="/agent/<%= a.id %>/toggle-public" class="dash-form">
+                                        <button type="submit" class="btn-dash" style="background:rgba(156,39,176,0.08);color:#7b1fa2;border:1px solid rgba(156,39,176,0.15);padding:10px 12px;">
+                                            <%= a.is_public ? '设为私密' : '设为公开' %>
+                                        </button>
+                                    </form>
+                                    <% if (a.is_public) { %>
+                                        <a href="/p/<%= a.unique_slug %>" target="_blank" rel="noopener noreferrer" class="btn-dash" style="background:rgba(76,175,80,0.1);color:var(--green-800);border:1px solid rgba(76,175,80,0.2);">公开页</a>
+                                    <% } %>
                                     <a href="/agent/<%= a.unique_slug %>/share" class="btn-dash btn-dash-share">分享管理</a>
                                     <a href="/agent/<%= a.id %>/request-version" class="btn-dash btn-dash-upgrade">升级</a>
                                 <% } %>
