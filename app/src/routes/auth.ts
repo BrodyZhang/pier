@@ -106,12 +106,13 @@ router.post('/register/verify', async (req: Request, res: Response) => {
 
     const user = await pool.query(
       `INSERT INTO users (email) VALUES ($1)
-       RETURNING id, role`,
+       RETURNING id, role, name`,
       [email]
     );
 
     req.session.userId = user.rows[0].id;
     req.session.role = user.rows[0].role;
+    req.session.userName = user.rows[0].name || '';
     req.session.userEmail = email;
     res.redirect('/dashboard');
   } catch (err) {
@@ -180,7 +181,7 @@ router.post('/login/verify', async (req: Request, res: Response) => {
 
   try {
     const result = await pool.query(
-      `SELECT v.id, u.id as uid, u.role FROM verification_codes v
+      `SELECT v.id, u.id as uid, u.role, u.name FROM verification_codes v
        JOIN users u ON u.email = v.email
        WHERE v.email = $1 AND v.code = $2 AND v.used = false AND v.expires_at > NOW()
        ORDER BY v.created_at DESC LIMIT 1`,
@@ -198,6 +199,7 @@ router.post('/login/verify', async (req: Request, res: Response) => {
 
     req.session.userId = result.rows[0].uid;
     req.session.role = result.rows[0].role;
+    req.session.userName = result.rows[0].name || '';
     req.session.userEmail = email;
     res.redirect('/dashboard');
   } catch (err) {
