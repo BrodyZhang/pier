@@ -1,9 +1,7 @@
 services:
   # Reverse proxy — routes by domain name
   router:
-    build:
-      context: .
-      dockerfile: Dockerfile.router
+    image: brodyzhang2026/pier-router:latest
     ports:
       - "80:80"
       - "443:443"
@@ -14,9 +12,9 @@ services:
       - app-prod
     restart: unless-stopped
 
-  # Test environment — always runs :latest
+  # Test environment — pinned to TEST_VERSION
   app-test:
-    image: brodyzhang2026/pier:latest
+    image: brodyzhang2026/pier:${TEST_VERSION:-latest}
     environment:
       - DATABASE_URL=postgres://pier:pier@db:5432/pier_test
       - SESSION_SECRET=${SESSION_SECRET:-change-me}

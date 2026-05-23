@@ -8,7 +8,6 @@ on:
       - 'app/**'
       - 'nginx/**'
       - 'Dockerfile'
-      - 'Dockerfile.router'
       - 'docker-compose.yml'
       - '.github/workflows/deploy.yml'
 
@@ -83,6 +82,7 @@ jobs:
           SMTP_FROM=${SMTP_FROM}
           ADMIN_EMAIL=${ADMIN_EMAIL}
           DEV_API_KEY=${DEV_API_KEY}
+          TEST_VERSION=${{ needs.build-and-push.outputs.version }}
           ENVEOF
 
           scp -o StrictHostKeyChecking=no -i /tmp/ssh_key \
@@ -118,8 +118,8 @@ jobs:
             fi
             echo "Using: ${DC}"
 
-            echo "=== Building router ==="
-            ${DC} build router
+            echo "=== Pulling router ==="
+            ${DC} pull router
 
             echo "=== Pulling app-test ==="
             ${DC} pull app-test
