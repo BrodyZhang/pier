@@ -7,6 +7,20 @@ on:
     paths-ignore:
       - 'PROD_VERSION'
 
+env:
+  VPS_HOST: ${{ secrets.VPS_HOST }}
+  VPS_USER: ${{ secrets.VPS_USER }}
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+  SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+  SMTP_HOST: ${{ secrets.SMTP_HOST }}
+  SMTP_PORT: ${{ secrets.SMTP_PORT }}
+  SMTP_USER: ${{ secrets.SMTP_USER }}
+  SMTP_PASS: ${{ secrets.SMTP_PASS }}
+  SMTP_FROM: ${{ secrets.SMTP_FROM }}
+  ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+  DEV_API_KEY: ${{ secrets.DEV_API_KEY }}
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -44,56 +58,84 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Debug - check VPS hostname & connectivity
-        run: |
-          echo "Resolving VPS_HOST..."
-          host '${{ secrets.VPS_HOST }}' 2>&1 || echo "host command failed"
-          nslookup '${{ secrets.VPS_HOST }}' 2>&1 || echo "nslookup failed"
-          echo "Testing TCP connectivity..."
-          timeout 5 bash -c 'echo | nc -w 3 '${{ secrets.VPS_HOST }}' 22 && echo "SSH port OPEN" || echo "SSH port TIMEOUT/CLOSED"' || echo "nc failed"
-
       - name: Deploy to VPS
         shell: bash
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
-          cat > /tmp/ssh_key << 'KEYEOF'
-${{ secrets.SSH_PRIVATE_KEY }}
-KEYEOF
+          # Write SSH key to temp file
+          echo "$SSH_KEY" > /tmp/ssh_key
           chmod 600 /tmp/ssh_key
           trap 'rm -f /tmp/ssh_key' EXIT
 
+          # Write .env with all secrets, scp to VPS
+          cat > /tmp/pier.env << ENVEOF
+          SESSION_SECRET=${SESSION_SECRET}
+          SMTP_HOST=${SMTP_HOST}
+          SMTP_PORT=${SMTP_PORT}
+          SMTP_USER=${SMTP_USER}
+          SMTP_PASS=${SMTP_PASS}
+          SMTP_FROM=${SMTP_FROM}
+          ADMIN_EMAIL=${ADMIN_EMAIL}
+          DEV_API_KEY=${DEV_API_KEY}
+          ENVEOF
+
+          scp -v -o StrictHostKeyChecking=no -i /tmp/ssh_key \
+            /tmp/pier.env "${VPS_USER}@${VPS_HOST}:~/pier/.env" 2>&1
+
+          # Run deploy commands via SSH
           ssh -v -o StrictHostKeyChecking=no -i /tmp/ssh_key \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'echo SSH_OK' 2>&1
+            "${VPS_USER}@${VPS_HOST}" \
+            "DOCKER_USERNAME='${DOCKER_USERNAME}' DOCKER_PASSWORD='${DOCKER_PASSWORD}' bash -s" << 'EOSH'
+            set -e
+            PIER_DIR=~/pier
+            if [ ! -d "$PIER_DIR" ]; then
+              git clone https://github.com/BrodyZhang/pier "$PIER_DIR"
+            fi
+            cd "$PIER_DIR"
 
-      - name: Verify container status
-        shell: bash
-        run: |
-          SSH_KEY=$(mktemp)
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > "$SSH_KEY"
-          chmod 600 "$SSH_KEY"
-          trap 'rm -f "$SSH_KEY"' EXIT
+            echo "=== Resetting local changes ==="
+            git reset --hard HEAD
+            git clean -fd || true
 
-          ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOSH'
-            sleep 10
-            cd ~/pier && docker compose ps
-            echo "---"
-            echo "Checking router (port 80)..."
-            curl -s -o /dev/null -w "HTTP %{http_code}" http://localhost:80/ || echo " (unreachable)"
-            echo ""
-            echo "Checking app-test logs (last 3 lines)..."
-            docker logs pier-app-test-1 --tail 3 2>/dev/null || echo "no logs"
-            echo "Prod was NOT restarted (unchanged)."
-            docker logs pier-app-prod-1 --tail 1 2>/dev/null || echo "app-prod not running"
+            echo "=== Pulling repo ==="
+            git pull origin master
+
+            echo "=== Docker login ==="
+            echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
+
+            DC=""
+            if docker compose version >/dev/null 2>&1; then
+              DC="docker compose"
+            elif docker-compose version >/dev/null 2>&1; then
+              DC="docker-compose"
+            else
+              echo "ERROR: no docker compose found" >&2
+              exit 1
+            fi
+            echo "Using: ${DC}"
+
+            echo "=== Building router ==="
+            ${DC} build router
+
+            echo "=== Pulling app-test ==="
+            ${DC} pull app-test
+
+            echo "=== Restarting app-test ==="
+            ${DC} up -d app-test --no-deps
+
+            echo "=== Restarting router ==="
+            ${DC} up -d router --no-deps
           EOSH
 
-      - name: Smoke test (external)
+      - name: Verify deployment
+        if: success()
         run: |
-          sleep 5
-          echo "Checking test.ailaopo.online..."
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 http://test.ailaopo.online/ || echo "DNS_FAIL")
-          echo "HTTP $STATUS"
-          if [ "$STATUS" = "200" ] || [ "$STATUS" = "302" ] || [ "$STATUS" = "301" ]; then
-            echo "SUCCESS: test domain responding"
+          sleep 10
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 10 https://test.ailaopo.online/ || echo "FAIL")
+          echo "test.ailaopo.online returned HTTP ${STATUS}"
+          if [ "${STATUS}" = "200" ]; then
+            echo "SUCCESS"
           else
-            echo "NOTE: test domain not responding yet (DNS propagation? container crash?)"
+            echo "NOTE: expected 200, got ${STATUS}"
           fi
