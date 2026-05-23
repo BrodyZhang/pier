@@ -55,71 +55,14 @@ jobs:
       - name: Deploy to VPS
         shell: bash
         run: |
-          SSH_KEY=$(mktemp)
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > "$SSH_KEY"
-          chmod 600 "$SSH_KEY"
-          trap 'rm -f "$SSH_KEY"' EXIT
+          cat > /tmp/ssh_key << 'KEYEOF'
+${{ secrets.SSH_PRIVATE_KEY }}
+KEYEOF
+          chmod 600 /tmp/ssh_key
+          trap 'rm -f /tmp/ssh_key' EXIT
 
-          ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" \
-            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOSH'
-
-            set -e
-            PIER_DIR=~/pier
-            if [ ! -d "$PIER_DIR" ]; then
-              git clone https://github.com/BrodyZhang/pier "$PIER_DIR"
-            fi
-
-            cd "$PIER_DIR"
-
-            echo "=== Resetting local changes ==="
-            git reset --hard HEAD
-            git clean -fd || true
-
-            echo "=== Pulling repo ==="
-            git pull origin master
-
-            echo "=== Writing .env ==="
-            cat > .env << 'ENVEOF'
-            SESSION_SECRET=${{ secrets.SESSION_SECRET }}
-            SMTP_HOST=${{ secrets.SMTP_HOST }}
-            SMTP_PORT=${{ secrets.SMTP_PORT }}
-            SMTP_USER=${{ secrets.SMTP_USER }}
-            SMTP_PASS=${{ secrets.SMTP_PASS }}
-            SMTP_FROM=${{ secrets.SMTP_FROM }}
-            ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
-            DEV_API_KEY=${{ secrets.DEV_API_KEY }}
-            ENVEOF
-            echo "PROD_VERSION=$(cat PROD_VERSION | tr -d ' \n\r' 2>/dev/null || echo unknown)" >> .env
-
-            docker stop pier-app-1 2>/dev/null || true
-            docker rm pier-app-1 2>/dev/null || true
-
-            echo "=== Docker login ==="
-            echo '${{ secrets.DOCKER_PASSWORD }}' | docker login -u '${{ secrets.DOCKER_USERNAME }}' --password-stdin
-
-            DC=""
-            if docker compose version >/dev/null 2>&1; then
-              DC="docker compose"
-            elif docker-compose version >/dev/null 2>&1; then
-              DC="docker-compose"
-            else
-              echo "ERROR: no docker compose found" >&2
-              exit 1
-            fi
-            echo "Using: $DC"
-
-            echo "=== Building router ==="
-            $DC build router
-
-            echo "=== Pulling app-test ==="
-            $DC pull app-test
-
-            echo "=== Restarting app-test ==="
-            $DC up -d app-test --no-deps
-
-            echo "=== Restarting router ==="
-            $DC up -d router --no-deps
-          EOSH
+          ssh -v -o StrictHostKeyChecking=no -i /tmp/ssh_key \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} 'echo SSH_OK' 2>&1
 
       - name: Verify container status
         shell: bash
