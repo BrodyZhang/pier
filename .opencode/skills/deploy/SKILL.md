@@ -17,7 +17,7 @@ Two files in the git repo track deployed versions:
 | File | Purpose | Updated By |
 |------|---------|------------|
 | `TEST_VERSION` | Current test image tag | CI (auto) — deploy-test.yml writes, commits, pushes |
-| `PROD_VERSION` | Current prod image tag | Human (manual) — push to promote |
+| `PROD_VERSION` | Current prod image tag | Human (manual) — push triggers deploy-prod; actual version read from TEST_VERSION on VPS |
 
 **Never use `:latest` as a fallback.** Both environments always use a specific version tag.
 
@@ -54,7 +54,7 @@ Code Change → Build Image → Write TEST_VERSION (git commit+push) → SSH: gi
 ## Flow: Prod Deploy
 
 ```
-Update PROD_VERSION → git commit+push → CI: SSH → read PROD_VERSION → docker compose pull/up
+Update PROD_VERSION → git commit+push → CI: SSH → git pull → read TEST_VERSION → docker compose pull/up
 ```
 
 ### Step-by-step
@@ -62,8 +62,9 @@ Update PROD_VERSION → git commit+push → CI: SSH → read PROD_VERSION → do
 1. **Update** `PROD_VERSION` file with the target version tag
 2. **git commit + push** (separate commit from code changes)
 3. **CI runs** `Deploy: Prod`:
-   - Reads `PROD_VERSION` via `cat PROD_VERSION`
    - SSHes to VPS:
+     - `git fetch origin && git reset --hard origin/master` (get latest TEST_VERSION from CI)
+     - `PROD_VER=$(cat TEST_VERSION)` (read latest test build version)
      - Writes `PROD_VERSION=<ver>` to `.env`
      - `docker compose pull app-prod`
      - `docker compose down app-prod`
@@ -71,12 +72,14 @@ Update PROD_VERSION → git commit+push → CI: SSH → read PROD_VERSION → do
      - Health check loop (up to 30s)
 4. **Verify**: `curl.exe -sI https://ailaopo.online/` → 200 OK
 
+> **Important:** Prod version is read from `TEST_VERSION` on the VPS, not from the local `PROD_VERSION` file. This ensures prod always deploys the exact same build that's running on test. The `PROD_VERSION` file in git merely triggers the workflow.
+
 ## VPS Configuration
 
 - `~/pier/` = git clone of the repo
 - `.env` = secrets only (SESSION_SECRET, SMTP_*, ADMIN_EMAIL, DEV_API_KEY) — no version info
 - `TEST_VERSION` = read from repo file at deploy time
-- `PROD_VERSION` = written to `.env` by deploy-prod.yml
+- `PROD_VERSION` = written to `.env` by deploy-prod.yml (value read from TEST_VERSION after git pull)
 - `docker compose` on VPS always runs with `--no-deps` to avoid restarting unrelated services
 
 ## CI Failure Recovery
