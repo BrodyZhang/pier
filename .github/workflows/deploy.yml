@@ -118,8 +118,8 @@ jobs:
             fi
             echo "Using: ${DC}"
 
-            echo "=== Pulling router ==="
-            ${DC} pull router
+            echo "=== Pulling router (fallback to build if not found) ==="
+            ${DC} pull router 2>/dev/null || (echo "Image not found, building locally..." && ${DC} build router)
 
             echo "=== Pulling app-test ==="
             ${DC} pull app-test

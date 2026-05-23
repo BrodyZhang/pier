@@ -2,6 +2,9 @@ services:
   # Reverse proxy — routes by domain name
   router:
     image: brodyzhang2026/pier-router:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.router
     ports:
       - "80:80"
       - "443:443"
