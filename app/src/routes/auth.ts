@@ -49,6 +49,23 @@ router.post('/register', async (req: Request, res: Response) => {
       });
     }
 
+    // 60s cooldown check
+    const lastCode = await pool.query(
+      `SELECT created_at FROM verification_codes
+       WHERE email = $1 AND used = false AND expires_at > NOW()
+       ORDER BY created_at DESC LIMIT 1`,
+      [email]
+    );
+    if (lastCode.rows.length > 0) {
+      const elapsed = Date.now() - new Date(lastCode.rows[0].created_at).getTime();
+      if (elapsed < 60000) {
+        const wait = Math.ceil((60000 - elapsed) / 1000);
+        return res.render('auth/register', {
+          title: '注册', error: `请 ${wait} 秒后再试`, email, sent: true, remainingSlots,
+        });
+      }
+    }
+
     const code = generateCode();
     await pool.query(
       'UPDATE verification_codes SET used = true WHERE email = $1 AND used = false',
@@ -120,6 +137,23 @@ router.post('/login', async (req: Request, res: Response) => {
         title: '登录', error: '该邮箱未注册，请先注册。',
         email, sent: false,
       });
+    }
+
+    // 60s cooldown check
+    const lastCode = await pool.query(
+      `SELECT created_at FROM verification_codes
+       WHERE email = $1 AND used = false AND expires_at > NOW()
+       ORDER BY created_at DESC LIMIT 1`,
+      [email]
+    );
+    if (lastCode.rows.length > 0) {
+      const elapsed = Date.now() - new Date(lastCode.rows[0].created_at).getTime();
+      if (elapsed < 60000) {
+        const wait = Math.ceil((60000 - elapsed) / 1000);
+        return res.render('auth/login', {
+          title: '登录', error: `请 ${wait} 秒后再试`, email, sent: true,
+        });
+      }
     }
 
     const code = generateCode();

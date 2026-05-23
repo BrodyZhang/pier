@@ -3,6 +3,17 @@
 This project is **100% AI-maintained**. No human writes code manually.
 All changes must be made by AI agents. You (the AI) are the sole developer.
 
+## Mandatory Workflow
+
+**Every task MUST follow this exact sequence:**
+
+1. **Read & understand** — Read relevant files, check docs, understand the context
+2. **Plan** — Lay out the implementation steps before writing any code
+3. **Execute** — Implement changes, verify each step
+4. **Summarize** — After completion, give a concise summary of what was done
+
+Never skip the planning step. Never start coding without first explaining the plan.
+
 ## Core Principles
 
 1. **0 Manual Code** — Never ask the human to write code. You write everything.
@@ -32,8 +43,8 @@ Code Change → Push → Auto-deploy test → Verify on test.ailaopo.online → 
 
 ### Step-by-Step
 
-1. **Make code changes → commit → push** (auto-triggers `deploy.yml`)
-2. **Wait for deploy.yml to complete** (build + deploy to test)
+1. **Make code changes → commit → push** (auto-triggers `deploy-test.yml`)
+2. **Wait for deploy-test.yml to complete** (build + deploy to test)
 3. **Verify test**: `curl.exe -sI https://test.ailaopo.online/` returns 200, content is correct
 4. **Ask human**: "Test is ready at test.ailaopo.online. Deploy to prod?" — WAIT for explicit "OK"
 5. **Update PROD_VERSION** in a SEPARATE commit, push
@@ -44,10 +55,10 @@ Code Change → Push → Auto-deploy test → Verify on test.ailaopo.online → 
 - ❌ **NEVER deploy prod without test verification**
 - ❌ **NEVER deploy prod without human confirmation**
 - ❌ **NEVER update PROD_VERSION in the same commit as code changes**
-- ❌ **NEVER let test be older than prod** — if test is behind, fix deploy.yml first
-- ❌ **NEVER use deploy-prod.yml as a workaround for deploy.yml failures**
+- ❌ **NEVER let test be older than prod** — if test is behind, fix deploy-test.yml first
+- ❌ **NEVER use deploy-prod.yml as a workaround for deploy-test.yml failures**
 
-### deploy.yml (Test Deploy) Fails Often
+### deploy-test.yml (Test Deploy) Fails Often
 
 If the SSH deploy step fails but build-and-push succeeded:
 - The image IS on Docker Hub (build succeeded)

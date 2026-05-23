@@ -28,6 +28,7 @@ services:
       - SMTP_FROM=${SMTP_FROM:-}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - DEV_API_KEY=${DEV_API_KEY:-}
+      - APP_ENV=test
       - NODE_ENV=production
     depends_on:
       db:
@@ -47,6 +48,7 @@ services:
       - SMTP_FROM=${SMTP_FROM:-}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-}
       - DEV_API_KEY=${DEV_API_KEY:-}
+      - APP_ENV=prod
       - NODE_ENV=production
     depends_on:
       db:

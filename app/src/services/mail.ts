@@ -90,32 +90,31 @@ export async function sendVerificationCode(
 
   console.log(`[MAIL] To: ${email} | Code: ${code}`);
 
+  const env = process.env.APP_ENV || '';
+  const isTest = env === 'test';
+  const prefix = isTest ? '[测试环境] ' : '';
+  const subject = `${prefix}验证码 | ailaopo.online`;
+  const html = `<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:30px;">
+    ${isTest ? '<p style="background:#fff3cd;padding:10px;border-radius:8px;text-align:center;font-weight:bold;">⚠️ 这是测试环境邮件，非正式操作</p>' : ''}
+    <h2 style="color:#e74c3c;">${prefix}验证码</h2>
+    <p style="font-size:24px;letter-spacing:6px;background:#f5f5f5;padding:15px;text-align:center;border-radius:8px;">
+      <b>${code}</b>
+    </p>
+    <p style="color:#999;font-size:13px;">有效期 10 分钟。如果不是本人操作请忽略。</p>
+  </div>`;
+
   const cfg = getSmtpConfig();
   if (!cfg) return;
 
   try {
     if (isResend()) {
-      await withTimeout(sendViaResendApi(cfg.from, email, '验证码 | ailaopo.online',
-        `<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:30px;">
-          <h2 style="color:#e74c3c;">验证码</h2>
-          <p style="font-size:24px;letter-spacing:6px;background:#f5f5f5;padding:15px;text-align:center;border-radius:8px;">
-            <b>${code}</b>
-          </p>
-          <p style="color:#999;font-size:13px;">有效期 10 分钟。如果不是本人操作请忽略。</p>
-        </div>`
-      ), 10000);
+      await withTimeout(sendViaResendApi(cfg.from, email, subject, html), 10000);
     } else if (transporter) {
       await withTimeout(transporter.sendMail({
         from: cfg.from,
         to: email,
-        subject: '验证码 | ailaopo.online',
-        html: `<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:30px;">
-          <h2 style="color:#e74c3c;">验证码</h2>
-          <p style="font-size:24px;letter-spacing:6px;background:#f5f5f5;padding:15px;text-align:center;border-radius:8px;">
-            <b>${code}</b>
-          </p>
-          <p style="color:#999;font-size:13px;">有效期 10 分钟。如果不是本人操作请忽略。</p>
-        </div>`,
+        subject,
+        html,
       }), 10000);
     } else {
       return;

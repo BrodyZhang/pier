@@ -108,7 +108,7 @@ Git push
   ↓
 Build :latest + :vYYYYMMDD-RUN on Docker Hub
   ↓
-deploy.yml → pulls :latest for app-test ONLY
+deploy-test.yml → pulls :latest for app-test ONLY
   ↓         → docker compose up -d router app-test db
   ↓         → app-prod stays untouched
   ↓
@@ -230,7 +230,7 @@ Trigger: every push to `master`.
 ```mermaid
 sequenceDiagram
   Dev->>GitHub: git push origin master
-  GitHub->>Actions: trigger deploy.yml
+  GitHub->>Actions: trigger deploy-test.yml
   Actions->>Actions: Build + push :latest + :vYYYYMMDD-RUN
   Actions->>VPS: SSH: git pull, .env, docker compose build router
   Actions->>VPS: SSH: docker compose pull app-test app-prod
@@ -387,7 +387,7 @@ sudo docker exec -it pier-app-test-1 sh         # Shell inside test container
 | `Dockerfile` | Two-stage Node.js image build |
 | `Dockerfile.router` | nginx:alpine image for routing |
 | `nginx/router.conf` | nginx config — 4 server blocks (HTTP+HTTPS for test, HTTP+HTTPS for prod) |
-| `.github/workflows/deploy.yml` | CI/CD pipeline definition |
+| `.github/workflows/deploy-test.yml` | CI/CD pipeline definition |
 | `app/src/server.ts` | Express entry point (port 3000) |
 | `app/src/services/db.ts` | Database pool + schema init + admin seed |
 | `app/src/routes/admin.ts` | Admin approve/upload handlers (date-based dirs) |

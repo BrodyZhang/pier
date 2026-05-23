@@ -8,7 +8,7 @@
 pier/
 ├── .github/
 │   └── workflows/
-│       ├── deploy.yml                  # Build app → push → SSH → test deploy (app code changes)
+│       ├── deploy-test.yml             # Build app → push → SSH → test deploy (app code changes)
 │       ├── deploy-prod.yml             # Promote prod by version tag (PROD_VERSION changes)
 │       ├── build-router.yml            # Build router image (nginx config changes)
 │       └── task-monitor.yml            # Scheduled check for pending tasks

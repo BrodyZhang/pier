@@ -7,7 +7,7 @@
 
 I NEVER deploy to prod, update PROD_VERSION, or touch production. I only:
 1. Develop features / fix bugs
-2. Push to GitHub (auto-deploys to test via deploy.yml)
+2. Push to GitHub (auto-deploys to test via deploy-test.yml)
 3. Verify on test.ailaopo.online
 4. Report results — the prod agent handles promotion
 
@@ -21,7 +21,7 @@ Code Change → Push → Test Deploy (auto) → Verify on test.ailaopo.online �
 - Commit with clear message
 - Push to master
 
-### Step 2: Wait for Deploy to VPS workflow (deploy.yml)
+### Step 2: Wait for Deploy to VPS workflow (deploy-test.yml)
 - GitHub Actions will build-and-push the image AND deploy to test
 - Monitor the workflow to completion
 - **If the deploy (SSH) step fails**: fix it, commit and push again
@@ -43,21 +43,21 @@ Code Change → Push → Test Deploy (auto) → Verify on test.ailaopo.online �
 - ❌ NEVER commit or push from the VPS — always from the dev machine (VPS is for running, not developing)
 - ❌ NEVER ask the human to run `curl` to verify deployment — run it locally yourself using PowerShell's `curl.exe`
 
-## deploy.yml SSH Failure Recovery
+## deploy-test.yml SSH Failure Recovery
 
-The deploy.yml (test deploy) SSH step has been known to fail. If it does:
+The deploy-test.yml (test deploy) SSH step has been known to fail. If it does:
 
 1. Check if the build-and-push succeeded (it usually does)
 2. The image IS on Docker Hub even if SSH deploy failed
 3. Fix the SSH script → commit → push again → new build triggers
 
-DO NOT manually run deploy-prod to work around a deploy.yml failure. Only deploy-prod after test verification is complete AND human confirms.
+DO NOT manually run deploy-prod to work around a deploy-test.yml failure. Only deploy-prod after test verification is complete AND human confirms.
 
 ## Known Root Causes & Fixes
 
 ### `docker compose up` fails with "image not found" for PROD_VERSION tag
 
-**Root cause:** `docker compose up -d router app-test db` triggers dependency resolution. Router has `depends_on: app-prod`, and `app-prod` uses `${PROD_VERSION:-latest}`. The PROD_VERSION tag (e.g. `v20260519-00000126`) doesn't exist on Docker Hub because deploy.yml only pushes `:latest` at that point.
+**Root cause:** `docker compose up -d router app-test db` triggers dependency resolution. Router has `depends_on: app-prod`, and `app-prod` uses `${PROD_VERSION:-latest}`. The PROD_VERSION tag (e.g. `v20260519-00000126`) doesn't exist on Docker Hub because deploy-test.yml only pushes `:latest` at that point.
 
 **Fix:** Use `--no-deps` flag to skip dependency resolution:
 ```bash

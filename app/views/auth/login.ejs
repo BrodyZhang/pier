@@ -11,6 +11,17 @@
             <input type="text" name="code" maxlength="6" required placeholder="输入6位验证码">
             <button type="submit" class="btn btn-primary" style="margin-top:20px;width:100%;justify-content:center;">验证并登录</button>
         </form>
+        <form method="POST" id="resendForm" style="margin-top:12px;text-align:center;">
+            <input type="hidden" name="email" value="<%= email %>">
+            <button type="submit" id="resendBtn" class="btn btn-outline btn-sm" disabled>重新发送（<span id="cooldown">60</span>）</button>
+        </form>
+        <script>
+        (function(){
+            var remaining = 60; var btn = document.getElementById('resendBtn'); var cd = document.getElementById('cooldown');
+            function tick() { remaining--; if (cd) cd.textContent = remaining; if (remaining <= 0) { if (btn) { btn.disabled = false; btn.textContent = '重新发送'; } } else { setTimeout(tick, 1000); } }
+            if (remaining > 0) setTimeout(tick, 1000);
+        })();
+        </script>
     <% } else { %>
         <form method="POST">
             <label>邮箱</label>

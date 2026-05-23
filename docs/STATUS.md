@@ -74,7 +74,7 @@
 - [x] Admin backend UI redesign: dark glass-morphism theme across all views (layout, admin, dashboard, auth, agent)
 - [x] Auto prod promote: PROD_VERSION file + deploy-prod.yml workflow (push file to promote)
 - [x] Dragon game v4: fix flickering, more bees, dragon grows, 100pt victory
-- [x] Consistent v prefix for version tags (deploy.yml + PROD_VERSION + deploy-prod.yml)
+- [x] Consistent v prefix for version tags (deploy-test.yml + PROD_VERSION + deploy-prod.yml)
 - [x] Review history log (JSONB review_log column, full audit trail on admin review page)
 - [x] User self-delete agents (delete button on dashboard for own agents)
 - [x] Improved admin requests UI: one-layer tabs with inline actions
@@ -88,7 +88,7 @@
 - [x] Homepage rich content: emoji steps (📝🎨💝), 为什么选择我们, CTA section
 - [x] Light theme text colors: rgba→#hex for homepage visibility
 - [x] COALESCE null fix: review_log wrapped in all 5 SQL queries
-- [x] deploy.yml SSH error handling: `|| echo "WARN"` + set -x
+- [x] deploy-test.yml SSH error handling: `|| echo "WARN"` + set -x
 - [x] Mobile responsive: @media 640px breakpoint, table→card stacking, data-label attributes
 - [x] Dev API endpoints: POST /api/dev/create, POST /api/dev/approve/:id
 - [x] Spaceshooter game: 飞机大战 HTML5 Canvas game deployed to prod
@@ -99,9 +99,14 @@
 - [x] Game Chinese text fix: use ReadAllText UTF-8 instead of Get-Content ANSI
 - [x] Created new 飞机 agent on prod with correct name and fixed game
 - [x] Fix approve 500: build review_log JSON in app code instead of SQL to avoid PG type inference error (build #146)
-- [x] Git reset origin/master: deploy.yml uses fetch + reset to handle divergent branches on VPS (build #153)
+- [x] Git reset origin/master: deploy-test.yml uses fetch + reset to handle divergent branches on VPS (build #153)
 - [x] YAML multi-line secret fix: pass SSH_PRIVATE_KEY via `env:` to avoid YAML block scalar parsing failure
 - [x] Prod promote to build #153 (v20260523-00000153)
+- [x] Rename deploy.yml → deploy-test.yml (now only deploys test env)
+- [x] Resend verification code with 60s cooldown (login + register)
+- [x] Test/prod email distinction (APP_ENV env var, "[测试环境]" prefix)
+- [x] Nav: User email/name links to /profile instead of separate "个人设置"
+- [x] AGENTS.md: mandatory plan-first, summarize-after workflow
 
 ### Next (Priority Order)
 1. ✅ ~~Register/login flow~~ (tested on test.ailaopo.online)
@@ -148,5 +153,6 @@
 | `SMTP_FROM` | ✅ | GitHub secret — `noreply@ailaopo.online` |
 | `DEV_API_KEY` | ✅ | GitHub secret — Bearer token for AI dev API |
 | `PROD_VERSION` | ✅ | File in repo — `v20260523-00000153` (with `v` prefix) |
+| `APP_ENV` | ✅ | docker-compose.yml — `test` for app-test, `prod` for app-prod |
 
-**Format note:** Docker Hub password/token is passed via stdin in the SSH script (line in deploy.yml). Consider using a read-only token for pull-only operations to minimize risk.
+**Format note:** Docker Hub password/token is passed via stdin in the SSH script (line in deploy-test.yml). Consider using a read-only token for pull-only operations to minimize risk.

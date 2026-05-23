@@ -1,4 +1,4 @@
-name: Deploy to VPS
+name: Deploy to Test
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - 'nginx/**'
       - 'Dockerfile'
       - 'docker-compose.yml'
-      - '.github/workflows/deploy.yml'
+      - '.github/workflows/deploy-test.yml'
 
 env:
   VPS_HOST: ${{ secrets.VPS_HOST }}

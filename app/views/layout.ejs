@@ -129,6 +129,8 @@
         }
         .nav .nav-links { display: flex; align-items: center; gap: 6px; }
             .nav-email { display: inline-block; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: #b0b0c8; }
+            a.nav-email { color: #b0b0c8; text-decoration: none; border-bottom: 1px dashed rgba(176,176,200,0.3); }
+            a.nav-email:hover { color: #ff6b9d; border-bottom-color: #ff6b9d; }
         .nav a { color: #6c6c8a; text-decoration: none; font-size: 14px; transition: color 0.2s; }
         .nav a:hover { color: #ff6b9d; }
         .nav .brand { font-weight: 700; font-size: 18px; background: linear-gradient(135deg, #ff6b9d, #c2185b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-right: auto; }
@@ -319,10 +321,9 @@
             <button class="nav-toggle" id="navToggle" aria-label="菜单">☰</button>
             <div class="nav-links" id="navLinks">
                 <% if (typeof userId !== 'undefined' && userId) { %>
-                    <span class="nav-email-mobile" style="display:none"><%= typeof userName !== 'undefined' && userName ? userName : (typeof userEmail !== 'undefined' ? userEmail : '') %></span>
-                    <span class="nav-email"><%= typeof userName !== 'undefined' && userName ? userName : (typeof userEmail !== 'undefined' ? userEmail : '') %></span>
+                    <a href="/profile" class="nav-email-mobile" style="display:none"><%= typeof userName !== 'undefined' && userName ? userName : (typeof userEmail !== 'undefined' ? userEmail : '') %></a>
+                    <a href="/profile" class="nav-email"><%= typeof userName !== 'undefined' && userName ? userName : (typeof userEmail !== 'undefined' ? userEmail : '') %></a>
                     <a href="/dashboard">控制台</a>
-                    <a href="/profile">个人设置</a>
                     <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
                         <a href="/admin/requests">管理后台</a>
                     <% } %>
