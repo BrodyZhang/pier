@@ -1,93 +1,119 @@
-# Deploy Skill — Dev + Test Only
+# Deploy Skill — Architecture & Workflows
 
-## Role Split
+## Overview
 
-**This session** = development + test environment.
-**Separate session** = production deployment (handled by another agent).
+Three GitHub Actions workflows handle deployment:
 
-I NEVER deploy to prod, update PROD_VERSION, or touch production. I only:
-1. Develop features / fix bugs
-2. Push to GitHub (auto-deploys to test via deploy-test.yml)
-3. Verify on test.ailaopo.online
-4. Report results — the prod agent handles promotion
+| Workflow | Trigger | Deploys To |
+|----------|---------|------------|
+| `Deploy: Test` | Code push to `app/`, `nginx/`, Dockerfile, docker-compose.yml, deploy-test.yml | test.ailaopo.online |
+| `Deploy: Prod` | Push to `PROD_VERSION` file | ailaopo.online |
+| `Build: Router` | Push to `nginx/` or `Dockerfile.router` | Docker Hub (router image) |
 
-## My Flow
+## Version Tracking
+
+Two files in the git repo track deployed versions:
+
+| File | Purpose | Updated By |
+|------|---------|------------|
+| `TEST_VERSION` | Current test image tag | CI (auto) — deploy-test.yml writes, commits, pushes |
+| `PROD_VERSION` | Current prod image tag | Human (manual) — push to promote |
+
+**Never use `:latest` as a fallback.** Both environments always use a specific version tag.
+
+Format: `vYYYYMMDD-NNNNNNNN` (e.g. `v20260523-00000004`)
+
+## Image Tags
+
+Every build is pushed with two tags:
+- `brodyzhang2026/pier:vYYYYMMDD-NNNNNNNN` (specific)
+- `brodyzhang2026/pier:latest` (convenience, never used by CI for deployment)
+
+## Flow: Test Deploy
 
 ```
-Code Change → Push → Test Deploy (auto) → Verify on test.ailaopo.online → Report to user
+Code Change → Build Image → Write TEST_VERSION (git commit+push) → SSH: git pull → read TEST_VERSION → docker compose pull/up
 ```
 
-### Step 1: Make code changes
-- Commit with clear message
-- Push to master
+### Step-by-step
 
-### Step 2: Wait for Deploy to VPS workflow (deploy-test.yml)
-- GitHub Actions will build-and-push the image AND deploy to test
-- Monitor the workflow to completion
-- **If the deploy (SSH) step fails**: fix it, commit and push again
-- **If the build step fails**: fix the compilation error, commit and push again
+1. **Make code changes** → commit → push to master
+2. **CI runs** `Deploy: Test`:
+   - Builds and pushes image to Docker Hub
+   - Writes version to `TEST_VERSION` file
+   - `git add` / `git commit` / `git push` TEST_VERSION
+   - SSHes to VPS:
+     - `git fetch origin && git reset --hard origin/master`
+     - `export TEST_VERSION="$(cat ~/pier/TEST_VERSION)"`
+     - `docker compose pull app-test`
+     - `docker compose up -d app-test --no-deps`
+     - `docker compose up -d router --no-deps`
+3. **Verify**: `curl.exe -sI https://test.ailaopo.online/` → 200 OK
+4. **Report**: summarize what changed
 
-### Step 3: Verify on test.ailaopo.online
-- After the workflow succeeds, verify locally: `curl.exe -sI https://test.ailaopo.online/` (PowerShell)
-- Check: page loads (200 OK), content looks correct, login/register works
-- If anything is wrong: fix locally, commit, push again (back to Step 1)
+## Flow: Prod Deploy
 
-### Step 4: Report
-- Summarize what was deployed and what changed
-- Tell the user test is ready
-- **Do NOT ask "deploy to prod?"** — that's the other session's job
+```
+Update PROD_VERSION → git commit+push → CI: SSH → read PROD_VERSION → docker compose pull/up
+```
 
-## What NOT to Do
+### Step-by-step
 
-- ❌ NEVER deploy prod, update PROD_VERSION, or push deploy-prod
-- ❌ NEVER commit or push from the VPS — always from the dev machine (VPS is for running, not developing)
-- ❌ NEVER ask the human to run `curl` to verify deployment — run it locally yourself using PowerShell's `curl.exe`
+1. **Update** `PROD_VERSION` file with the target version tag
+2. **git commit + push** (separate commit from code changes)
+3. **CI runs** `Deploy: Prod`:
+   - Reads `PROD_VERSION` via `cat PROD_VERSION`
+   - SSHes to VPS:
+     - Writes `PROD_VERSION=<ver>` to `.env`
+     - `docker compose pull app-prod`
+     - `docker compose down app-prod`
+     - `docker compose up -d app-prod`
+     - Health check loop (up to 30s)
+4. **Verify**: `curl.exe -sI https://ailaopo.online/` → 200 OK
 
-## deploy-test.yml SSH Failure Recovery
+## VPS Configuration
 
-The deploy-test.yml (test deploy) SSH step has been known to fail. If it does:
+- `~/pier/` = git clone of the repo
+- `.env` = secrets only (SESSION_SECRET, SMTP_*, ADMIN_EMAIL, DEV_API_KEY) — no version info
+- `TEST_VERSION` = read from repo file at deploy time
+- `PROD_VERSION` = written to `.env` by deploy-prod.yml
+- `docker compose` on VPS always runs with `--no-deps` to avoid restarting unrelated services
 
-1. Check if the build-and-push succeeded (it usually does)
-2. The image IS on Docker Hub even if SSH deploy failed
-3. Fix the SSH script → commit → push again → new build triggers
+## CI Failure Recovery
 
-DO NOT manually run deploy-prod to work around a deploy-test.yml failure. Only deploy-prod after test verification is complete AND human confirms.
+### SSH deploy step fails (build succeeded)
 
-## Known Root Causes & Fixes
+The image IS on Docker Hub. Fix the SSH script → commit → push again → new build triggers.
+
+DO NOT manually run deploy-prod or manually SSH to work around a deploy-test failure.
+
+### Build step fails
+
+Fix the compilation/TypeScript error → commit → push again.
+
+## Known Root Causes
 
 ### `docker compose up` fails with "image not found" for PROD_VERSION tag
 
-**Root cause:** `docker compose up -d router app-test db` triggers dependency resolution. Router has `depends_on: app-prod`, and `app-prod` uses `${PROD_VERSION:-latest}`. The PROD_VERSION tag (e.g. `v20260519-00000126`) doesn't exist on Docker Hub because deploy-test.yml only pushes `:latest` at that point.
+**Root cause:** `docker compose up -d router app-test db` triggers dependency resolution. Router has `depends_on: app-prod`. If PROD_VERSION tag doesn't exist yet, `docker compose` tries to resolve it and fails.
 
-**Fix:** Use `--no-deps` flag to skip dependency resolution:
+**Fix:** Use `--no-deps` flag:
 ```bash
 docker compose up -d app-test --no-deps
 docker compose up -d router --no-deps
 ```
-This avoids restarting `app-prod` and prevents the image tag error.
 
-### `echo "$PASSWORD"` leaks special chars in bash
+### Git divergent branches on VPS
 
-**Root cause:** When using `echo "$DOCKER_PASSWORD" | docker login ...`, bash expands `$` and backticks in the password, corrupting it.
+**Root cause:** CI commits TEST_VERSION and pushes, then SSH runs `git pull` which may conflict with divergent history.
 
-**Fix:** Use single quotes: `echo '$PASSWORD' | docker login ...` — single quotes prevent all bash expansion. Safe for alphanumeric Docker Hub tokens.
+**Fix:** Use `git fetch origin && git reset --hard origin/master` instead of `git pull`.
 
 ## Database Configuration (CRITICAL)
 
-Prod and test MUST use separate databases to avoid data loss.
+| Environment | Database URL |
+|-------------|-------------|
+| app-test | `postgres://pier:pier@db:5432/pier_test` |
+| app-prod | `postgres://pier:pier@db:5432/pier_prod` |
 
-| Environment | Database URL | Database Name |
-|-------------|-------------|---------------|
-| app-test | `postgres://pier:pier@db:5432/pier_test` | `pier_test` |
-| app-prod | `postgres://pier:pier@db:5432/pier_prod` | `pier_prod` |
-
-**WARNING:** NEVER change prod's `DATABASE_URL` without explicit human confirmation. Changing it to a different database name will cause the new container to connect to an empty database, making it appear that all data is lost. Always verify the database name in `docker-compose.yml` before deploying.
-
-**Root cause of past data-loss incident:** Commit `7f7fca3` changed prod's DATABASE_URL from `pier_prod` to `pier` (the default/empty database). deploy-prod's `git pull` picked up this change, and the new container started pointing to the empty `pier` database. All prod data was still in `pier_prod` but the app couldn't see it.
-
-## Version Tracking
-
-- `build number` = `github.run_number` from GitHub Actions
-- `PROD_VERSION` = selected build number (promoted manually)
-- Build tags: `brodyzhang2026/pier:v20260519-000000NN`
-- `latest` tag always points to the most recent build (test uses this)
+Prod and test MUST use separate databases. NEVER change prod's `DATABASE_URL` without explicit confirmation.

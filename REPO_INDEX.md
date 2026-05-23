@@ -16,7 +16,7 @@ pier/
 ├── .opencode/
 │   └── skills/
 │       ├── repo-index/SKILL.md         # Skill: maintain REPO_INDEX.md
-│       ├── deploy/SKILL.md             # Skill: deployment workflow
+│       ├── deploy/SKILL.md             # Skill: deployment architecture & workflows (3 workflows, version files, VPS config)
 │       ├── ci-monitor/SKILL.md         # Skill: monitor CI/CD, verify website
 │       ├── code-style/SKILL.md         # Skill: code conventions
 │       └── agent-dev/SKILL.md          # Skill: AI agent development with base64 encoding
