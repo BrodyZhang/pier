@@ -98,7 +98,7 @@
 - [x] Dev API: POST /api/dev/delete/:id for agent cleanup
 - [x] Game Chinese text fix: use ReadAllText UTF-8 instead of Get-Content ANSI
 - [x] Created new 飞机 agent on prod with correct name and fixed game
-- [x] Fix approve 500: cast $2::text in jsonb_build_object to resolve PG type inference error (build #141)
+- [x] Fix approve 500: build review_log JSON in app code instead of SQL to avoid PG type inference error (build #146)
 
 ### Next (Priority Order)
 1. ✅ ~~Register/login flow~~ (tested on test.ailaopo.online)
