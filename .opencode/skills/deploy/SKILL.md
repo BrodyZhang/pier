@@ -1,5 +1,9 @@
 # Deploy Skill — Architecture & Workflows
 
+> **⚠️ CRITICAL: Never modify `TEST_VERSION` or `PROD_VERSION` yourself.**
+> - `TEST_VERSION` is auto-managed by CI — AI only commits code
+> - `PROD_VERSION` is updated by human in a separate commit (after test verification)
+
 ## Overview
 
 Three GitHub Actions workflows handle deployment:
@@ -16,8 +20,10 @@ Two files in the git repo track deployed versions:
 
 | File | Purpose | Updated By |
 |------|---------|------------|
-| `TEST_VERSION` | Current test image tag | CI (auto) — deploy-test.yml writes, commits, pushes |
+| `TEST_VERSION` | Current test image tag | CI ONLY — deploy-test.yml auto-writes, commits, pushes |
 | `PROD_VERSION` | Current prod image tag | Human (manual) — push triggers deploy-prod; actual version read from TEST_VERSION on VPS |
+
+**⚠️ AI MUST NEVER touch `TEST_VERSION`.** It is managed exclusively by CI. AI only commits application code. The CI will auto-update TEST_VERSION and push it back.
 
 **Never use `:latest` as a fallback.** Both environments always use a specific version tag.
 
@@ -38,10 +44,12 @@ Code Change → Build Image → Write TEST_VERSION (git commit+push) → SSH: gi
 ### Step-by-step
 
 1. **Make code changes** → commit → push to master
+   - ⚠️ AI ONLY commits code — DO NOT modify TEST_VERSION or PROD_VERSION
+   - CI auto-updates TEST_VERSION after build succeeds and pushes it back
 2. **CI runs** `Deploy: Test`:
    - Builds and pushes image to Docker Hub
-   - Writes version to `TEST_VERSION` file
-   - `git add` / `git commit` / `git push` TEST_VERSION
+   - Writes version to `TEST_VERSION` file (CI does this, NOT you)
+   - `git add` / `git commit` / `git push` TEST_VERSION (CI does this, NOT you)
    - SSHes to VPS:
      - `git fetch origin && git reset --hard origin/master`
      - `export TEST_VERSION="$(cat ~/pier/TEST_VERSION)"`
