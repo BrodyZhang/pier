@@ -1,4 +1,4 @@
-name: Task Monitor
+name: 'Monitor: Tasks'
 
 on:
   schedule:
