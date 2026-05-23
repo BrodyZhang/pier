@@ -68,7 +68,14 @@
                             <% if (a.unique_slug) { %><a href="/agent/<%= a.unique_slug %>" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">预览</a><% } %>
                             <form method="POST" action="/admin/requests/<%= a.id %>/approve-dev" class="admin-form-inline"><button type="submit" class="btn btn-success btn-sm">通过</button></form>
                         <% } else if (a.status === 'completed') { %>
-                            <% if (a.unique_slug) { %><a href="/agent/<%= a.unique_slug %>" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">查看</a><% } %>
+                            <% if (a.unique_slug) { %>
+                                <a href="/agent/<%= a.unique_slug %>" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">查看</a>
+                                <form method="POST" action="/admin/requests/<%= a.id %>/toggle-showcase" class="admin-form-inline" style="display:inline;">
+                                    <button type="submit" class="btn btn-sm" style="background:<%= a.showcased ? 'rgba(233,30,99,0.12)' : 'rgba(255,215,0,0.12)' %>;color:<%= a.showcased ? '#c2185b' : '#b8860b' %>;border:1px solid <%= a.showcased ? 'rgba(233,30,99,0.2)' : 'rgba(255,215,0,0.3)' %>;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;">
+                                        <%= a.showcased ? '已推荐' : '推荐到首页' %>
+                                    </button>
+                                </form>
+                            <% } %>
                         <% } else if (a.status === 'rejected') { %>
                             <span class="text-sm" style="color:#d32f2f;"><%= a.rejection_reason %></span>
                         <% } %>

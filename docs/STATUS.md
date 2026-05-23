@@ -109,6 +109,10 @@
 - [x] AGENTS.md: mandatory plan-first, summarize-after workflow
 - [x] TEST_VERSION git file: test version stored in repo (like PROD_VERSION), auto-updated by CI
 
+- [x] Public access: `/p/:slug` route for completed agents (no auth required)
+- [x] Homepage showcase wall: admin toggle, grid display on index
+- [x] Admin toggle-showcase: from review page + requests list
+
 ### Next (Priority Order)
 1. ✅ ~~Register/login flow~~ (tested on test.ailaopo.online)
 2. ✅ ~~Admin approve/reject/upload flow~~ (tested)

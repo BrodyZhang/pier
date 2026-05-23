@@ -53,6 +53,7 @@ pier/
 │       │   ├── view.ejs                # Agent page wrapper (standalone, no layout)
 │       │   ├── share.ejs               # Share/unshare with partner
 │       │   ├── not-ready.ejs           # "In Development" placeholder
+│       │   ├── public.ejs              # Public view (standalone, no layout)
 │       │   └── 404.ejs                 # Not found
 │       └── admin/
 │           ├── requests.ejs            # Queue: pending, in_dev, completed
@@ -101,6 +102,8 @@ pier/
 | GET | `/agent/:id/request-version` | requireAuth | `agent/request-version.ejs` | Form to request new version |
 | POST | `/agent/:id/request-version` | requireAuth | — | Submit new version request |
 | POST | `/agent/:id/rename` | requireAuth | — | Rename agent (owner or admin) |
+| GET | `/p/:slug` | — | `agent/public.ejs` | Public view (no auth, completed only) |
+| POST | `/admin/requests/:id/toggle-showcase` | requireAuth+requireAdmin | — | Toggle homepage showcase |
 | GET | `/admin/requests` | requireAuth+requireAdmin | `admin/requests.ejs` | Pending/dev/completed |
 | GET | `/admin/requests/:id` | requireAuth+requireAdmin | `admin/review.ejs` | Review one request |
 | POST | `/admin/requests/:id/approve` | requireAuth+requireAdmin | — | Approve → in_development |

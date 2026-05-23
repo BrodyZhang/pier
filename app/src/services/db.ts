@@ -69,6 +69,7 @@ ALTER TABLE agent_requests ADD COLUMN IF NOT EXISTS review_comments TEXT;
 ALTER TABLE agent_requests ADD COLUMN IF NOT EXISTS review_log JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE agent_requests ADD COLUMN IF NOT EXISTS parent_id UUID REFERENCES agent_requests(id);
 ALTER TABLE agent_requests ADD COLUMN IF NOT EXISTS version_number INT DEFAULT 1;
+ALTER TABLE agent_requests ADD COLUMN IF NOT EXISTS showcased BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE TABLE IF NOT EXISTS agent_versions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

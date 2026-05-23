@@ -512,4 +512,68 @@ router.post('/:slug/unshare', requireAuth, async (req: Request, res: Response) =
   }
 });
 
+// Public route for viewing completed agents (no auth required)
+export const publicRouter = Router();
+
+publicRouter.get('/p/:slug', async (req: Request, res: Response) => {
+  try {
+    const agent = await pool.query(
+      `SELECT ar.id, ar.name, ar.description, ar.unique_slug,
+              u.email as creator_email
+       FROM agent_requests ar
+       JOIN users u ON u.id = ar.user_id
+       WHERE ar.unique_slug = $1::uuid AND ar.status = 'completed'`,
+      [req.params.slug]
+    );
+
+    if (agent.rows.length === 0) {
+      return res.status(404).send('页面未找到');
+    }
+
+    const a = agent.rows[0];
+
+    const file = await pool.query(
+      'SELECT content FROM agent_files WHERE agent_id = $1 ORDER BY created_at DESC LIMIT 1',
+      [a.id]
+    );
+
+    if (file.rows.length === 0) {
+      return res.status(404).send('页面内容未找到');
+    }
+
+    let raw = file.rows[0].content;
+    let html: string;
+    try {
+      html = Buffer.from(raw, 'base64').toString('utf-8');
+      if (!html.includes('<!DOCTYPE') && !html.includes('<html')) html = raw;
+    } catch { html = raw; }
+
+    const escaped = html
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+    const protocol = req.protocol;
+    const host = req.get('host');
+    const pageUrl = `${protocol}://${host}/p/${req.params.slug}`;
+
+    const desc = a.description
+      ? a.description.substring(0, 120)
+      : '一个精心制作的告白页面';
+
+    res.render('agent/public', {
+      layout: false,
+      name: a.name,
+      description: desc,
+      agentHtmlEscaped: escaped,
+      pageUrl: pageUrl,
+    });
+  } catch (err) {
+    console.error('Public agent view error:', err);
+    res.status(500).send('服务器错误');
+  }
+});
+
 export default router;

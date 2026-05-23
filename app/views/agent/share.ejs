@@ -24,6 +24,7 @@
     <% } %>
 
     <% if (agent.unique_slug) { %>
-        <p style="margin-top:20px;color:#b0b0c8;">页面链接：<a href="/agent/<%= agent.unique_slug %>" style="color:#e91e63;">/agent/<%= agent.unique_slug %></a></p>
+        <p style="margin-top:20px;color:#b0b0c8;">公开链接：<a href="/p/<%= agent.unique_slug %>" style="color:#e91e63;">/p/<%= agent.unique_slug %></a></p>
+        <p style="margin-top:6px;color:#b0b0c8;">私密链接（需登录）：<a href="/agent/<%= agent.unique_slug %>" style="color:#e91e63;">/agent/<%= agent.unique_slug %></a></p>
     <% } %>
 </div>

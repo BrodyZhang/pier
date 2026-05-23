@@ -208,4 +208,17 @@ router.post('/requests/:id/delete', async (req: Request, res: Response) => {
   }
 });
 
+router.post('/requests/:id/toggle-showcase', async (req: Request, res: Response) => {
+  try {
+    await pool.query(
+      `UPDATE agent_requests SET showcased = NOT showcased, updated_at = NOW() WHERE id = $1`,
+      [req.params.id]
+    );
+    res.redirect('/admin/requests');
+  } catch (err) {
+    console.error('Toggle showcase error:', err);
+    res.status(500).send('Server error');
+  }
+});
+
 export default router;

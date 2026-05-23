@@ -14,7 +14,7 @@ import pool, { initDB } from './services/db';
 import { requireAuth, requireAdmin, requireDevApiKey } from './middleware/auth';
 import authRoutes from './routes/auth';
 import dashboardRoutes from './routes/dashboard';
-import agentRoutes from './routes/agent';
+import agentRoutes, { publicRouter } from './routes/agent';
 import adminRoutes from './routes/admin';
 import profileRoutes from './routes/profile';
 import devRoutes from './routes/dev';
@@ -71,9 +71,24 @@ app.use('/agent', agentRoutes);
 app.use('/admin', requireAuth, requireAdmin, adminRoutes);
 app.use('/profile', profileRoutes);
 app.use('/api/dev', requireDevApiKey, devRoutes);
+app.use('/', publicRouter);
 
-app.get('/', (_req, res) => {
-  res.render('index', { user: null });
+app.get('/', async (_req, res) => {
+  let showcasedAgents: any[] = [];
+  try {
+    const result = await pool.query(
+      `SELECT id, name, description, unique_slug,
+              LEFT(description, 80) as short_desc
+       FROM agent_requests
+       WHERE showcased = true AND status = 'completed' AND unique_slug IS NOT NULL
+       ORDER BY updated_at DESC
+       LIMIT 12`
+    );
+    showcasedAgents = result.rows;
+  } catch (err) {
+    console.error('Showcase query error:', err);
+  }
+  res.render('index', { user: null, showcasedAgents });
 });
 
 // Serve game HTML from database by slug (public, no auth)

@@ -56,7 +56,8 @@
                                     <a href="/agent/<%= a.unique_slug %>" target="_blank" rel="noopener noreferrer" class="btn-dash btn-dash-view">查看</a>
                                 <% } %>
                                 <% if (a.status === 'completed') { %>
-                                    <a href="/agent/<%= a.unique_slug %>/share" class="btn-dash btn-dash-share">分享</a>
+                                    <a href="/p/<%= a.unique_slug %>" target="_blank" rel="noopener noreferrer" class="btn-dash" style="background:rgba(76,175,80,0.1);color:#2e7d32;border:1px solid rgba(76,175,80,0.2);">公开页</a>
+                                    <a href="/agent/<%= a.unique_slug %>/share" class="btn-dash btn-dash-share">分享管理</a>
                                     <a href="/agent/<%= a.id %>/request-version" class="btn-dash btn-dash-upgrade">升级</a>
                                 <% } %>
                                 <% if (a.status === 'rejected' && a.rejection_reason) { %>

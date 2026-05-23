@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= name %> - Pier 告白</title>
+    <meta property="og:title" content="<%= name %> - Pier 告白">
+    <meta property="og:description" content="<%= description %>">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="<%= pageUrl %>">
+    <meta name="description" content="<%= description %>">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            background: #fff;
+            min-height: 100vh;
+        }
+        .pier-topbar {
+            background: linear-gradient(135deg, #fff0f5, #ffe4ec);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,182,193,0.3);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .pier-topbar .brand {
+            font-weight: 700;
+            font-size: 18px;
+            background: linear-gradient(135deg, #ff6b9d, #c2185b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-decoration: none;
+        }
+        .pier-topbar .cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 18px;
+            background: linear-gradient(135deg, #ff6b9d, #c2185b);
+            color: #fff;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: transform 0.2s;
+        }
+        .pier-topbar .cta:active { transform: scale(0.95); }
+        .pier-agent-content {
+            width: 100%;
+            min-height: calc(100vh - 120px);
+        }
+        .pier-agent-content iframe {
+            width: 100%;
+            border: none;
+            display: block;
+        }
+        .pier-footer {
+            background: linear-gradient(135deg, #fff0f5, #ffe4ec);
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid rgba(255,182,193,0.2);
+        }
+        .pier-footer .creator {
+            font-size: 13px;
+            color: #b0b0c8;
+            margin-bottom: 8px;
+        }
+        .pier-footer .cta-big {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 36px;
+            background: linear-gradient(135deg, #ff6b9d, #c2185b);
+            color: #fff;
+            border-radius: 30px;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 12px 0;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 20px rgba(255,107,157,0.3);
+        }
+        .pier-footer .cta-big:active { transform: scale(0.96); }
+        .pier-footer .disclaimer {
+            font-size: 11px;
+            color: rgba(0,0,0,0.2);
+            margin-top: 12px;
+            line-height: 1.6;
+        }
+        @media (max-width: 640px) {
+            .pier-topbar { padding: 10px 14px; }
+            .pier-topbar .cta { font-size: 13px; padding: 6px 14px; }
+            .pier-footer .cta-big { font-size: 16px; padding: 12px 28px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="pier-topbar">
+        <a href="/" class="brand">Pier</a>
+        <a href="/auth/register" class="cta">制作专属告白</a>
+    </div>
+
+    <div class="pier-agent-content">
+        <iframe id="pier-frame" srcdoc="<%= agentHtmlEscaped %>" style="height:100vh;" onload="resizeFrame(this)"></iframe>
+    </div>
+
+    <div class="pier-footer">
+        <div class="creator">由匿名用户制作</div>
+        <a href="/auth/register" class="cta-big">立即制作你的专属告白页</a>
+        <div class="disclaimer">
+            本页面由 AI 自动生成，为个人学习实验项目，内容仅供展示，不构成任何承诺或保证。
+        </div>
+    </div>
+
+    <script>
+    function resizeFrame(frame) {
+        try {
+            var doc = frame.contentDocument || frame.contentWindow.document;
+            if (doc) {
+                var h = Math.max(doc.documentElement.scrollHeight, doc.body.scrollHeight, 800);
+                frame.style.height = h + 'px';
+            }
+        } catch(e) {}
+    }
+    window.addEventListener('message', function(e) {
+        if (e.data && e.data.type === 'pier-resize' && e.data.height) {
+            var frame = document.getElementById('pier-frame');
+            if (frame) frame.style.height = e.data.height + 'px';
+        }
+    });
+    </script>
+</body>
+</html>
