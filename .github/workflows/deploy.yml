@@ -80,11 +80,11 @@ jobs:
           DEV_API_KEY=${DEV_API_KEY}
           ENVEOF
 
-          scp -v -o StrictHostKeyChecking=no -i /tmp/ssh_key \
-            /tmp/pier.env "${VPS_USER}@${VPS_HOST}:~/pier/.env" 2>&1
+          scp -o StrictHostKeyChecking=no -i /tmp/ssh_key \
+            /tmp/pier.env "${VPS_USER}@${VPS_HOST}:~/pier/.env"
 
           # Run deploy commands via SSH
-          ssh -v -o StrictHostKeyChecking=no -i /tmp/ssh_key \
+          ssh -o StrictHostKeyChecking=no -i /tmp/ssh_key \
             "${VPS_USER}@${VPS_HOST}" \
             "DOCKER_USERNAME='${DOCKER_USERNAME}' DOCKER_PASSWORD='${DOCKER_PASSWORD}' bash -s" << 'EOSH'
             set -e
@@ -94,12 +94,10 @@ jobs:
             fi
             cd "$PIER_DIR"
 
-            echo "=== Resetting local changes ==="
-            git reset --hard HEAD
+            echo "=== Resetting to origin/master ==="
+            git fetch origin
+            git reset --hard origin/master
             git clean -fd || true
-
-            echo "=== Pulling repo ==="
-            git pull origin master
 
             echo "=== Docker login ==="
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
