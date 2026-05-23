@@ -32,8 +32,8 @@
 | VPS | Azure Ubuntu 24.04 |
 | Method | docker compose (4 services: router, app-test, app-prod, db) |
 | Image | `brodyzhang2026/pier` (Docker Hub) |
-| **Status** | ✅ Deployed (test: build #140, prod: build #140) |
-| Last Deploy | 2026-05-20 (build #140) |
+| **Status** | ✅ Deployed (test: build #153, prod: build #153) |
+| Last Deploy | 2026-05-23 (build #153) |
 | Prod Version File | `PROD_VERSION` — push changes to auto-promote via deploy-prod.yml |
 
 ## Development Tasks
@@ -99,6 +99,9 @@
 - [x] Game Chinese text fix: use ReadAllText UTF-8 instead of Get-Content ANSI
 - [x] Created new 飞机 agent on prod with correct name and fixed game
 - [x] Fix approve 500: build review_log JSON in app code instead of SQL to avoid PG type inference error (build #146)
+- [x] Git reset origin/master: deploy.yml uses fetch + reset to handle divergent branches on VPS (build #153)
+- [x] YAML multi-line secret fix: pass SSH_PRIVATE_KEY via `env:` to avoid YAML block scalar parsing failure
+- [x] Prod promote to build #153 (v20260523-00000153)
 
 ### Next (Priority Order)
 1. ✅ ~~Register/login flow~~ (tested on test.ailaopo.online)
@@ -124,7 +127,8 @@
 |---|-------|--------|
 | 1 | ~~**PROD 502 Bad Gateway** — async middleware with DB query caused container crash. Fixed in build #81.~~ | ✅ Resolved |
 | 2 | ~~**Test deploy SSH fails (#132-#139)** — `docker compose up -d router app-test db` triggered `depends_on: app-prod`, which tried to resolve `${PROD_VERSION:-latest}` tag that didn't exist on Docker Hub. Fixed in build #140 by using `--no-deps`.~~ | ✅ Resolved |
-| 3 | ~~**Approve endpoint 500** — caused by invalid UUID format in test IDs. Works correctly with valid UUIDs.~~ | ✅ Resolved |
+| 3 | ~~**Approve endpoint 500** — caused by PG type inference on null $2 inside jsonb_build_object. Fixed by building JSON in app code.~~ | ✅ Resolved |
+| 4 | **deploy-prod verify step timeout** — `sleep 10` not enough after app-prod restart; container starts a few seconds after check. Prod actually deployed successfully. | Verify step 7 failed but deploy worked |
 
 ## Environment Variables
 
@@ -143,6 +147,6 @@
 | `SMTP_PASS` | ✅ | GitHub secret — Resend API key |
 | `SMTP_FROM` | ✅ | GitHub secret — `noreply@ailaopo.online` |
 | `DEV_API_KEY` | ✅ | GitHub secret — Bearer token for AI dev API |
-| `PROD_VERSION` | ✅ | File in repo — `v20260520-00000140` (with `v` prefix) |
+| `PROD_VERSION` | ✅ | File in repo — `v20260523-00000153` (with `v` prefix) |
 
 **Format note:** Docker Hub password/token is passed via stdin in the SSH script (line in deploy.yml). Consider using a read-only token for pull-only operations to minimize risk.
