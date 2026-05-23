@@ -4,10 +4,10 @@
 </div>
 
 <% if (typeof error !== 'undefined' && error) { %>
-<div class="error"><%= error %></div>
+<div class="error" data-toast="<%= error.replace(/'/g,'&#39;') %>" data-toast-type="error"><%= error %></div>
 <% } %>
 <% if (typeof success !== 'undefined' && success) { %>
-<div class="success"><%= success %></div>
+<div class="success" data-toast="<%= success.replace(/'/g,'&#39;') %>" data-toast-type="success"><%= success %></div>
 <% } %>
 
 <div class="card">
@@ -22,12 +22,12 @@
 </div>
 
 <div class="card" style="border:1px solid rgba(211,47,47,0.2);">
-    <h2 style="color:#d32f2f;">注销账号</h2>
-    <p style="font-size:14px;color:#8c8caa;margin-bottom:14px;">注销账号将永久删除你的所有数据和请求，此操作不可撤销。</p>
+    <h2 style="color:var(--red-700);">注销账号</h2>
+    <p style="font-size:14px;color:var(--text-desc);margin-bottom:14px;">注销账号将永久删除你的所有数据和请求，此操作不可撤销。</p>
 
     <% if (typeof deleteSent !== 'undefined' && deleteSent) { %>
         <% if (typeof deleteError !== 'undefined' && deleteError) { %>
-        <div class="error"><%= deleteError %></div>
+        <div class="error" data-toast="<%= deleteError.replace(/'/g,'&#39;') %>" data-toast-type="error"><%= deleteError %></div>
         <% } %>
         <p style="font-size:13px;color:#666;margin-bottom:10px;">验证码已发送到 <%= user.email %></p>
         <form method="POST" action="/profile/delete/confirm">

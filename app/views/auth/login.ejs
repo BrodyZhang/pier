@@ -1,10 +1,10 @@
 <div class="card" style="max-width:440px;margin:40px auto;">
     <h1>登录</h1>
     <% if (typeof error !== 'undefined' && error) { %>
-        <div class="error"><%= error %></div>
+        <div class="error" data-toast="<%= error.replace(/'/g,'&#39;') %>" data-toast-type="error"><%= error %></div>
     <% } %>
     <% if (sent) { %>
-        <div class="success">验证码已发送至 <strong><%= email %></strong></div>
+        <div class="success" data-toast="验证码已发送至 <%= email %>" data-toast-type="success">验证码已发送至 <strong><%= email %></strong></div>
         <form method="POST" action="/auth/login/verify">
             <input type="hidden" name="email" value="<%= email %>">
             <label>验证码</label>

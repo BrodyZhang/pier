@@ -5,7 +5,7 @@
         本项目为学习项目，不涉及任何 AI。您的页面将由我们的团队手动创建。数据可能随时被清除。
     </div>
     <% if (typeof error !== 'undefined' && error) { %>
-        <div class="error"><%= error %></div>
+        <div class="error" data-toast="<%= error.replace(/'/g,'&#39;') %>" data-toast-type="error"><%= error %></div>
     <% } %>
     <form method="POST">
         <label>页面名称 <span style="color:#b0b0c8;font-size:12px;">（最多50字）</span></label>

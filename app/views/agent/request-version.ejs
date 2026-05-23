@@ -5,6 +5,10 @@
 @media (max-width:640px) {
   .parent-info { padding:10px; }
 }
+@media (prefers-color-scheme: dark) {
+    .parent-info { background:rgba(156,39,176,0.08); border-color:rgba(156,39,176,0.15); }
+    .parent-info .value { color:var(--text-tertiary); }
+}
 </style>
 <div class="card">
   <h1>请求升级</h1>
@@ -17,7 +21,7 @@
 </div>
 
 <div class="card">
-  <% if (typeof error !== 'undefined' && error) { %><div class="error"><%= error %></div><% } %>
+  <% if (typeof error !== 'undefined' && error) { %><div class="error" data-toast="<%= error.replace(/'/g,'&#39;') %>" data-toast-type="error"><%= error %></div><% } %>
   <form method="POST" action="/agent/<%= parent.id %>/request-version">
     <label>名称 <span class="text-xs text-muted">建议包含版本号便于区分</span></label>
     <input type="text" name="name" value="<%= parent.name %> v<%= (parent.version_number || 1) + 1 %>" required maxlength="50" placeholder="页面名称（最多50个字符）">

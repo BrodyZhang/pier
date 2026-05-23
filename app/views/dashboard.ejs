@@ -20,6 +20,11 @@
     .dash-row { display:table-row; background:none; border:none; border-radius:0; padding:0; margin:0; box-shadow:none; }
     .dash-row td { padding:14px 12px; border-bottom:1px solid rgba(233,30,99,0.08); }
 }
+@media (prefers-color-scheme: dark) {
+    .dash-row { background:rgba(35,15,25,0.85); border-color:rgba(255,182,193,0.1); }
+    .btn-dash-view { background:rgba(40,20,30,0.7); }
+    .btn-dash-rename { background:rgba(40,20,30,0.5); border-color:rgba(233,30,99,0.2); }
+}
 </style>
 <div class="card">
     <div class="flex flex-wrap flex-between flex-center gap">
@@ -31,8 +36,12 @@
 <div class="card">
     <% if (agents.length === 0) { %>
         <div class="empty-state">
-            <div style="font-size:40px;margin-bottom:8px;">💕</div>
-            <p>还没有请求。<a href="/agent/new" style="color:#e91e63;text-decoration:none;">创建第一个吧！</a></p>
+            <svg width="80" height="80" viewBox="0 0 80 80" fill="none" style="margin-bottom:12px;">
+                <path d="M40 72C36 60 16 48 16 32C16 22 24 14 34 14C40 14 44 17 46 20C48 17 53 14 58 14C68 14 74 22 74 32C74 48 56 60 40 72Z" fill="url(#heartGrad)" opacity="0.85"/>
+                <defs><linearGradient id="heartGrad" x1="20" y1="18" x2="60" y2="70"><stop stop-color="#ff6b9d"/><stop offset="1" stop-color="#c2185b"/></linearGradient></defs>
+            </svg>
+            <p style="font-size:16px;color:var(--text-tertiary);margin-top:12px;">还没有告白页，开始你的第一份心意吧 💕</p>
+            <a href="/agent/new" class="btn btn-primary" style="margin-top:16px;">创建第一个告白页</a>
         </div>
     <% } else { %>
         <div style="overflow-x:auto;">
@@ -45,9 +54,9 @@
                                 <span class="status status-<%= a.status === 'pending_review' ? 'pending' : a.status === 'in_development' || a.status === 'dev_review' ? 'dev' : a.status === 'completed' ? 'done' : 'rejected' %>">
                                     <% if (a.status === 'pending_review') { %>待审核<% } else if (a.status === 'in_development' || a.status === 'dev_review') { %>开发中<% } else if (a.status === 'completed') { %>已完成<% } else { %>已拒绝<% } %>
                                 </span>
-                                <% if (a.version_number > 1) { %><span style="background:rgba(156,39,176,0.1);color:#9c27b0;padding:1px 6px;border-radius:3px;font-size:11px;">v<%= a.version_number %></span><% } %>
-                                <% if (a.parent_id) { %><span style="color:#b0b0c8;font-size:11px;">基于 v<%= a.version_number - 1 %></span><% } else { %><span style="color:#b0b0c8;font-size:11px;">v1</span><% } %>
-                                <span style="color:#b0b0c8;font-size:11px;"><%= new Date(a.created_at).toLocaleDateString() %></span>
+                                <% if (a.version_number > 1) { %><span style="background:rgba(156,39,176,0.1);color:var(--purple-500);padding:1px 6px;border-radius:3px;font-size:11px;">v<%= a.version_number %></span><% } %>
+                                <% if (a.parent_id) { %><span style="color:var(--text-muted);font-size:11px;">基于 v<%= a.version_number - 1 %></span><% } else { %><span style="color:var(--text-muted);font-size:11px;">v1</span><% } %>
+                                <span style="color:var(--text-muted);font-size:11px;"><%= new Date(a.created_at).toLocaleDateString() %></span>
                             </span>
                         </td>
                         <td data-label="操作">
@@ -56,12 +65,12 @@
                                     <a href="/agent/<%= a.unique_slug %>" target="_blank" rel="noopener noreferrer" class="btn-dash btn-dash-view">查看</a>
                                 <% } %>
                                 <% if (a.status === 'completed') { %>
-                                    <a href="/p/<%= a.unique_slug %>" target="_blank" rel="noopener noreferrer" class="btn-dash" style="background:rgba(76,175,80,0.1);color:#2e7d32;border:1px solid rgba(76,175,80,0.2);">公开页</a>
+                                    <a href="/p/<%= a.unique_slug %>" target="_blank" rel="noopener noreferrer" class="btn-dash" style="background:rgba(76,175,80,0.1);color:var(--green-800);border:1px solid rgba(76,175,80,0.2);">公开页</a>
                                     <a href="/agent/<%= a.unique_slug %>/share" class="btn-dash btn-dash-share">分享管理</a>
                                     <a href="/agent/<%= a.id %>/request-version" class="btn-dash btn-dash-upgrade">升级</a>
                                 <% } %>
                                 <% if (a.status === 'rejected' && a.rejection_reason) { %>
-                                    <span class="text-sm" style="color:#d32f2f;padding:4px 0;"><%= a.rejection_reason %></span>
+                                    <span class="text-sm" style="color:var(--red-700);padding:4px 0;"><%= a.rejection_reason %></span>
                                 <% } %>
                                 <form method="POST" action="/agent/<%= a.id %>/rename" class="dash-form">
                                     <button type="button" class="btn-dash btn-dash-rename" onclick="var n=prompt('输入新名称','<%= a.name.replace(/'/g,"\\'") %>');if(n&&n.trim()){this.closest('form').querySelector('input').value=n.trim();this.closest('form').submit()}">改名</button>

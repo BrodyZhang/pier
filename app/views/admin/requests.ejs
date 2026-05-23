@@ -18,6 +18,10 @@
     .admin-list-item .flex-wrap .status { margin-top:4px; }
     .admin-actions .btn { font-size:14px; padding:10px 14px; }
 }
+@media (prefers-color-scheme: dark) {
+    .admin-list-item { background:rgba(35,15,25,0.85); border-color:rgba(255,182,193,0.1); }
+    .btn-delete { background:rgba(233,30,99,0.12);color:var(--pink-500);border-color:rgba(233,30,99,0.2); }
+}
 </style>
 <div class="card" style="padding:20px 28px;">
     <div class="flex flex-wrap flex-between flex-center" style="gap:12px;">
@@ -39,7 +43,13 @@
     <div class="card">
         <% var items = tabs[tab]; %>
         <% if (items.length === 0) { %>
-            <div class="empty-state"><p>暂无请求</p></div>
+            <div class="empty-state">
+                <svg width="60" height="60" viewBox="0 0 80 80" fill="none" style="margin-bottom:8px;">
+                    <path d="M40 72C36 60 16 48 16 32C16 22 24 14 34 14C40 14 44 17 46 20C48 17 53 14 58 14C68 14 74 22 74 32C74 48 56 60 40 72Z" fill="url(#hG)" opacity="0.5"/>
+                    <defs><linearGradient id="hG" x1="20" y1="18" x2="60" y2="70"><stop stop-color="#ff6b9d"/><stop offset="1" stop-color="#c2185b"/></linearGradient></defs>
+                </svg>
+                <p style="font-size:14px;">暂无请求</p>
+            </div>
         <% } else { %>
             <% items.forEach(function(a) { %>
             <div class="admin-list-item">

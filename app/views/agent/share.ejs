@@ -3,10 +3,10 @@
     <p style="color:#6c6c8a;">告白页：<strong><%= agent.name %></strong></p>
 
     <% if (typeof error !== 'undefined' && error) { %>
-        <div class="error"><%= error %></div>
+        <div class="error" data-toast="<%= error.replace(/'/g,'&#39;') %>" data-toast-type="error"><%= error %></div>
     <% } %>
     <% if (typeof success !== 'undefined' && success) { %>
-        <div class="success"><%= success %></div>
+        <div class="success" data-toast="<%= success.replace(/'/g,'&#39;') %>" data-toast-type="success"><%= success %></div>
     <% } %>
 
     <% if (share) { %>
