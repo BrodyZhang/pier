@@ -14,13 +14,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Read PROD_VERSION
-        id: version
-        run: |
-          VER=$(cat PROD_VERSION | tr -d ' \n\r')
-          echo "VERSION=$VER" >> $GITHUB_OUTPUT
-          echo "Found version: $VER"
-
       - name: Promote prod on VPS
         shell: bash
         env:
@@ -36,11 +29,18 @@ jobs:
 
           ssh -o StrictHostKeyChecking=no -i /tmp/ssh_key \
             "${VPS_USER}@${VPS_HOST}" \
-            "DOCKER_USERNAME='${DOCKER_USERNAME}' DOCKER_PASSWORD='${DOCKER_PASSWORD}' PROD_VER='${{ steps.version.outputs.VERSION }}' bash -s" << 'EOSH'
+            "DOCKER_USERNAME='${DOCKER_USERNAME}' DOCKER_PASSWORD='${DOCKER_PASSWORD}' bash -s" << 'EOSH'
             set -e
             PIER_DIR=~/pier
             cd "$PIER_DIR"
 
+            # Git pull to get latest code (including TEST_VERSION)
+            echo "=== Pulling latest code ==="
+            git fetch origin
+            git reset --hard origin/master
+
+            # Read TEST_VERSION from repo (latest test build)
+            PROD_VER=$(cat TEST_VERSION | tr -d ' \n\r')
             echo "=== Promoting prod to ${PROD_VER} ==="
             echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
 
