@@ -1,6 +1,10 @@
 <div class="card" style="max-width:500px;margin:40px auto;">
     <h1>分享告白页</h1>
-    <p style="color:#6c6c8a;">告白页：<strong><%= agent.name %></strong></p>
+    <p style="color:#6c6c8a;">告白页：<strong><%= agent.name %></strong>
+        <span style="font-size:12px;padding:2px 8px;border-radius:4px;margin-left:8px;background:<%= agent.is_public ? 'rgba(76,175,80,0.1)' : 'rgba(255,152,0,0.1)' %>;color:<%= agent.is_public ? '#2e7d32' : '#e65100' %>;">
+            <%= agent.is_public ? '🌐 公开' : '🔒 私密' %>
+        </span>
+    </p>
 
     <% if (typeof error !== 'undefined' && error) { %>
         <div class="error" data-toast="<%= error.replace(/'/g,'&#39;') %>" data-toast-type="error"><%= error %></div>
@@ -24,7 +28,9 @@
     <% } %>
 
     <% if (agent.unique_slug) { %>
-        <p style="margin-top:20px;color:#b0b0c8;">公开链接：<a href="/p/<%= agent.unique_slug %>" style="color:#e91e63;">/p/<%= agent.unique_slug %></a></p>
-        <p style="margin-top:6px;color:#b0b0c8;">私密链接（需登录）：<a href="/agent/<%= agent.unique_slug %>" style="color:#e91e63;">/agent/<%= agent.unique_slug %></a></p>
+        <% if (agent.is_public) { %>
+            <p style="margin-top:20px;color:#b0b0c8;">公开链接：<a href="/p/<%= agent.unique_slug %>" style="color:#e91e63;">/p/<%= agent.unique_slug %></a></p>
+        <% } %>
+        <p style="margin-top:6px;color:#b0b0c8;"><%= agent.is_public ? '私密连接' : '页面链接' %>（需登录）：<a href="/agent/<%= agent.unique_slug %>" style="color:#e91e63;">/agent/<%= agent.unique_slug %></a></p>
     <% } %>
 </div>
