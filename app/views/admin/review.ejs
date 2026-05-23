@@ -72,6 +72,16 @@
                     </span>
                 </div>
             </div>
+            <div style="margin-bottom:14px;">
+                <span class="review-label">可见性</span>
+                <div style="margin-top:6px;">
+                    <% if (agent.is_public) { %>
+                        <span style="font-size:12px;font-weight:600;color:var(--green-800);background:rgba(76,175,80,0.1);padding:3px 10px;border-radius:12px;">公开（已分享）</span>
+                    <% } else { %>
+                        <span style="font-size:12px;font-weight:600;color:var(--text-muted);background:rgba(0,0,0,0.05);padding:3px 10px;border-radius:12px;">私密</span>
+                    <% } %>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -197,16 +207,20 @@
             <div>
                 <p style="font-size:14px;color:var(--text-tertiary);">短链接：<code><%= agent.unique_slug %></code></p>
                 <p style="font-size:13px;color:var(--text-muted);margin-top:4px;">
-                    推荐状态：<%= agent.showcased ? '已推荐到首页' : '未推荐' %>
+                    可见性：<%= agent.is_public ? '公开' : '私密' %>
+                    <% if (agent.is_public) { %> · 推荐状态：<%= agent.showcased ? '已推荐到首页' : '未推荐' %><% } %>
+                    <% if (!agent.is_public) { %> · 私密页面无法推荐到首页<% } %>
                 </p>
             </div>
             <div class="flex flex-wrap gap-sm">
                 <a href="/agent/<%= agent.unique_slug %>" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">查看告白页</a>
+                <% if (agent.is_public) { %>
                 <form method="POST" action="/admin/requests/<%= agent.id %>/toggle-showcase" style="display:inline;">
                     <button type="submit" class="btn btn-sm" style="background:<%= agent.showcased ? 'rgba(233,30,99,0.12)' : 'rgba(255,215,0,0.12)' %>;color:<%= agent.showcased ? 'var(--pink-700)' : 'var(--gold)' %>;border:1px solid <%= agent.showcased ? 'rgba(233,30,99,0.2)' : 'var(--gold-border)' %>;padding:8px 18px;border-radius:10px;cursor:pointer;font-size:14px;">
                         <%= agent.showcased ? '取消推荐' : '推荐到首页' %>
                     </button>
                 </form>
+                <% } %>
             </div>
         </div>
     </div>
