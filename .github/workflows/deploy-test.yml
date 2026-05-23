@@ -133,8 +133,8 @@ jobs:
             fi
             echo "Using: ${DC}"
 
-            # Read TEST_VERSION from file (fallback to latest)
-            export TEST_VERSION="$(cat "$PIER_DIR/TEST_VERSION" 2>/dev/null || echo 'latest')"
+            # Read TEST_VERSION from file (must exist)
+            export TEST_VERSION="$(cat "$PIER_DIR/TEST_VERSION")"
             echo "=== Deploying TEST_VERSION=${TEST_VERSION} ==="
 
             echo "=== Pulling router (fallback to build if not found) ==="
