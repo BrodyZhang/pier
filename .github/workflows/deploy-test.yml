@@ -70,12 +70,12 @@ jobs:
 
       - name: Write TEST_VERSION and push
         run: |
+          git pull --rebase origin master
           echo "${{ needs.build-and-push.outputs.version }}" > TEST_VERSION
           git config user.name "pier-ci"
           git config user.email "ci@pier"
           git add TEST_VERSION
           git commit -m "chore: update TEST_VERSION to ${{ needs.build-and-push.outputs.version }}" || echo "Nothing to commit"
-          git pull --rebase origin master
           git push
 
       - name: Deploy to VPS
