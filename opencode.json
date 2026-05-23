@@ -1,11 +1,5 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "name": "pier",
-  "description": "Node.js + TypeScript + PostgreSQL web app (ailaopo.online). AI-maintained — zero hand-code.",
-  "repository": "https://github.com/BrodyZhang/pier",
-  "domain": "ailaopo.online",
-  "test_domain": "test.ailaopo.online",
-  "docker_image": "brodyzhang2026/pier",
 
   "instructions": ["AGENTS.md", "REPO_INDEX.md", "docs/STATUS.md"],
 
@@ -16,27 +10,33 @@
   "command": {
     "deploy": {
       "description": "Build Docker image, push to Docker Hub, SSH to VPS and run docker compose up -d",
-      "prompt": "Run the full deployment pipeline: 1) git add/commit/push, 2) wait for GitHub Actions to complete, 3) verify VPS container is running via SSH"
+      "prompt": "Run the full deployment pipeline: 1) git add/commit/push, 2) wait for GitHub Actions to complete, 3) verify VPS container is running via SSH",
+      "template": "task"
     },
     "build": {
       "description": "Compile TypeScript, check for errors",
-      "prompt": "Install npm deps in app/ dir, run npx tsc to compile TypeScript, check for any compilation errors"
+      "prompt": "Install npm deps in app/ dir, run npx tsc to compile TypeScript, check for any compilation errors",
+      "template": "task"
     },
     "test": {
       "description": "Run the test suite",
-      "prompt": "Run the project's test suite. First read package.json to find the test script, then execute it."
+      "prompt": "Run the project's test suite. First read package.json to find the test script, then execute it.",
+      "template": "task"
     },
     "add-routes": {
       "description": "Create a new Express route file with the standard pattern",
-      "prompt": "Read app/src/routes/auth.ts as a template for route patterns. Create a new route file at app/src/routes/<name>.ts with all CRUD operations following the same express.Router() pattern. Register it in app/src/server.ts. Create EJS views in app/views/<name>/."
+      "prompt": "Read app/src/routes/auth.ts as a template for route patterns. Create a new route file at app/src/routes/<name>.ts with all CRUD operations following the same express.Router() pattern. Register it in app/src/server.ts. Create EJS views in app/views/<name>/.",
+      "template": "task"
     },
     "add-model": {
       "description": "Add database table + TypeScript model",
-      "prompt": "Read app/src/services/db.ts for the existing schema init pattern. Create SQL migration for the new table, add it to initDB function. Create TypeScript model functions in a new file."
+      "prompt": "Read app/src/services/db.ts for the existing schema init pattern. Create SQL migration for the new table, add it to initDB function. Create TypeScript model functions in a new file.",
+      "template": "task"
     },
     "add-view": {
       "description": "Create EJS view files following project conventions",
-      "prompt": "Read existing views (app/views/) to understand layout pattern. Create new EJS templates using layout.ejs, matching the project's styling conventions (gradient backgrounds, cards, disclaimer blocks)."
+      "prompt": "Read existing views (app/views/) to understand layout pattern. Create new EJS templates using layout.ejs, matching the project's styling conventions (gradient backgrounds, cards, disclaimer blocks).",
+      "template": "task"
     }
   },
 
