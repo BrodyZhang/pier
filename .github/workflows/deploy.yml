@@ -44,12 +44,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
       - name: Debug - check VPS hostname & connectivity
         run: |
           echo "Resolving VPS_HOST..."
@@ -59,13 +53,16 @@ jobs:
           timeout 5 bash -c 'echo | nc -w 3 '${{ secrets.VPS_HOST }}' 22 && echo "SSH port OPEN" || echo "SSH port TIMEOUT/CLOSED"' || echo "nc failed"
 
       - name: Deploy to VPS
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          debug: true
-          script: |
+        shell: bash
+        run: |
+          SSH_KEY=$(mktemp)
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > "$SSH_KEY"
+          chmod 600 "$SSH_KEY"
+          trap 'rm -f "$SSH_KEY"' EXIT
+
+          ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOSH'
+
             set -e
             PIER_DIR=~/pier
             if [ ! -d "$PIER_DIR" ]; then
@@ -81,7 +78,6 @@ jobs:
             echo "=== Pulling repo ==="
             git pull origin master
 
-            # Create/update .env with secrets (quoted heredoc prevents bash reinterpretation)
             echo "=== Writing .env ==="
             cat > .env << 'ENVEOF'
             SESSION_SECRET=${{ secrets.SESSION_SECRET }}
@@ -93,17 +89,14 @@ jobs:
             ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}
             DEV_API_KEY=${{ secrets.DEV_API_KEY }}
             ENVEOF
-            echo "PROD_VERSION=$(cat PROD_VERSION | tr -d ' \n\r' 2>/dev/null || echo "unknown")" >> .env
+            echo "PROD_VERSION=$(cat PROD_VERSION | tr -d ' \n\r' 2>/dev/null || echo unknown)" >> .env
 
-            # Stop old containers from previous architecture (cleanup)
             docker stop pier-app-1 2>/dev/null || true
             docker rm pier-app-1 2>/dev/null || true
 
-            # Docker login via echo (single quotes prevent bash expansion; safe for alphanumeric tokens)
             echo "=== Docker login ==="
             echo '${{ secrets.DOCKER_PASSWORD }}' | docker login -u '${{ secrets.DOCKER_USERNAME }}' --password-stdin
 
-            # Detect docker compose variant
             DC=""
             if docker compose version >/dev/null 2>&1; then
               DC="docker compose"
@@ -121,19 +114,23 @@ jobs:
             echo "=== Pulling app-test ==="
             $DC pull app-test
 
-            echo "=== Restarting app-test (no-deps to avoid prod image resolve) ==="
+            echo "=== Restarting app-test ==="
             $DC up -d app-test --no-deps
 
-            echo "=== Restarting router (no-deps to avoid prod image resolve) ==="
+            echo "=== Restarting router ==="
             $DC up -d router --no-deps
+          EOSH
 
       - name: Verify container status
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
+        shell: bash
+        run: |
+          SSH_KEY=$(mktemp)
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > "$SSH_KEY"
+          chmod 600 "$SSH_KEY"
+          trap 'rm -f "$SSH_KEY"' EXIT
+
+          ssh -o StrictHostKeyChecking=no -i "$SSH_KEY" \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOSH'
             sleep 10
             cd ~/pier && docker compose ps
             echo "---"
@@ -144,6 +141,7 @@ jobs:
             docker logs pier-app-test-1 --tail 3 2>/dev/null || echo "no logs"
             echo "Prod was NOT restarted (unchanged)."
             docker logs pier-app-prod-1 --tail 1 2>/dev/null || echo "app-prod not running"
+          EOSH
 
       - name: Smoke test (external)
         run: |
