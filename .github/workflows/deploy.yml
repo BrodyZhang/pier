@@ -4,8 +4,13 @@ on:
   push:
     branches:
       - master
-    paths-ignore:
-      - 'PROD_VERSION'
+    paths:
+      - 'app/**'
+      - 'nginx/**'
+      - 'Dockerfile'
+      - 'Dockerfile.router'
+      - 'docker-compose.yml'
+      - '.github/workflows/deploy.yml'
 
 env:
   VPS_HOST: ${{ secrets.VPS_HOST }}
