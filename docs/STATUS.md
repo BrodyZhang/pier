@@ -22,6 +22,10 @@
 | Dev Review Flow | ✅ Complete | AI upload → `dev_review` → admin approve/reject with comments |
 | AI Dev API | ✅ Complete | `GET /api/dev/agents`, `GET /api/dev/pending`, `GET /api/dev/rejected`, `POST /api/dev/create` (direct agent creation), `POST /api/dev/upload/:id`, `POST /api/dev/approve/:id` (approve dev_review → completed) |
 | Email (Resend) | ✅ Complete | Resend HTTPS API (port 443, no SMTP), auto-detected from `smtp.resend.com` host, fallback to console.log |
+| Code Architecture | ✅ Refactored | Layered: Route → Validator → Service → Repository → Database |
+| Security | ✅ Hardened | helmet, rate-limit, parameterized queries, no hardcoded secrets |
+| Testing | ✅ Complete | Jest framework, 17 tests passing |
+| Logging | ✅ Complete | Pino structured logging |
 
 ## Deployment
 
@@ -108,6 +112,13 @@
 - [x] Nav: User email/name links to /profile instead of separate "个人设置"
 - [x] AGENTS.md: mandatory plan-first, summarize-after workflow
 - [x] TEST_VERSION git file: test version stored in repo (like PROD_VERSION), auto-updated by CI
+
+### Codebase Refactoring (2026-06-23)
+- [x] Phase 1 - Security: SQL injection fix, rate limiting, helmet, remove hardcoded secrets
+- [x] Phase 2 - Architecture: Service layer, error handling, Zod validation, type definitions
+- [x] Phase 3 - Code Quality: shared utilities, WebSocket security, frontend extraction, repository layer
+- [x] Phase 4 - Maintainability: DB migrations, structured logging (pino), Jest tests, session cleanup
+- [x] Phase 5 - DevOps: .dockerignore, healthcheck, centralized config, API versioning
 
 - [x] Public access: `/p/:slug` route for completed agents (no auth required)
 - [x] Homepage showcase wall: admin toggle, grid display on index
