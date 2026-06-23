@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
-import crypto from 'crypto';
 import pool from '../services/db';
+import { AgentService } from '../services/agent.service';
+import { reviewSchema, agentIdSchema } from '../validators/agent.validator';
 
 const router = Router();
 
@@ -8,7 +9,7 @@ router.get('/', (_req: Request, res: Response) => {
   res.redirect('/admin/requests');
 });
 
-router.get('/requests', async (_req: Request, res: Response) => {
+router.get('/requests', async (_req: Request, res: Response, next) => {
   try {
     const result = await pool.query(
       `SELECT ar.*, u.email as user_email,
@@ -27,12 +28,11 @@ router.get('/requests', async (_req: Request, res: Response) => {
 
     res.render('admin/requests', { title: 'Admin - Requests', pending, dev, devReview, completed, rejected });
   } catch (err) {
-    console.error('Admin requests error:', err);
-    res.status(500).send('Server error');
+    next(err);
   }
 });
 
-router.get('/requests/:id', async (req: Request, res: Response) => {
+router.get('/requests/:id', async (req: Request, res: Response, next) => {
   try {
     const result = await pool.query(
       `SELECT ar.*, u.email as user_email,
@@ -59,173 +59,102 @@ router.get('/requests/:id', async (req: Request, res: Response) => {
       versions: versions.rows,
     });
   } catch (err) {
-    console.error('Admin review error:', err);
-    res.status(500).send('Server error');
+    next(err);
   }
 });
 
-router.post('/requests/:id/approve', async (req: Request, res: Response) => {
+router.post('/requests/:id/approve', async (req: Request, res: Response, next) => {
   try {
-    const slug = crypto.randomUUID();
     const { review_notes } = req.body;
-    const logEntry = JSON.stringify([{ action: 'approved', notes: review_notes || null, timestamp: new Date().toISOString() }]);
-
-    await pool.query(
-      `UPDATE agent_requests
-       SET status = 'in_development', unique_slug = $1, review_notes = $2,
-           review_log = COALESCE(review_log, '[]'::jsonb) || $3::jsonb,
-           updated_at = NOW()
-       WHERE id = $4`,
-      [slug, review_notes || null, logEntry, req.params.id]
-    );
-
-    await pool.query(
-      `INSERT INTO agent_versions (agent_id, version_number, request_description)
-       VALUES ($1, 1, 'Initial approval')`,
-      [req.params.id]
-    );
-
+    await AgentService.approve(req.params.id, review_notes);
     res.redirect('/admin/requests');
   } catch (err) {
-    console.error('Approve error:', err);
-    res.status(500).send('Server error');
+    next(err);
   }
 });
 
-router.post('/requests/:id/reject', async (req: Request, res: Response) => {
-  const { reason } = req.body;
+router.post('/requests/:id/reject', async (req: Request, res: Response, next) => {
   try {
-    await pool.query(
-      `UPDATE agent_requests
-       SET status = 'rejected', rejection_reason = $1,
-           review_log = COALESCE(review_log, '[]'::jsonb) || jsonb_build_array(jsonb_build_object('action','rejected','reason',$1,'timestamp',NOW())),
-           updated_at = NOW()
-       WHERE id = $2`,
-      [reason || 'No reason provided', req.params.id]
-    );
+    const { reason } = req.body;
+    await AgentService.reject(req.params.id, reason);
     res.redirect('/admin/requests');
   } catch (err) {
-    console.error('Reject error:', err);
-    res.status(500).send('Server error');
+    next(err);
   }
 });
 
-router.post('/requests/:id/upload', async (req: Request, res: Response) => {
+router.post('/requests/:id/upload', async (req: Request, res: Response, next) => {
   const file = (req as any).files?.html;
   if (!file) {
     return res.status(400).send('No file uploaded');
   }
 
   try {
-    const agent = await pool.query(
-      'SELECT unique_slug FROM agent_requests WHERE id = $1',
-      [req.params.id]
-    );
-
-    if (agent.rows.length === 0 || !agent.rows[0].unique_slug) {
+    const agent = await AgentService.getById(req.params.id);
+    if (!agent || !agent.unique_slug) {
       return res.status(404).send('Agent not found or not yet approved');
     }
 
     const content = file.data.toString('utf-8');
-    const b64content = Buffer.from(content, 'utf-8').toString('base64');
+    await AgentService.uploadFile(req.params.id, content);
 
-    await pool.query('DELETE FROM agent_files WHERE agent_id = $1', [req.params.id]);
-    await pool.query(
-      'INSERT INTO agent_files (agent_id, content) VALUES ($1, $2)',
-      [req.params.id, b64content]
-    );
-
-    await pool.query(
-      `UPDATE agent_requests SET status = 'dev_review', review_comments = NULL,
-           review_log = COALESCE(review_log, '[]'::jsonb) || jsonb_build_array(jsonb_build_object('action','uploaded','timestamp',NOW())),
-           updated_at = NOW() WHERE id = $1`,
-      [req.params.id]
-    );
-
+    await AgentService.updateStatus(req.params.id, 'dev_review', { review_comments: null });
     res.redirect('/admin/requests');
   } catch (err) {
-    console.error('Upload error:', err);
-    res.status(500).send('Server error');
+    next(err);
   }
 });
 
-router.post('/requests/:id/approve-dev', async (req: Request, res: Response) => {
+router.post('/requests/:id/approve-dev', async (req: Request, res: Response, next) => {
   try {
-    await pool.query(
-      `UPDATE agent_requests SET status = 'completed',
-           review_log = COALESCE(review_log, '[]'::jsonb) || jsonb_build_array(jsonb_build_object('action','approved_dev','timestamp',NOW())),
-           updated_at = NOW() WHERE id = $1`,
-      [req.params.id]
-    );
+    await AgentService.approveDev(req.params.id);
     res.redirect('/admin/requests');
   } catch (err) {
-    console.error('Approve dev error:', err);
-    res.status(500).send('Server error');
+    next(err);
   }
 });
 
-router.post('/requests/:id/reject-dev', async (req: Request, res: Response) => {
+router.post('/requests/:id/reject-dev', async (req: Request, res: Response, next) => {
   try {
     const { review_comments } = req.body;
-    const logEntry = JSON.stringify([{ action: 'rejected_dev', comments: review_comments || null, timestamp: new Date().toISOString() }]);
-    await pool.query(
-      `UPDATE agent_requests SET status = 'in_development', review_comments = $1,
-            review_log = COALESCE(review_log, '[]'::jsonb) || $2::jsonb,
-            updated_at = NOW() WHERE id = $3`,
-      [review_comments || null, logEntry, req.params.id]
-    );
+    await AgentService.rejectDev(req.params.id, review_comments);
     res.redirect('/admin/requests');
   } catch (err) {
-    console.error('Reject dev error:', err);
-    res.status(500).send('Server error');
+    next(err);
   }
 });
 
-router.post('/requests/:id/rename', async (req: Request, res: Response) => {
+router.post('/requests/:id/rename', async (req: Request, res: Response, next) => {
   try {
     const { name } = req.body;
-    if (!name || !name.trim() || name.trim().length > 50) {
+    if (!name?.trim() || name.trim().length > 50) {
       return res.status(400).send('名称不能为空且不超过50个字符');
     }
-    await pool.query(
-      'UPDATE agent_requests SET name = $1, updated_at = NOW() WHERE id = $2',
-      [name.trim(), req.params.id]
-    );
+    await AgentService.update(req.params.id, { name: name.trim() });
     res.redirect('/admin/requests');
   } catch (err) {
-    console.error('Admin rename error:', err);
-    res.status(500).send('Server error');
+    next(err);
   }
 });
 
-router.post('/requests/:id/delete', async (req: Request, res: Response) => {
+router.post('/requests/:id/delete', async (req: Request, res: Response, next) => {
   try {
-    await pool.query('DELETE FROM agent_requests WHERE id = $1', [req.params.id]);
+    await AgentService.delete(req.params.id);
     res.redirect('/admin/requests');
   } catch (err) {
-    console.error('Delete error:', err);
-    res.status(500).send('Server error');
+    next(err);
   }
 });
 
-router.post('/requests/:id/toggle-showcase', async (req: Request, res: Response) => {
+router.post('/requests/:id/toggle-showcase', async (req: Request, res: Response, next) => {
   try {
-    const agent = await pool.query(
-      'SELECT is_public FROM agent_requests WHERE id = $1',
-      [req.params.id]
-    );
-    if (agent.rows.length === 0) return res.status(404).send('Agent not found');
-    if (!agent.rows[0].is_public) {
-      return res.status(400).send('私密页面无法推荐到首页');
+    const result = await AgentService.toggleShowcase(req.params.id);
+    if (!result.success) {
+      return res.status(400).send(result.error);
     }
-    await pool.query(
-      `UPDATE agent_requests SET showcased = NOT showcased, updated_at = NOW() WHERE id = $1`,
-      [req.params.id]
-    );
     res.redirect('/admin/requests');
   } catch (err) {
-    console.error('Toggle showcase error:', err);
-    res.status(500).send('Server error');
+    next(err);
   }
 });
 

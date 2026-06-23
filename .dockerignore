@@ -1,0 +1,15 @@
+node_modules
+npm-debug.log
+dist
+coverage
+.git
+.github
+.env
+.env.*
+*.md
+!README.md
+migrations
+__tests__
+jest.config.ts
+tsconfig.json
+.opencode

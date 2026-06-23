@@ -1,75 +1,56 @@
 import { Router, Request, Response } from 'express';
-import pool from '../services/db';
-import { sendVerificationCode } from '../services/mail';
+import { UserService } from '../services/user.service';
+import { AuthService } from '../services/auth.service';
 import { requireAuth } from '../middleware/auth';
+import { updateProfileSchema } from '../validators/auth.validator';
 
 const router = Router();
 
-function generateCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-router.get('/', requireAuth, async (req: Request, res: Response) => {
+router.get('/', requireAuth, async (req: Request, res: Response, next) => {
   try {
-    const user = await pool.query(
-      'SELECT id, email, name, role, registration_date, created_at FROM users WHERE id = $1',
-      [req.session.userId]
-    );
-    if (user.rows.length === 0) return res.status(404).send('User not found');
+    const user = await UserService.getById(req.session.userId!);
+    if (!user) return res.status(404).send('User not found');
     res.render('profile', {
       title: '个人设置',
-      user: user.rows[0],
+      user,
       error: req.query.error || null,
       success: req.query.success || null,
       deleteSent: req.query.deleteSent === '1',
       deleteError: req.query.deleteError || null,
     });
   } catch (err) {
-    console.error('Profile error:', err);
-    res.status(500).send('Server error');
+    next(err);
   }
 });
 
-router.post('/', requireAuth, async (req: Request, res: Response) => {
-  const { name } = req.body;
-  if (!name || !name.trim() || name.trim().length > 50) {
-    return res.redirect('/profile?error=' + encodeURIComponent('名称不能为空且不超过50个字符'));
-  }
+router.post('/', requireAuth, async (req: Request, res: Response, next) => {
   try {
-    await pool.query('UPDATE users SET name = $1 WHERE id = $2', [name.trim(), req.session.userId]);
-    req.session.userName = name.trim();
+    const parsed = updateProfileSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.redirect('/profile?error=' + encodeURIComponent('名称不能为空且不超过50个字符'));
+    }
+
+    await UserService.updateName(req.session.userId!, parsed.data.name);
+    req.session.userName = parsed.data.name;
     res.redirect('/profile?success=' + encodeURIComponent('名称已更新'));
   } catch (err) {
-    console.error('Update name error:', err);
-    res.redirect('/profile?error=' + encodeURIComponent('服务器错误'));
+    next(err);
   }
 });
 
-router.post('/delete/send-code', requireAuth, async (req: Request, res: Response) => {
+router.post('/delete/send-code', requireAuth, async (req: Request, res: Response, next) => {
   const email = req.session.userEmail;
   if (!email) return res.redirect('/auth/login');
 
   try {
-    const code = generateCode();
-    await pool.query(
-      'UPDATE verification_codes SET used = true WHERE email = $1 AND used = false',
-      [email]
-    );
-    await pool.query(
-      `INSERT INTO verification_codes (email, code, expires_at)
-       VALUES ($1, $2, NOW() + INTERVAL '10 minutes')`,
-      [email, code]
-    );
-
-    await sendVerificationCode(email, code);
+    await AuthService.sendCode(email);
     res.redirect('/profile?deleteSent=1');
   } catch (err) {
-    console.error('Send delete code error:', err);
-    res.redirect('/profile?deleteError=' + encodeURIComponent('发送验证码失败，请重试'));
+    next(err);
   }
 });
 
-router.post('/delete/confirm', requireAuth, async (req: Request, res: Response) => {
+router.post('/delete/confirm', requireAuth, async (req: Request, res: Response, next) => {
   const { code } = req.body;
   const email = req.session.userEmail;
   if (!email) return res.redirect('/auth/login');
@@ -79,26 +60,18 @@ router.post('/delete/confirm', requireAuth, async (req: Request, res: Response) 
   }
 
   try {
-    const result = await pool.query(
-      `SELECT id FROM verification_codes
-       WHERE email = $1 AND code = $2 AND used = false AND expires_at > NOW()
-       ORDER BY created_at DESC LIMIT 1`,
-      [email, code]
-    );
-
-    if (result.rows.length === 0) {
+    const verification = await AuthService.verifyCode(email, code);
+    if (!verification.valid) {
       return res.redirect('/profile?deleteSent=1&deleteError=' + encodeURIComponent('验证码无效或已过期'));
     }
 
-    await pool.query('UPDATE verification_codes SET used = true WHERE id = $1', [result.rows[0].id]);
-    await pool.query('DELETE FROM users WHERE id = $1', [req.session.userId]);
+    await UserService.delete(req.session.userId!);
 
     req.session.destroy(() => {
       res.redirect('/');
     });
   } catch (err) {
-    console.error('Delete confirm error:', err);
-    res.redirect('/profile?deleteSent=1&deleteError=' + encodeURIComponent('服务器错误，请重试'));
+    next(err);
   }
 });
 

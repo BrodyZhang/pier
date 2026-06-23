@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import { UserService } from './user.service';
 
 function getConnectionString(): string {
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
@@ -128,29 +129,15 @@ export async function initDB(): Promise<void> {
   await pool.query(schemaSQL);
   console.log('Database schema initialized');
 
-  // Seed built-in admin (always present regardless of config)
-  await ensureAdmin('296068994@qq.com');
+  // Seed built-in admin from env var (required for first-time setup)
+  const builtinAdminEmail = process.env.ADMIN_EMAIL_BUILTIN;
+  if (builtinAdminEmail) {
+    await UserService.ensureAdmin(builtinAdminEmail);
+  }
 
   // Seed additional admin from env var (if set)
   const adminEmail = process.env.ADMIN_EMAIL;
-  if (adminEmail && adminEmail !== '296068994@qq.com') {
-    await ensureAdmin(adminEmail);
-  }
-}
-
-async function ensureAdmin(email: string): Promise<void> {
-  const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-  if (existing.rows.length === 0) {
-    await pool.query(
-      `INSERT INTO users (email, role) VALUES ($1, 'admin')`,
-      [email]
-    );
-    console.log(`Admin user created: ${email}`);
-  } else {
-    await pool.query(
-      `UPDATE users SET role = 'admin' WHERE email = $1`,
-      [email]
-    );
-    console.log(`Admin role set for: ${email}`);
+  if (adminEmail && adminEmail !== builtinAdminEmail) {
+    await UserService.ensureAdmin(adminEmail);
   }
 }

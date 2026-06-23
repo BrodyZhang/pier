@@ -1,39 +1,31 @@
 import { Router, Request, Response } from 'express';
-import crypto from 'crypto';
-import pool from '../services/db';
-import { sendVerificationCode } from '../services/mail';
+import { AuthService } from '../services/auth.service';
+import { emailSchema, verifyCodeSchema } from '../validators/auth.validator';
 
 const router = Router();
-
-function generateCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
 
 const DAILY_LIMIT = 20;
 
 router.get('/register', async (_req: Request, res: Response) => {
-  try {
-    const count = await pool.query('SELECT COUNT(*) FROM users WHERE registration_date = CURRENT_DATE');
-    const registered = parseInt(count.rows[0].count);
-    const remainingSlots = Math.max(0, DAILY_LIMIT - registered);
-    res.render('auth/register', { title: '注册', error: null, email: '', sent: false, remainingSlots });
-  } catch {
-    res.render('auth/register', { title: '注册', error: null, email: '', sent: false, remainingSlots: DAILY_LIMIT });
-  }
+  const registered = await AuthService.getDailyRegistrationCount();
+  const remainingSlots = Math.max(0, DAILY_LIMIT - registered);
+  res.render('auth/register', { title: '注册', error: null, email: '', sent: false, remainingSlots });
 });
 
-router.post('/register', async (req: Request, res: Response) => {
-  const { email } = req.body;
-  if (!email || !email.includes('@')) {
-    return res.render('auth/register', { title: '注册', error: '请输入有效的邮箱地址', email, sent: false });
-  }
-
+router.post('/register', async (req: Request, res: Response, next) => {
   try {
-    const count = await pool.query(
-      'SELECT COUNT(*) FROM users WHERE registration_date = CURRENT_DATE'
-    );
-    const registered = parseInt(count.rows[0].count);
+    const parsed = emailSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.render('auth/register', {
+        title: '注册', error: '请输入有效的邮箱地址',
+        email: req.body.email, sent: false, remainingSlots: DAILY_LIMIT
+      });
+    }
+
+    const { email } = parsed.data;
+    const registered = await AuthService.getDailyRegistrationCount();
     const remainingSlots = Math.max(0, DAILY_LIMIT - registered);
+
     if (registered >= DAILY_LIMIT) {
       return res.render('auth/register', {
         title: '注册', error: '今日注册名额已满（20/20），请明天再来。',
@@ -41,83 +33,58 @@ router.post('/register', async (req: Request, res: Response) => {
       });
     }
 
-    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-    if (existing.rows.length > 0) {
+    const existing = await AuthService.login(email);
+    if (existing.success) {
       return res.render('auth/register', {
         title: '注册', error: '该邮箱已注册，请登录。',
         email, sent: false, remainingSlots,
       });
     }
 
-    // 60s cooldown check
-    const lastCode = await pool.query(
-      `SELECT created_at FROM verification_codes
-       WHERE email = $1 AND used = false AND expires_at > NOW()
-       ORDER BY created_at DESC LIMIT 1`,
-      [email]
-    );
-    if (lastCode.rows.length > 0) {
-      const elapsed = Date.now() - new Date(lastCode.rows[0].created_at).getTime();
-      if (elapsed < 60000) {
-        const wait = Math.ceil((60000 - elapsed) / 1000);
-        return res.render('auth/register', {
-          title: '注册', error: `请 ${wait} 秒后再试`, email, sent: true, remainingSlots,
-        });
-      }
+    const result = await AuthService.sendCode(email);
+    if (!result.success) {
+      return res.render('auth/register', {
+        title: '注册', error: result.error, email, sent: true, remainingSlots,
+      });
     }
 
-    const code = generateCode();
-    await pool.query(
-      'UPDATE verification_codes SET used = true WHERE email = $1 AND used = false',
-      [email]
-    );
-    await pool.query(
-      `INSERT INTO verification_codes (email, code, expires_at)
-       VALUES ($1, $2, NOW() + INTERVAL '10 minutes')`,
-      [email, code]
-    );
-
-    await sendVerificationCode(email, code);
     res.render('auth/register', { title: '注册', error: null, email, sent: true, remainingSlots });
   } catch (err) {
-    console.error('Register error:', err);
-    res.render('auth/register', {         title: '注册', error: '服务器错误，请重试。', email, sent: false, remainingSlots: DAILY_LIMIT });
+    next(err);
   }
 });
 
-router.post('/register/verify', async (req: Request, res: Response) => {
-  const { email, code } = req.body;
-
+router.post('/register/verify', async (req: Request, res: Response, next) => {
   try {
-    const result = await pool.query(
-      `SELECT id FROM verification_codes
-       WHERE email = $1 AND code = $2 AND used = false AND expires_at > NOW()
-       ORDER BY created_at DESC LIMIT 1`,
-      [email, code]
-    );
+    const parsed = verifyCodeSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.render('auth/register', {
+        title: '注册', error: '验证码为6位数字', email: req.body.email, sent: true,
+      });
+    }
 
-    if (result.rows.length === 0) {
+    const { email, code } = parsed.data;
+    const verification = await AuthService.verifyCode(email, code);
+    if (!verification.valid) {
       return res.render('auth/register', {
         title: '注册', error: '验证码无效或已过期。', email, sent: true,
       });
     }
 
-    await pool.query('UPDATE verification_codes SET used = true WHERE id = $1', [result.rows[0].id]);
+    const registration = await AuthService.register(email);
+    if (!registration.success) {
+      return res.render('auth/register', {
+        title: '注册', error: registration.error, email, sent: true,
+      });
+    }
 
-    const user = await pool.query(
-      `INSERT INTO users (email) VALUES ($1)
-       RETURNING id, role, name`,
-      [email]
-    );
-
-    req.session.userId = user.rows[0].id;
-    req.session.role = user.rows[0].role;
-    req.session.userName = user.rows[0].name || '';
+    req.session.userId = registration.user!.id;
+    req.session.role = registration.user!.role;
+    req.session.userName = registration.user!.name || '';
     req.session.userEmail = email;
     res.redirect('/dashboard');
   } catch (err) {
-    console.error('Verify error:', err);
-    res.render('auth/register', { title: '注册', error: '服务器错误。', email, sent: true });
+    next(err);
   }
 });
 
@@ -125,86 +92,70 @@ router.get('/login', (_req: Request, res: Response) => {
   res.render('auth/login', { title: '登录', error: null, email: '', sent: false });
 });
 
-router.post('/login', async (req: Request, res: Response) => {
-  const { email } = req.body;
-  if (!email || !email.includes('@')) {
-    return res.render('auth/login', { title: '登录', error: '请输入有效的邮箱地址', email, sent: false });
-  }
-
+router.post('/login', async (req: Request, res: Response, next) => {
   try {
-    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-    if (existing.rows.length === 0) {
+    const parsed = emailSchema.safeParse(req.body);
+    if (!parsed.success) {
       return res.render('auth/login', {
-        title: '登录', error: '该邮箱未注册，请先注册。',
-        email, sent: false,
+        title: '登录', error: '请输入有效的邮箱地址',
+        email: req.body.email, sent: false
       });
     }
 
-    // 60s cooldown check
-    const lastCode = await pool.query(
-      `SELECT created_at FROM verification_codes
-       WHERE email = $1 AND used = false AND expires_at > NOW()
-       ORDER BY created_at DESC LIMIT 1`,
-      [email]
-    );
-    if (lastCode.rows.length > 0) {
-      const elapsed = Date.now() - new Date(lastCode.rows[0].created_at).getTime();
-      if (elapsed < 60000) {
-        const wait = Math.ceil((60000 - elapsed) / 1000);
-        return res.render('auth/login', {
-          title: '登录', error: `请 ${wait} 秒后再试`, email, sent: true,
-        });
-      }
+    const { email } = parsed.data;
+    const login = await AuthService.login(email);
+    if (!login.success) {
+      return res.render('auth/login', {
+        title: '登录', error: login.error, email, sent: false,
+      });
     }
 
-    const code = generateCode();
-    await pool.query(
-      'UPDATE verification_codes SET used = true WHERE email = $1 AND used = false',
-      [email]
-    );
-    await pool.query(
-      `INSERT INTO verification_codes (email, code, expires_at)
-       VALUES ($1, $2, NOW() + INTERVAL '10 minutes')`,
-      [email, code]
-    );
+    const result = await AuthService.sendCode(email);
+    if (!result.success) {
+      return res.render('auth/login', {
+        title: '登录', error: result.error, email, sent: true,
+      });
+    }
 
-    await sendVerificationCode(email, code);
     res.render('auth/login', { title: '登录', error: null, email, sent: true });
   } catch (err) {
-    console.error('Login error:', err);
-    res.render('auth/login', { title: '登录', error: '服务器错误，请重试。', email, sent: false });
+    next(err);
   }
 });
 
-router.post('/login/verify', async (req: Request, res: Response) => {
-  const { email, code } = req.body;
-
+router.post('/login/verify', async (req: Request, res: Response, next) => {
   try {
-    const result = await pool.query(
-      `SELECT v.id, u.id as uid, u.role, u.name FROM verification_codes v
-       JOIN users u ON u.email = v.email
-       WHERE v.email = $1 AND v.code = $2 AND v.used = false AND v.expires_at > NOW()
-       ORDER BY v.created_at DESC LIMIT 1`,
-      [email, code]
-    );
+    const parsed = verifyCodeSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.render('auth/login', {
+        title: '登录', error: '验证码为6位数字', email: req.body.email, sent: true,
+      });
+    }
 
-    if (result.rows.length === 0) {
+    const { email, code } = parsed.data;
+    const verification = await AuthService.verifyCode(email, code);
+    if (!verification.valid) {
       return res.render('auth/login', {
         title: '登录', error: '验证码无效或已过期。', email, sent: true,
       });
     }
 
-    await pool.query('UPDATE verification_codes SET used = true WHERE id = $1', [result.rows[0].id]);
-    await pool.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [result.rows[0].uid]);
+    const login = await AuthService.login(email);
+    if (!login.success) {
+      return res.render('auth/login', {
+        title: '登录', error: login.error, email, sent: true,
+      });
+    }
 
-    req.session.userId = result.rows[0].uid;
-    req.session.role = result.rows[0].role;
-    req.session.userName = result.rows[0].name || '';
+    await AuthService.updateLastLogin(login.user!.id);
+
+    req.session.userId = login.user!.id;
+    req.session.role = login.user!.role;
+    req.session.userName = login.user!.name || '';
     req.session.userEmail = email;
     res.redirect('/dashboard');
   } catch (err) {
-    console.error('Login verify error:', err);
-    res.render('auth/login', { title: '登录', error: '服务器错误。', email, sent: true });
+    next(err);
   }
 });
 

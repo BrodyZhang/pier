@@ -9,9 +9,17 @@ import fs from 'fs';
 import expressLayouts from 'express-ejs-layouts';
 import pgSession from 'connect-pg-simple';
 import http from 'http';
-import { WebSocketServer, WebSocket } from 'ws';
-import pool, { initDB } from './services/db';
+import helmet from 'helmet';
+import pinoHttp from 'pino-http';
+import { initDB } from './services/db';
+import pool from './services/db';
 import { requireAuth, requireAdmin, requireDevApiKey } from './middleware/auth';
+import { authLimiter, apiLimiter } from './middleware/rate-limit';
+import { errorHandler } from './middleware/error-handler';
+import { AgentService } from './services/agent.service';
+import { decodeBase64Html, injectDisclaimer } from './utils/html';
+import { setupWebSocket } from './ws/chat';
+import { logger } from './utils/logger';
 import authRoutes from './routes/auth';
 import dashboardRoutes from './routes/dashboard';
 import agentRoutes, { publicRouter } from './routes/agent';
@@ -23,6 +31,25 @@ const app = express();
 const server = http.createServer(app);
 
 const PORT = parseInt(process.env.PORT || '3000');
+
+app.use(pinoHttp({ logger }));
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "ws:", "wss:"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '../views'));
@@ -40,6 +67,8 @@ app.use(session({
   store: new PgStore({
     pool,
     tableName: 'user_sessions',
+    createTableIfMissing: true,
+    pruneSessionInterval: 60 * 60, // 1 hour in seconds
   }),
   secret: process.env.SESSION_SECRET || 'dev-secret',
   resave: false,
@@ -58,41 +87,40 @@ app.use((req, _res, next) => {
   _res.locals.isAdmin = req.session.role === 'admin';
   _res.locals.userEmail = req.session.userEmail || '';
   _res.locals.userName = req.session.userName || '';
-  _res.locals.adminEmail = process.env.ADMIN_EMAIL || 'ailaopoonline@yeah.net';
-  _res.locals.contactEmail = process.env.CONTACT_EMAIL || 'ailaopoonline@yeah.net';
+  _res.locals.adminEmail = process.env.ADMIN_EMAIL || '';
+  _res.locals.contactEmail = process.env.CONTACT_EMAIL || '';
   next();
 });
 
 app.use(express.static(path.join(__dirname, '../public')));
 
-app.use('/auth', authRoutes);
+// Health check endpoint
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.use('/auth', authLimiter, authRoutes);
 app.use('/dashboard', requireAuth, dashboardRoutes);
 app.use('/agent', agentRoutes);
 app.use('/admin', requireAuth, requireAdmin, adminRoutes);
 app.use('/profile', profileRoutes);
-app.use('/api/dev', requireDevApiKey, devRoutes);
+// API v1 routes (versioned)
+app.use('/api/v1/dev', apiLimiter, requireDevApiKey, devRoutes);
+// Legacy API routes (backward compatible, redirect to v1)
+app.use('/api/dev', apiLimiter, requireDevApiKey, devRoutes);
 app.use('/', publicRouter);
 
-app.get('/', async (_req, res) => {
-  let showcasedAgents: any[] = [];
+app.get('/', async (_req, res, next) => {
   try {
-    const result = await pool.query(
-      `SELECT id, name, description, unique_slug,
-              LEFT(description, 80) as short_desc
-       FROM agent_requests
-       WHERE showcased = true AND status = 'completed' AND unique_slug IS NOT NULL
-       ORDER BY updated_at DESC
-       LIMIT 12`
-    );
-    showcasedAgents = result.rows;
+    const showcasedAgents = await AgentService.getShowcased(12);
+    res.render('index', { user: null, showcasedAgents });
   } catch (err) {
-    console.error('Showcase query error:', err);
+    next(err);
   }
-  res.render('index', { user: null, showcasedAgents });
 });
 
 // Serve game HTML from database by slug (public, no auth)
-app.get('/g/:slug', async (req, res) => {
+app.get('/g/:slug', async (req, res, next) => {
   try {
     const agent = await pool.query(
       `SELECT id FROM agent_requests WHERE unique_slug = $1::uuid AND status IN ('completed','dev_review')`,
@@ -101,23 +129,12 @@ app.get('/g/:slug', async (req, res) => {
     if (agent.rows.length === 0) {
       return res.status(404).send('Game not found');
     }
-    const file = await pool.query(
-      'SELECT content FROM agent_files WHERE agent_id = $1 ORDER BY created_at DESC LIMIT 1',
-      [agent.rows[0].id]
-    );
-    if (file.rows.length === 0) return res.status(404).send('Game content not found');
-    let raw = file.rows[0].content;
-    let html: string;
-    try {
-      html = Buffer.from(raw, 'base64').toString('utf-8');
-      if (!html.includes('<!DOCTYPE') && !html.includes('<html')) html = raw;
-    } catch { html = raw; }
-    const disclaimer = `<div style="position:fixed;bottom:10px;left:10px;right:10px;font-size:11px;color:rgba(0,0,0,0.2);z-index:9999;pointer-events:none;text-align:center;">本页面由 AI 自动生成，为个人学习实验项目，内容仅供展示，不构成任何承诺或保证。</div>`;
-    html = html.replace('</body>', `${disclaimer}</body>`);
+    const file = await AgentService.getLatestFile(agent.rows[0].id);
+    if (!file) return res.status(404).send('Game content not found');
+    const html = injectDisclaimer(decodeBase64Html(file.content));
     res.send(html);
   } catch (err) {
-    console.error('Game serve error:', err);
-    res.status(500).send('Server error');
+    next(err);
   }
 });
 
@@ -133,80 +150,11 @@ app.get('/g/file/:name', (req, res) => {
   }
 });
 
-// --- WebSocket Chat ---
-interface ChatClient {
-  ws: WebSocket;
-  userEmail: string;
-  userName: string;
-  lastMessageTime: number;
-}
+// Error handling middleware (must be after all routes)
+app.use(errorHandler);
 
-const rooms = new Map<string, Map<WebSocket, ChatClient>>();
-
-const wss = new WebSocketServer({ server });
-
-wss.on('connection', (ws, req) => {
-  const url = new URL(req.url || '', 'http://localhost');
-  const slug = url.searchParams.get('slug');
-  if (!slug) { ws.close(1008, 'slug required'); return; }
-
-  if (!rooms.has(slug)) rooms.set(slug, new Map());
-  const room = rooms.get(slug)!;
-
-  const client: ChatClient = { ws, userEmail: '', userName: '', lastMessageTime: 0 };
-  room.set(ws, client);
-
-  ws.send(JSON.stringify({ type: 'users', count: room.size }));
-
-  ws.on('message', (data) => {
-    try {
-      const msg = JSON.parse(data.toString());
-
-      if (msg.type === 'join') {
-        client.userEmail = msg.userEmail || 'Anonymous';
-        client.userName = msg.userName || client.userEmail;
-        broadcast(room, { type: 'join', user: client.userName, users: room.size }, ws);
-        return;
-      }
-
-      if (msg.type === 'message') {
-        const now = Date.now();
-        if (now - client.lastMessageTime < 3000) {
-          ws.send(JSON.stringify({ type: 'error', message: '消息发送太快，请等待 3 秒' }));
-          return;
-        }
-        client.lastMessageTime = now;
-
-        const wordCount = msg.text.trim().length;
-        if (wordCount === 0) return;
-        if (wordCount > 500) {
-          ws.send(JSON.stringify({ type: 'error', message: '消息不能超过 500 字' }));
-          return;
-        }
-
-        const safeText = msg.text.substring(0, 500);
-          broadcast(room, { type: 'message', text: safeText, user: client.userName, time: now }, null);
-        return;
-      }
-    } catch { /* ignore malformed */ }
-  });
-
-  ws.on('close', () => {
-    const uname = client.userName;
-    room.delete(ws);
-    if (room.size === 0) rooms.delete(slug);
-    else if (uname) broadcast(room, { type: 'leave', user: uname, users: room.size }, null);
-  });
-});
-
-function broadcast(room: Map<WebSocket, ChatClient>, message: object, exclude: WebSocket | null) {
-  const data = JSON.stringify(message);
-  for (const [ws] of room) {
-    if (ws !== exclude && ws.readyState === WebSocket.OPEN) {
-      ws.send(data);
-    }
-  }
-}
+// Setup WebSocket
+setupWebSocket(server);
 
 async function start(): Promise<void> {
   try {
