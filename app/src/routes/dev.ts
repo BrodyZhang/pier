@@ -147,6 +147,15 @@ router.post('/delete/:id', async (req: Request, res: Response, next) => {
   }
 });
 
+router.post('/reopen/:id', async (req: Request, res: Response, next) => {
+  try {
+    await AgentService.rejectDev(req.params.id);
+    res.json({ success: true, status: 'in_development' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/approve/:id', async (req: Request, res: Response, next) => {
   try {
     const approved = await AgentService.approveDev(req.params.id);

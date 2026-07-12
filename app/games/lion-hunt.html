@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🦁 狮子捕猎</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    background: #1a3a1a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Microsoft YaHei', sans-serif;
+    overflow: hidden;
+    touch-action: none;
+}
+canvas {
+    display: block;
+    border: 3px solid #5a3a1a;
+    border-radius: 12px;
+    box-shadow: 0 0 50px rgba(0,0,0,0.5);
+    max-width: 100vw;
+    max-height: 100vh;
+}
+#ui {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    pointer-events: none;
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 22px;
+    color: #fff;
+    font-size: 18px;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+#gameOver {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0,0,0,0.65);
+    color: #fff;
+    z-index: 10;
+}
+#gameOver h1 { font-size: 44px; margin-bottom: 10px; color: #ff6644; }
+#gameOver p { font-size: 20px; margin-bottom: 8px; color: rgba(255,255,255,0.8); }
+#gameOver button {
+    pointer-events: auto;
+    margin-top: 12px;
+    padding: 14px 48px;
+    font-size: 20px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f90, #e60);
+    color: #fff;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: bold;
+}
+#gameOver button:hover { transform: scale(1.08); }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="ui">
+    <span>🐑 <span id="score">0</span></span>
+    <span>🦁 <span id="distance">0</span>m</span>
+</div>
+<div id="gameOver">
+    <h1>💀 小狮子牺牲了</h1>
+    <p>捕获了 <span id="finalScore">0</span> 只小羊</p>
+    <p>跑了 <span id="finalDist">0</span> 米</p>
+    <p style="font-size:14px;opacity:0.6;">小心石头！</p>
+    <button onclick="restart()">🔄 重新开始</button>
+</div>
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const W = 600, H = 600;
+canvas.width = W;
+canvas.height = H;
+
+let lion, sheepList, rockList;
+let score, distance, gameRunning, frameCount;
+let keys = {};
+let grassTufts = [];
+let particles = [];
+let scrollSpeed = 0;
+const BASE_SPEED = 1.5;
+
+function init() {
+    lion = { x: W/2, y: H-100, r: 22 };
+    sheepList = [];
+    rockList = [];
+    particles = [];
+    score = 0;
+    distance = 0;
+    gameRunning = true;
+    frameCount = 0;
+    scrollSpeed = BASE_SPEED;
+
+    grassTufts = [];
+    for (let i = 0; i < 50; i++) {
+        grassTufts.push({
+            x: Math.random() * W, y: Math.random() * H,
+            h: 4 + Math.random() * 8, sway: Math.random() * Math.PI * 2
+        });
+    }
+
+    spawnSheep();
+    spawnSheep();
+    spawnSheep();
+
+    document.getElementById('gameOver').style.display = 'none';
+    updateUI();
+}
+
+function spawnSheep() {
+    let x = 30 + Math.random() * (W - 60);
+    let y = -40 - Math.random() * 100;
+    sheepList.push({
+        x, y, r: 14,
+        wobble: Math.random() * Math.PI * 2,
+    });
+}
+
+function spawnRock() {
+    let x = 30 + Math.random() * (W - 60);
+    let y = -50;
+    let r = 15 + Math.random() * 12;
+    rockList.push({
+        x, y, r,
+        angle: Math.random() * Math.PI * 2,
+        spin: (Math.random() - 0.5) * 0.03
+    });
+}
+
+function dist(x1, y1, x2, y2) {
+    return Math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+}
+
+function drawBackground() {
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, '#87CEEB');
+    grad.addColorStop(0.3, '#B0E0E6');
+    grad.addColorStop(0.5, '#90EE90');
+    grad.addColorStop(0.7, '#7CCD7C');
+    grad.addColorStop(1, '#5a8a3a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    const sunX = W - 80, sunY = 60;
+    const sunGrad = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 50);
+    sunGrad.addColorStop(0, 'rgba(255,255,200,1)');
+    sunGrad.addColorStop(0.3, 'rgba(255,200,50,0.8)');
+    sunGrad.addColorStop(1, 'rgba(255,200,50,0)');
+    ctx.fillStyle = sunGrad;
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, 50, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(255,255,200,0.9)';
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, 22, 0, Math.PI * 2);
+    ctx.fill();
+
+    for (let i = grassTufts.length - 1; i >= 0; i--) {
+        const g = grassTufts[i];
+        g.y += scrollSpeed;
+        if (g.y > H + 10) {
+            g.y = -10;
+            g.x = Math.random() * W;
+        }
+        ctx.strokeStyle = '#4a7a2a';
+        ctx.lineWidth = 1.5;
+        const sway = Math.sin(frameCount * 0.02 + g.sway) * 2;
+        ctx.beginPath();
+        ctx.moveTo(g.x, g.y);
+        ctx.quadraticCurveTo(g.x + sway, g.y - g.h, g.x + sway + 2, g.y - g.h - 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(g.x + 3, g.y);
+        ctx.quadraticCurveTo(g.x + 3 + sway * 0.7, g.y - g.h * 0.8, g.x + 3 + sway * 0.7 + 1, g.y - g.h * 0.8 - 1);
+        ctx.stroke();
+    }
+}
+
+function drawLion() {
+    const l = lion;
+    ctx.save();
+    ctx.translate(l.x, l.y);
+
+    ctx.shadowColor = 'rgba(0,0,0,0.2)';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = '#C68642';
+    ctx.beginPath();
+    ctx.ellipse(0, 8, l.r * 0.9, l.r * 0.75, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 5;
+    ctx.fillStyle = '#A0522D';
+    ctx.beginPath();
+    ctx.arc(0, -3, l.r * 1.15, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#D2A06D';
+    ctx.beginPath();
+    ctx.arc(0, -5, l.r * 0.85, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#C68642';
+    ctx.beginPath();
+    ctx.ellipse(-l.r * 0.65, -l.r * 0.65, l.r * 0.3, l.r * 0.25, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(l.r * 0.65, -l.r * 0.65, l.r * 0.3, l.r * 0.25, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#E8B88A';
+    ctx.beginPath();
+    ctx.ellipse(-l.r * 0.65, -l.r * 0.65, l.r * 0.15, l.r * 0.12, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(l.r * 0.65, -l.r * 0.65, l.r * 0.15, l.r * 0.12, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.ellipse(-l.r * 0.35, -l.r * 0.2, l.r * 0.22, l.r * 0.25, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(l.r * 0.35, -l.r * 0.2, l.r * 0.22, l.r * 0.25, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#2a1a0a';
+    ctx.beginPath();
+    ctx.arc(-l.r * 0.3, -l.r * 0.15, l.r * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(l.r * 0.4, -l.r * 0.15, l.r * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#5a3a2a';
+    ctx.beginPath();
+    ctx.ellipse(0, l.r * 0.1, l.r * 0.15, l.r * 0.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#5a3a2a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-l.r * 0.15, l.r * 0.2);
+    ctx.quadraticCurveTo(0, l.r * 0.4, l.r * 0.15, l.r * 0.2);
+    ctx.stroke();
+
+    ctx.fillStyle = '#8B4513';
+    ctx.beginPath();
+    ctx.arc(-l.r * 0.15, l.r * 0.3, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(l.r * 0.15, l.r * 0.3, 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = 0.8;
+    for (let side = -1; side <= 1; side += 2) {
+        for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(side * l.r * 0.5, -l.r * 0.1 + i * 4);
+            ctx.lineTo(side * (l.r * 1.1 + i * 3), -l.r * 0.1 + i * 4 + side * 3);
+            ctx.stroke();
+        }
+    }
+
+    ctx.shadowBlur = 0;
+    ctx.restore();
+}
+
+function drawSheep(s) {
+    ctx.save();
+    ctx.translate(s.x, s.y);
+
+    ctx.shadowColor = 'rgba(0,0,0,0.15)';
+    ctx.shadowBlur = 5;
+    ctx.fillStyle = '#F5F5DC';
+    ctx.beginPath();
+    ctx.ellipse(0, 2, s.r * 1.3, s.r, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#FFF8DC';
+    for (let i = 0; i < 5; i++) {
+        const angle = (i / 5) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(Math.cos(angle) * s.r * 0.6, Math.sin(angle) * s.r * 0.5 + 2, s.r * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.fillStyle = '#E8D5B0';
+    ctx.beginPath();
+    ctx.ellipse(0, -s.r * 0.6, s.r * 0.5, s.r * 0.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#333';
+    ctx.beginPath();
+    ctx.arc(-s.r * 0.2, -s.r * 0.55, s.r * 0.08, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(s.r * 0.2, -s.r * 0.55, s.r * 0.08, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(-s.r * 0.17, -s.r * 0.58, s.r * 0.03, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(s.r * 0.23, -s.r * 0.58, s.r * 0.03, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#D4A574';
+    ctx.beginPath();
+    ctx.ellipse(0, -s.r * 0.45, s.r * 0.08, s.r * 0.06, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#D4A574';
+    ctx.beginPath();
+    ctx.ellipse(-s.r * 0.45, -s.r * 0.7, s.r * 0.2, s.r * 0.1, -0.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(s.r * 0.45, -s.r * 0.7, s.r * 0.2, s.r * 0.1, 0.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = '#D4A574';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-s.r * 0.6, s.r * 0.5);
+    ctx.lineTo(-s.r * 0.6, s.r * 1.2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(s.r * 0.6, s.r * 0.5);
+    ctx.lineTo(s.r * 0.6, s.r * 1.2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-s.r * 0.2, s.r * 0.5);
+    ctx.lineTo(-s.r * 0.2, s.r * 1.2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(s.r * 0.2, s.r * 0.5);
+    ctx.lineTo(s.r * 0.2, s.r * 1.2);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#D4A574';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(s.r * 1.1, 0);
+    ctx.quadraticCurveTo(s.r * 1.5, -s.r * 0.3, s.r * 1.3, -s.r * 0.6);
+    ctx.stroke();
+    ctx.fillStyle = '#F5F5DC';
+    ctx.beginPath();
+    ctx.arc(s.r * 1.3, -s.r * 0.6, s.r * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+}
+
+function drawRock(r) {
+    ctx.save();
+    ctx.translate(r.x, r.y);
+    ctx.rotate(r.angle);
+    ctx.shadowColor = 'rgba(0,0,0,0.3)';
+    ctx.shadowBlur = 8;
+    const grad = ctx.createRadialGradient(-r.r*0.2, -r.r*0.2, 2, 0, 0, r.r);
+    grad.addColorStop(0, '#9a9a8a');
+    grad.addColorStop(0.5, '#7a7a6a');
+    grad.addColorStop(1, '#5a5a4a');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(-r.r * 0.8, r.r * 0.5);
+    ctx.quadraticCurveTo(-r.r * 1.1, -r.r * 0.2, -r.r * 0.3, -r.r * 0.9);
+    ctx.quadraticCurveTo(0, -r.r * 0.7, r.r * 0.3, -r.r * 0.9);
+    ctx.quadraticCurveTo(r.r * 1.1, -r.r * 0.2, r.r * 0.8, r.r * 0.5);
+    ctx.quadraticCurveTo(0, r.r * 0.8, -r.r * 0.8, r.r * 0.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+}
+
+function spawnParticles(x, y, color, count) {
+    for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1 + Math.random() * 3;
+        particles.push({
+            x, y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 25 + Math.random() * 15,
+            maxLife: 40,
+            size: 2 + Math.random() * 4,
+            color
+        });
+    }
+}
+
+function drawParticles() {
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+        const alpha = p.life / p.maxLife;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+        ctx.fill();
+        if (p.life <= 0) particles.splice(i, 1);
+    }
+    ctx.globalAlpha = 1;
+}
+
+function updateLion() {
+    const l = lion;
+
+    let dx = 0;
+    if (keys['ArrowLeft'] || keys['KeyA']) dx = -1;
+    if (keys['ArrowRight'] || keys['KeyD']) dx = 1;
+
+    l.x += dx * 3.5;
+    l.x = Math.max(l.r, Math.min(W - l.r, l.x));
+}
+
+function updateWorld() {
+    scrollSpeed = BASE_SPEED + distance * 0.003;
+
+    for (let i = sheepList.length - 1; i >= 0; i--) {
+        const s = sheepList[i];
+        s.y += scrollSpeed;
+        s.wobble += 0.03;
+        s.x += Math.sin(s.wobble) * 0.3;
+
+        if (s.y > H + 50) {
+            sheepList.splice(i, 1);
+        }
+    }
+
+    for (let i = rockList.length - 1; i >= 0; i--) {
+        const r = rockList[i];
+        r.y += scrollSpeed * 0.8;
+        r.angle += r.spin;
+
+        if (r.y > H + 50) {
+            rockList.splice(i, 1);
+        }
+    }
+
+    while (sheepList.length < 3) {
+        spawnSheep();
+    }
+
+    if (Math.random() < 0.015) {
+        spawnRock();
+    }
+
+    distance += scrollSpeed * 0.05;
+}
+
+function checkCollisions() {
+    const l = lion;
+
+    for (const rock of rockList) {
+        if (dist(l.x, l.y, rock.x, rock.y) < l.r + rock.r * 0.8) {
+            spawnParticles(l.x, l.y, '#ff6644', 30);
+            spawnParticles(l.x, l.y, '#ffaa44', 20);
+            gameOver();
+            return;
+        }
+    }
+
+    for (let i = sheepList.length - 1; i >= 0; i--) {
+        const s = sheepList[i];
+        if (dist(l.x, l.y, s.x, s.y) < l.r + s.r) {
+            spawnParticles(s.x, s.y, '#ffdd88', 12);
+            spawnParticles(s.x, s.y, '#fff', 8);
+            sheepList.splice(i, 1);
+            score++;
+            updateUI();
+
+            if (score >= 10) {
+                win();
+                return;
+            }
+        }
+    }
+}
+
+function gameOver() {
+    gameRunning = false;
+    document.getElementById('finalScore').textContent = score;
+    document.getElementById('finalDist').textContent = Math.floor(distance);
+    document.getElementById('gameOver').style.display = 'flex';
+}
+
+function win() {
+    gameRunning = false;
+    document.getElementById('finalScore').textContent = score;
+    document.getElementById('finalDist').textContent = Math.floor(distance);
+    document.getElementById('gameOver').querySelector('h1').textContent = '🎉 小狮子吃饱了！';
+    document.getElementById('gameOver').querySelector('p:nth-child(3)').textContent = '太棒了！你抓到了所有小羊！';
+    document.getElementById('gameOver').style.display = 'flex';
+}
+
+function updateUI() {
+    document.getElementById('score').textContent = score;
+    document.getElementById('distance').textContent = Math.floor(distance);
+}
+
+function restart() {
+    document.getElementById('gameOver').querySelector('h1').textContent = '💀 小狮子牺牲了';
+    document.getElementById('gameOver').querySelector('p:nth-child(3)').textContent = '跑了 <span id="finalDist">0</span> 米';
+    init();
+}
+
+function gameLoop() {
+    try {
+        if (!gameRunning) {
+            drawBackground();
+            for (const r of rockList) drawRock(r);
+            for (const s of sheepList) drawSheep(s);
+            drawLion();
+            drawParticles();
+            requestAnimationFrame(gameLoop);
+            return;
+        }
+
+        frameCount++;
+
+        updateLion();
+        updateWorld();
+        checkCollisions();
+
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, W, H);
+        ctx.restore();
+
+        drawBackground();
+        for (const r of rockList) drawRock(r);
+        for (const s of sheepList) drawSheep(s);
+        drawLion();
+        drawParticles();
+    } catch(e) {
+        console.error('Game error:', e);
+    }
+    requestAnimationFrame(gameLoop);
+}
+
+document.addEventListener('keydown', e => {
+    keys[e.code] = true;
+    if (['ArrowLeft','ArrowRight','KeyA','KeyD'].includes(e.code)) e.preventDefault();
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+canvas.setAttribute('tabindex', '0');
+canvas.focus();
+
+canvas.addEventListener('touchstart', e => {
+    e.preventDefault();
+});
+canvas.addEventListener('touchmove', e => {
+    e.preventDefault();
+    const t = e.touches[0];
+    const rect = canvas.getBoundingClientRect();
+    const tx = (t.clientX - rect.left) * (canvas.width / rect.width);
+    if (tx < lion.x - 20) {
+        keys['ArrowLeft'] = true;
+        keys['ArrowRight'] = false;
+    } else if (tx > lion.x + 20) {
+        keys['ArrowRight'] = true;
+        keys['ArrowLeft'] = false;
+    } else {
+        keys['ArrowLeft'] = false;
+        keys['ArrowRight'] = false;
+    }
+});
+canvas.addEventListener('touchend', e => {
+    e.preventDefault();
+    keys['ArrowLeft'] = false;
+    keys['ArrowRight'] = false;
+});
+
+init();
+canvas.focus();
+gameLoop();
+</script>
+</body>
+</html>
