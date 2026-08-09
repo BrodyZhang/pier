@@ -101,7 +101,8 @@ pier/
 │       │   └── index.ejs               # HTML 粘贴 + 预览生成页
 │       └── admin/
 │           ├── requests.ejs
-│           └── review.ejs
+│           ├── review.ejs
+│           └── html-previews.ejs       # 管理所有 HTML 预览（查看/删除）
 │
 ├── docs/
 │   ├── architecture.md
@@ -169,6 +170,8 @@ Route → Validator (zod) → Service → Repository → Database
 | POST | `/admin/requests/:id/reject` | auth+admin | Reject |
 | POST | `/admin/requests/:id/upload` | auth+admin | Upload HTML |
 | POST | `/admin/requests/:id/delete` | auth+admin | Delete |
+| GET | `/admin/html-previews` | auth+admin | HTML 预览列表 |
+| POST | `/admin/html-previews/:id/delete` | auth+admin | 删除 HTML 预览 |
 | GET | `/api/v1/dev/agents` | devApiKey | List agents |
 | GET | `/api/v1/dev/pending` | devApiKey | Pending counts |
 | POST | `/api/v1/dev/create` | devApiKey | Create agent |
@@ -177,7 +180,7 @@ Route → Validator (zod) → Service → Repository → Database
 | POST | `/api/v1/dev/delete/:id` | devApiKey | Delete |
 | GET | `/html` | — | HTML 粘贴预览表单 |
 | POST | `/html` | rate-limit | 生成 HTML 预览 |
-| GET | `/html/p/:id` | — | 纯净预览页（仅底部显示预览地址） |
+| GET | `/html/p/:id` | — | 纯净预览页（原样展示，无 CSP，支持 CDN 外部库） |
 
 ## Database Tables
 

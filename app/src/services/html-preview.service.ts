@@ -12,4 +12,17 @@ export class HtmlPreviewService {
     if (!preview) return null;
     return Buffer.from(preview.content, 'base64').toString('utf-8');
   }
+
+  static async listAll(limit = 300): Promise<{ id: string; created_at: Date; content: string }[]> {
+    const rows = await HtmlPreviewRepository.findAll(limit);
+    return rows.map((r) => ({
+      id: r.id,
+      created_at: r.created_at,
+      content: Buffer.from(r.content, 'base64').toString('utf-8'),
+    }));
+  }
+
+  static async delete(id: string): Promise<boolean> {
+    return HtmlPreviewRepository.delete(id);
+  }
 }

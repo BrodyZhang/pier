@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import pool from '../services/db';
 import { AgentService } from '../services/agent.service';
+import { HtmlPreviewService } from '../services/html-preview.service';
 import { reviewSchema, agentIdSchema } from '../validators/agent.validator';
 
 const router = Router();
@@ -153,6 +154,24 @@ router.post('/requests/:id/toggle-showcase', async (req: Request, res: Response,
       return res.status(400).send(result.error);
     }
     res.redirect('/admin/requests');
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/html-previews', async (_req: Request, res: Response, next) => {
+  try {
+    const previews = await HtmlPreviewService.listAll(300);
+    res.render('admin/html-previews', { title: 'Admin - HTML Previews', previews });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/html-previews/:id/delete', async (req: Request, res: Response, next) => {
+  try {
+    await HtmlPreviewService.delete(req.params.id);
+    res.redirect('/admin/html-previews');
   } catch (err) {
     next(err);
   }

@@ -51,17 +51,10 @@ router.get('/html/p/:id', async (req: Request, res: Response, next) => {
       return res.status(404).send('预览不存在或已失效');
     }
 
-    const protocol = req.protocol;
-    const host = req.get('host');
-    const pageUrl = `${protocol}://${host}/html/p/${req.params.id}`;
-
-    const footer = `<div style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:11px;color:rgba(0,0,0,0.3);z-index:2147483647;pointer-events:none;user-select:none;">${pageUrl}</div>`;
-
-    const out = html.includes('</body>')
-      ? html.replace('</body>', `${footer}</body>`)
-      : html + footer;
-
-    res.send(out);
+    // Serve the user's HTML as-is, without any modification. Remove helmet's
+    // CSP so external libraries (e.g. MathJax from CDN) load like a local file.
+    res.removeHeader('Content-Security-Policy');
+    res.send(html);
   } catch (err) {
     next(err);
   }
