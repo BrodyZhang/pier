@@ -1,5 +1,6 @@
 import { htmlPreviewSchema } from '../validators/html-preview.validator';
 import { buildPreviewNav } from '../utils/preview-nav';
+import { PREVIEW_MAX_LENGTH } from '../config';
 
 describe('HTML Preview Validator', () => {
   it('should accept valid html', () => {
@@ -16,12 +17,12 @@ describe('HTML Preview Validator', () => {
   });
 
   it('should reject oversized html', () => {
-    const result = htmlPreviewSchema.safeParse({ html: 'a'.repeat(500001) });
+    const result = htmlPreviewSchema.safeParse({ html: 'a'.repeat(PREVIEW_MAX_LENGTH + 1) });
     expect(result.success).toBe(false);
   });
 
   it('should accept html at max length', () => {
-    const result = htmlPreviewSchema.safeParse({ html: 'a'.repeat(500000) });
+    const result = htmlPreviewSchema.safeParse({ html: 'a'.repeat(PREVIEW_MAX_LENGTH) });
     expect(result.success).toBe(true);
   });
 });

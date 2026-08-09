@@ -16,11 +16,9 @@ function getOptionalEnv(key: string, defaultValue: string = ''): string {
 export const config = {
   nodeEnv: getOptionalEnv('NODE_ENV', 'production'),
   port: parseInt(getOptionalEnv('PORT', '3000')),
-
   database: {
     url: getEnv('DATABASE_URL', 'postgres://pier:pier@localhost:5432/pier'),
   },
-
   session: {
     secret: getEnv('SESSION_SECRET', 'dev-secret'),
   },
@@ -46,6 +44,10 @@ export const config = {
   isProduction: process.env.NODE_ENV === 'production',
   isTest: process.env.APP_ENV === 'test',
 } as const;
+
+// Max characters allowed for HTML/Markdown preview content.
+// ~20x the length of the reference preview (test.ailaopo.online/html/p/3ef603a4).
+export const PREVIEW_MAX_LENGTH = 220000;
 
 export function validateConfig(): void {
   const required = ['SESSION_SECRET'];

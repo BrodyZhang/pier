@@ -182,10 +182,12 @@ Route → Validator (zod) → Service → Repository → Database
 | POST | `/admin/requests/:id/reject` | auth+admin | Reject |
 | POST | `/admin/requests/:id/upload` | auth+admin | Upload HTML |
 | POST | `/admin/requests/:id/delete` | auth+admin | Delete |
-| GET | `/admin/previews` | auth+admin | 预览管理（设置 + HTML/MD 双 tab） |
+| GET | `/admin/previews` | auth+admin | 预览管理（设置+统计 + HTML/MD 双 tab，含精选） |
 | POST | `/admin/previews/settings` | auth+admin | 保存预览功能设置 |
+| POST | `/admin/previews/cleanup` | auth+admin | 手动批量清理（html/md + N 天，精选保留） |
 | POST | `/admin/previews/html/:id/delete` | auth+admin | 删除 HTML 预览 |
 | POST | `/admin/previews/md/:id/delete` | auth+admin | 删除 Markdown 预览 |
+| POST | `/admin/previews/:type/:id/feature` | auth+admin | 设置/取消精选 |
 | GET | `/admin/previews/:type/:id/edit` | auth+admin | 编辑 HTML/MD 预览内容 |
 | POST | `/admin/previews/:type/:id/edit` | auth+admin | 保存 HTML/MD 预览内容 |
 | GET | `/api/v1/dev/agents` | devApiKey | List agents |
@@ -212,8 +214,8 @@ Route → Validator (zod) → Service → Repository → Database
 | `agent_files` | Agent HTML content (base64) |
 | `agent_shares` | Two-person access |
 | `user_sessions` | Express sessions |
-| `html_previews` | HTML 在线预览内容（base64） |
-| `markdown_previews` | Markdown 在线预览内容（base64） |
+| `html_previews` | HTML 在线预览内容（base64，含 add_nav、is_featured 精选标记） |
+| `markdown_previews` | Markdown 在线预览内容（base64，含 add_nav、is_featured 精选标记） |
 | `settings` | 键值对应用设置（管理员可配置） |
 | `preview_usage` | 预览每日使用计数（按 IP+日期） |
 

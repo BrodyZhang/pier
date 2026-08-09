@@ -27,13 +27,22 @@ export class MarkdownPreviewService {
     return marked.parse(markdown) as string;
   }
 
-  static async listAll(limit = 300): Promise<{ id: string; created_at: Date; content: string }[]> {
+  static async listAll(limit = 300): Promise<{ id: string; created_at: Date; content: string; is_featured: boolean }[]> {
     const rows = await MarkdownPreviewRepository.findAll(limit);
     return rows.map((r) => ({
       id: r.id,
       created_at: r.created_at,
       content: Buffer.from(r.content, 'base64').toString('utf-8'),
+      is_featured: r.is_featured,
     }));
+  }
+
+  static async countStats(): Promise<{ total: number; featured: number }> {
+    return MarkdownPreviewRepository.countStats();
+  }
+
+  static async setFeatured(id: string, featured: boolean): Promise<boolean> {
+    return MarkdownPreviewRepository.setFeatured(id, featured);
   }
 
   static async delete(id: string): Promise<boolean> {

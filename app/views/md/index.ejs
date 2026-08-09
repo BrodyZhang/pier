@@ -16,7 +16,8 @@
 
     <form method="POST" action="/md">
         <label for="md">Markdown 代码</label>
-        <textarea id="md" name="md" rows="16" placeholder="# 标题&#10;&#10;支持 **加粗**、*斜体*、`代码`、数学公式 `$x^2$` 等" style="font-family:monospace;font-size:14px;" required></textarea>
+        <textarea id="md" name="md" rows="16" maxlength="<%= maxLength %>" placeholder="# 标题&#10;&#10;支持 **加粗**、*斜体*、`代码`、数学公式 `$x^2$` 等" style="font-family:monospace;font-size:14px;" oninput="var c=document.getElementById('mdCount');if(c){c.textContent=this.value.length.toLocaleString()+' / '+this.maxLength.toLocaleString();}" required></textarea>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:6px;text-align:right;"><span id="mdCount">0 / <%= maxLength.toLocaleString() %></span></p>
         <label style="display:flex;align-items:center;gap:8px;margin-top:14px;">
             <input type="checkbox" name="add_nav" value="on" style="width:auto;" <%= typeof addNav === 'undefined' || addNav ? 'checked' : '' %>>
             自动添加导航按钮（返回首页 / 复制地址 / 打印）

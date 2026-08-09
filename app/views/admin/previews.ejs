@@ -2,7 +2,13 @@
     <div class="flex flex-wrap flex-between flex-center" style="gap:12px;">
         <div>
             <h1>预览管理</h1>
-            <p style="font-size:14px;color:var(--text-desc);margin-top:6px;">统一管理 HTML / Markdown 在线预览：设置、编辑内容与删除。</p>
+            <p style="font-size:14px;color:var(--text-desc);margin-top:6px;">统一管理 HTML / Markdown 在线预览：设置、精选、编辑、批量清理与删除。</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <div class="stat-pill"><span>HTML 总数</span><strong><%= htmlTotal %></strong></div>
+            <div class="stat-pill"><span>HTML 精选</span><strong style="color:var(--pink-600,#ff6b9d);">⭐ <%= htmlFeatured %></strong></div>
+            <div class="stat-pill"><span>MD 总数</span><strong><%= mdTotal %></strong></div>
+            <div class="stat-pill"><span>MD 精选</span><strong style="color:var(--pink-600,#ff6b9d);">⭐ <%= mdFeatured %></strong></div>
         </div>
     </div>
 </div>
@@ -14,142 +20,167 @@
     <div class="card"><div class="success"><%= success %></div></div>
 <% } %>
 
-<div class="card" style="padding:20px 28px;">
-    <h2 style="font-size:16px;margin-bottom:16px;">⚙️ 功能设置</h2>
-    <form method="POST" action="/admin/previews/settings">
-        <label style="display:flex;align-items:center;gap:8px;">
-            <input type="checkbox" name="cleanup_enabled" value="on" style="width:auto;" <%= cleanupEnabled ? 'checked' : '' %>>
-            启用自动清理（删除超过设定天数的旧预览）
-        </label>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;">
+    <div class="card" style="padding:20px 28px;">
+        <h2 style="font-size:16px;margin-bottom:16px;">⚙️ 功能设置</h2>
+        <form method="POST" action="/admin/previews/settings">
+            <label style="display:flex;align-items:center;gap:8px;">
+                <input type="checkbox" name="cleanup_enabled" value="on" style="width:auto;" <%= cleanupEnabled ? 'checked' : '' %>>
+                启用自动清理（删除超过设定天数的旧预览，精选数据不受影响）
+            </label>
 
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:16px;">
-            <div>
-                <label for="cleanup_ttl_days">清理阈值（天）</label>
-                <input type="number" id="cleanup_ttl_days" name="cleanup_ttl_days" value="<%= ttlDays %>" min="1" required>
-                <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">超过该天数的 HTML 与 Markdown 预览会被自动删除，每小时执行一次。</p>
-            </div>
-            <div>
-                <label for="daily_limit">每日预览上限（每个 IP）</label>
-                <input type="number" id="daily_limit" name="daily_limit" value="<%= dailyLimit %>" min="1" required>
-                <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">每个 IP 每天最多生成预览的次数，HTML 与 Markdown 分开计数。</p>
-            </div>
-            <div>
-                <label for="storage_cap">存储上限（条）</label>
-                <input type="number" id="storage_cap" name="storage_cap" value="<%= storageCap %>" min="1" required>
-                <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">HTML + Markdown 预览总数达到该值时，创建功能自动停用并邮件通知管理员。</p>
-            </div>
-        </div>
+            <label for="cleanup_ttl_days">自动清理阈值（天）</label>
+            <input type="number" id="cleanup_ttl_days" name="cleanup_ttl_days" value="<%= ttlDays %>" min="1" required>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">超过该天数的 HTML 与 Markdown 预览会被自动删除，每小时执行一次。</p>
 
-        <div style="margin-top:20px;">
-            <button type="submit" class="btn btn-primary">保存设置</button>
-        </div>
-    </form>
+            <label for="daily_limit">每日预览上限（每个 IP）</label>
+            <input type="number" id="daily_limit" name="daily_limit" value="<%= dailyLimit %>" min="1" required>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">每个 IP 每天最多生成预览的次数，HTML 与 Markdown 分开计数。</p>
+
+            <label for="storage_cap">存储上限（条）</label>
+            <input type="number" id="storage_cap" name="storage_cap" value="<%= storageCap %>" min="1" required>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">HTML + Markdown 预览总数达到该值时，创建功能自动停用并邮件通知管理员。</p>
+
+            <div style="margin-top:20px;">
+                <button type="submit" class="btn btn-primary">保存设置</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card" style="padding:20px 28px;">
+        <h2 style="font-size:16px;margin-bottom:16px;">🧹 手动批量清理</h2>
+        <form method="POST" action="/admin/previews/cleanup" onsubmit="return confirm('确定清理该类型所有超过设定天数的旧预览？精选数据将保留。');">
+            <label for="cleanup_type">清理类型</label>
+            <select id="cleanup_type" name="type" required>
+                <option value="html">HTML 预览</option>
+                <option value="md">Markdown 预览</option>
+            </select>
+
+            <label for="cleanup_days">清理 N 天前（天）</label>
+            <input type="number" id="cleanup_days" name="days" value="<%= ttlDays %>" min="1" required>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">删除所选类型中创建时间早于 N 天前的预览，标记为精选的条目不会被清理。</p>
+
+            <div style="margin-top:20px;">
+                <button type="submit" class="btn btn-danger">立即清理</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <div class="card" style="padding:0;">
-    <div class="preview-tabs" style="display:flex;gap:4px;padding:12px 16px 0;border-bottom:1px solid var(--border-color,#eee);">
-        <button type="button" class="preview-tab-btn" data-tab="tab-html" style="border:none;background:none;padding:10px 18px;cursor:pointer;font-size:14px;border-radius:8px 8px 0 0;color:var(--text-desc);">
-            HTML 预览 <span style="font-size:12px;">(<%= htmlPreviews.length %>)</span>
-        </button>
-        <button type="button" class="preview-tab-btn" data-tab="tab-md" style="border:none;background:none;padding:10px 18px;cursor:pointer;font-size:14px;border-radius:8px 8px 0 0;color:var(--text-desc);">
-            Markdown 预览 <span style="font-size:12px;">(<%= markdownPreviews.length %>)</span>
-        </button>
+    <div class="tabs" style="padding:12px 16px 0;border-bottom:1px solid var(--border-color,#eee);">
+        <button class="tab-btn active" data-tab="tab-html">HTML 预览 <span class="badge-count"><%= htmlPreviews.length %></span></button>
+        <button class="tab-btn" data-tab="tab-md">Markdown 预览 <span class="badge-count"><%= markdownPreviews.length %></span></button>
     </div>
 
-    <div id="tab-html" class="preview-tab-panel" style="padding:16px;">
-        <% if (htmlPreviews.length === 0) { %>
-            <div class="empty-state"><p style="font-size:14px;">暂无 HTML 预览记录</p></div>
-        <% } else { %>
-        <div style="overflow-x:auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>创建时间</th>
-                        <th>内容预览</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% htmlPreviews.forEach(function(p) { %>
-                    <tr>
-                        <td data-label="创建时间" style="white-space:nowrap;"><%= new Date(p.created_at).toLocaleString() %></td>
-                        <td data-label="内容预览">
-                            <code style="font-size:12px;white-space:pre-wrap;word-break:break-all;background:rgba(255,107,157,0.06);padding:4px 8px;border-radius:6px;display:inline-block;max-width:520px;max-height:64px;overflow:hidden;">
-                                <%= p.content.length > 160 ? p.content.substring(0, 160) + ' …' : p.content %>
-                            </code>
-                        </td>
-                        <td data-label="操作" style="white-space:nowrap;">
-                            <a href="/html/p/<%= p.id %>" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">打开</a>
-                            <a href="/admin/previews/html/<%= p.id %>/edit" class="btn btn-outline btn-sm">编辑</a>
-                            <form method="POST" action="/admin/previews/html/<%= p.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除该预览？');">
-                                <button type="submit" class="btn btn-sm" style="background:rgba(233,30,99,0.08);color:var(--pink-700);border:1px solid rgba(233,30,99,0.15);padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px;">删除</button>
-                            </form>
-                        </td>
-                    </tr>
-                    <% }) %>
-                </tbody>
-            </table>
+    <div id="tab-html" class="tab-content active">
+        <div style="padding:16px;">
+            <% if (htmlPreviews.length === 0) { %>
+                <div class="empty-state"><p style="font-size:14px;">暂无 HTML 预览记录</p></div>
+            <% } else { %>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>精选</th>
+                            <th>创建时间</th>
+                            <th>内容预览</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% htmlPreviews.forEach(function(p) { %>
+                        <tr>
+                            <td data-label="精选" style="white-space:nowrap;"><%= p.is_featured ? '<span style="font-size:16px;">⭐</span>' : '<span style="color:var(--text-muted);">—</span>' %></td>
+                            <td data-label="创建时间" style="white-space:nowrap;"><%= new Date(p.created_at).toLocaleString() %></td>
+                            <td data-label="内容预览">
+                                <code style="font-size:12px;white-space:pre-wrap;word-break:break-all;background:rgba(255,107,157,0.06);padding:4px 8px;border-radius:6px;display:inline-block;max-width:520px;max-height:64px;overflow:hidden;">
+                                    <%= p.content.length > 160 ? p.content.substring(0, 160) + ' …' : p.content %>
+                                </code>
+                            </td>
+                            <td data-label="操作" style="white-space:nowrap;">
+                                <a href="/html/p/<%= p.id %>" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">打开</a>
+                                <a href="/admin/previews/html/<%= p.id %>/edit" class="btn btn-outline btn-sm">编辑</a>
+                                <form method="POST" action="/admin/previews/html/<%= p.id %>/feature" style="display:inline;">
+                                    <input type="hidden" name="featured" value="<%= p.is_featured ? '0' : '1' %>">
+                                    <button type="submit" class="btn btn-sm" style="<%= p.is_featured ? 'background:rgba(255,193,7,0.15);color:#f57f17;border:1px solid rgba(255,193,7,0.35);' : 'background:rgba(255,193,7,0.06);color:#b8860b;border:1px solid rgba(255,193,7,0.2);' %>padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px;"><%= p.is_featured ? '取消精选' : '⭐ 精选' %></button>
+                                </form>
+                                <form method="POST" action="/admin/previews/html/<%= p.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除该预览？');">
+                                    <button type="submit" class="btn btn-sm" style="background:rgba(233,30,99,0.08);color:var(--pink-700);border:1px solid rgba(233,30,99,0.15);padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px;">删除</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+            <% } %>
         </div>
-        <% } %>
     </div>
 
-    <div id="tab-md" class="preview-tab-panel" style="padding:16px;display:none;">
-        <% if (markdownPreviews.length === 0) { %>
-            <div class="empty-state"><p style="font-size:14px;">暂无 Markdown 预览记录</p></div>
-        <% } else { %>
-        <div style="overflow-x:auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>创建时间</th>
-                        <th>内容预览</th>
-                        <th>操作</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <% markdownPreviews.forEach(function(p) { %>
-                    <tr>
-                        <td data-label="创建时间" style="white-space:nowrap;"><%= new Date(p.created_at).toLocaleString() %></td>
-                        <td data-label="内容预览">
-                            <code style="font-size:12px;white-space:pre-wrap;word-break:break-all;background:rgba(255,107,157,0.06);padding:4px 8px;border-radius:6px;display:inline-block;max-width:520px;max-height:64px;overflow:hidden;">
-                                <%= p.content.length > 160 ? p.content.substring(0, 160) + ' …' : p.content %>
-                            </code>
-                        </td>
-                        <td data-label="操作" style="white-space:nowrap;">
-                            <a href="/md/p/<%= p.id %>" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">打开</a>
-                            <a href="/admin/previews/md/<%= p.id %>/edit" class="btn btn-outline btn-sm">编辑</a>
-                            <form method="POST" action="/admin/previews/md/<%= p.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除该预览？');">
-                                <button type="submit" class="btn btn-sm" style="background:rgba(233,30,99,0.08);color:var(--pink-700);border:1px solid rgba(233,30,99,0.15);padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px;">删除</button>
-                            </form>
-                        </td>
-                    </tr>
-                    <% }) %>
-                </tbody>
-            </table>
+    <div id="tab-md" class="tab-content">
+        <div style="padding:16px;">
+            <% if (markdownPreviews.length === 0) { %>
+                <div class="empty-state"><p style="font-size:14px;">暂无 Markdown 预览记录</p></div>
+            <% } else { %>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>精选</th>
+                            <th>创建时间</th>
+                            <th>内容预览</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% markdownPreviews.forEach(function(p) { %>
+                        <tr>
+                            <td data-label="精选" style="white-space:nowrap;"><%= p.is_featured ? '<span style="font-size:16px;">⭐</span>' : '<span style="color:var(--text-muted);">—</span>' %></td>
+                            <td data-label="创建时间" style="white-space:nowrap;"><%= new Date(p.created_at).toLocaleString() %></td>
+                            <td data-label="内容预览">
+                                <code style="font-size:12px;white-space:pre-wrap;word-break:break-all;background:rgba(255,107,157,0.06);padding:4px 8px;border-radius:6px;display:inline-block;max-width:520px;max-height:64px;overflow:hidden;">
+                                    <%= p.content.length > 160 ? p.content.substring(0, 160) + ' …' : p.content %>
+                                </code>
+                            </td>
+                            <td data-label="操作" style="white-space:nowrap;">
+                                <a href="/md/p/<%= p.id %>" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">打开</a>
+                                <a href="/admin/previews/md/<%= p.id %>/edit" class="btn btn-outline btn-sm">编辑</a>
+                                <form method="POST" action="/admin/previews/md/<%= p.id %>/feature" style="display:inline;">
+                                    <input type="hidden" name="featured" value="<%= p.is_featured ? '0' : '1' %>">
+                                    <button type="submit" class="btn btn-sm" style="<%= p.is_featured ? 'background:rgba(255,193,7,0.15);color:#f57f17;border:1px solid rgba(255,193,7,0.35);' : 'background:rgba(255,193,7,0.06);color:#b8860b;border:1px solid rgba(255,193,7,0.2);' %>padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px;"><%= p.is_featured ? '取消精选' : '⭐ 精选' %></button>
+                                </form>
+                                <form method="POST" action="/admin/previews/md/<%= p.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除该预览？');">
+                                    <button type="submit" class="btn btn-sm" style="background:rgba(233,30,99,0.08);color:var(--pink-700);border:1px solid rgba(233,30,99,0.15);padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px;">删除</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
+            </div>
+            <% } %>
         </div>
-        <% } %>
     </div>
 </div>
 
+<style>
+.stat-pill { background:rgba(255,107,157,0.06); border:1px solid rgba(255,107,157,0.15); border-radius:12px; padding:8px 14px; text-align:center; }
+.stat-pill span { display:block; font-size:11px; color:var(--text-muted); }
+.stat-pill strong { font-size:18px; display:block; margin-top:2px; }
+</style>
+
 <script>
-(function () {
-    var activeColor = 'var(--pink-600,#ff6b9d)';
-    var btns = document.querySelectorAll('.preview-tab-btn');
-    var panels = document.querySelectorAll('.preview-tab-panel');
-    function show(name) {
-        btns.forEach(function (b) {
-            var on = b.getAttribute('data-tab') === name;
-            b.style.color = on ? activeColor : '';
-            b.style.fontWeight = on ? '600' : '';
-            b.style.borderBottom = on ? '2px solid ' + activeColor : 'none';
+(function() {
+    var tabs = document.querySelectorAll('.tab-btn');
+    tabs.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            tabs.forEach(function(b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+            var target = document.getElementById(btn.getAttribute('data-tab'));
+            if (target) target.classList.add('active');
         });
-        panels.forEach(function (p) {
-            p.style.display = p.id === name ? 'block' : 'none';
-        });
-    }
-    btns.forEach(function (b) {
-        b.addEventListener('click', function () { show(b.getAttribute('data-tab')); });
     });
-    show('tab-html');
 })();
 </script>

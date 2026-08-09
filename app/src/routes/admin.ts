@@ -6,6 +6,7 @@ import { MarkdownPreviewService } from '../services/markdown-preview.service';
 import { SettingsService } from '../services/settings.service';
 import { reviewSchema, agentIdSchema } from '../validators/agent.validator';
 import { isValidUuid } from '../utils/validation';
+import { PREVIEW_MAX_LENGTH } from '../config';
 
 const router = Router();
 
@@ -162,16 +163,24 @@ router.post('/requests/:id/toggle-showcase', async (req: Request, res: Response,
   }
 });
 
-router.get('/previews', async (_req: Request, res: Response, next) => {
+router.get('/previews', async (req: Request, res: Response, next) => {
   try {
-    const [cleanupEnabled, ttlDays, dailyLimit, storageCap, htmlPreviews, markdownPreviews] = await Promise.all([
-      SettingsService.getBool('preview_cleanup_enabled', true),
-      SettingsService.getInt('preview_cleanup_ttl_days', 7),
-      SettingsService.getInt('preview_daily_limit', 100),
-      SettingsService.getInt('preview_storage_cap', 100000),
-      HtmlPreviewService.listAll(300),
-      MarkdownPreviewService.listAll(300),
-    ]);
+    const [cleanupEnabled, ttlDays, dailyLimit, storageCap, htmlPreviews, markdownPreviews, htmlStats, mdStats] =
+      await Promise.all([
+        SettingsService.getBool('preview_cleanup_enabled', true),
+        SettingsService.getInt('preview_cleanup_ttl_days', 7),
+        SettingsService.getInt('preview_daily_limit', 100),
+        SettingsService.getInt('preview_storage_cap', 100000),
+        HtmlPreviewService.listAll(300),
+        MarkdownPreviewService.listAll(300),
+        HtmlPreviewService.countStats(),
+        MarkdownPreviewService.countStats(),
+      ]);
+
+    const cleaned = parseInt(String(req.query.cleaned || '0'), 10) || 0;
+    const cleanedType = req.query.type === 'md' ? 'Markdown' : 'HTML';
+    const success = cleaned > 0 ? `已清理 ${cleanedType} 旧预览 ${cleaned} 条（精选数据已保留）` : null;
+
     res.render('admin/previews', {
       title: 'Admin - Previews',
       cleanupEnabled,
@@ -180,9 +189,42 @@ router.get('/previews', async (_req: Request, res: Response, next) => {
       storageCap,
       htmlPreviews,
       markdownPreviews,
+      htmlTotal: htmlStats.total,
+      htmlFeatured: htmlStats.featured,
+      mdTotal: mdStats.total,
+      mdFeatured: mdStats.featured,
       error: null,
-      success: null,
+      success,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/previews/cleanup', async (req: Request, res: Response, next) => {
+  try {
+    const type = req.body.type === 'md' ? 'md' : 'html';
+    const days = Math.max(1, parseInt(req.body.days, 10) || 7);
+    const removed =
+      type === 'md' ? await MarkdownPreviewService.cleanupOlderThan(days) : await HtmlPreviewService.cleanupOlderThan(days);
+    res.redirect(`/admin/previews?cleaned=${removed}&type=${type}`);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/previews/:type/:id/feature', async (req: Request, res: Response, next) => {
+  try {
+    const { type, id } = req.params;
+    if (isValidUuid(id) && (type === 'html' || type === 'md')) {
+      const featured = req.body.featured === '1' || req.body.featured === 'on';
+      if (type === 'html') {
+        await HtmlPreviewService.setFeatured(id, featured);
+      } else {
+        await MarkdownPreviewService.setFeatured(id, featured);
+      }
+    }
+    res.redirect('/admin/previews');
   } catch (err) {
     next(err);
   }
@@ -260,7 +302,7 @@ router.post('/previews/:type/:id/edit', async (req: Request, res: Response, next
     if (!isValidUuid(id) || (type !== 'html' && type !== 'md')) {
       return res.redirect('/admin/previews');
     }
-    if (content.length < 1 || content.length > 500000) {
+    if (content.length < 1 || content.length > PREVIEW_MAX_LENGTH) {
       const preview =
         type === 'html' ? await HtmlPreviewService.getById(id) : await MarkdownPreviewService.getById(id);
       return res.render('admin/preview-edit', {
@@ -268,7 +310,7 @@ router.post('/previews/:type/:id/edit', async (req: Request, res: Response, next
         type,
         id,
         content: preview ? preview.content : '',
-        error: '内容长度需在 1 到 500000 字符之间',
+        error: `内容长度需在 1 到 ${PREVIEW_MAX_LENGTH} 字符之间`,
       });
     }
     const updated =

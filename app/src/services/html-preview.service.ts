@@ -21,13 +21,22 @@ export class HtmlPreviewService {
     };
   }
 
-  static async listAll(limit = 300): Promise<{ id: string; created_at: Date; content: string }[]> {
+  static async listAll(limit = 300): Promise<{ id: string; created_at: Date; content: string; is_featured: boolean }[]> {
     const rows = await HtmlPreviewRepository.findAll(limit);
     return rows.map((r) => ({
       id: r.id,
       created_at: r.created_at,
       content: Buffer.from(r.content, 'base64').toString('utf-8'),
+      is_featured: r.is_featured,
     }));
+  }
+
+  static async countStats(): Promise<{ total: number; featured: number }> {
+    return HtmlPreviewRepository.countStats();
+  }
+
+  static async setFeatured(id: string, featured: boolean): Promise<boolean> {
+    return HtmlPreviewRepository.setFeatured(id, featured);
   }
 
   static async delete(id: string): Promise<boolean> {

@@ -5,8 +5,14 @@ import { htmlPreviewSchema } from '../validators/html-preview.validator';
 import { strictLimiter } from '../middleware/rate-limit';
 import { isValidUuid } from '../utils/validation';
 import { buildPreviewNav } from '../utils/preview-nav';
+import { PREVIEW_MAX_LENGTH } from '../config';
 
 const router = Router();
+
+router.use((_req: Request, res: Response, next) => {
+  res.locals.maxLength = PREVIEW_MAX_LENGTH;
+  next();
+});
 
 function parseAddNav(value: unknown): boolean {
   return value === 'on' || value === '1' || value === 'true' || value === true;
