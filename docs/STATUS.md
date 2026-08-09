@@ -27,6 +27,7 @@
 | HTML 在线预览 | ✅ Complete | `/html` 粘贴任意 HTML → 纯净预览页 `/html/p/:id`（原样展示、无 CSP、支持 MathJax 等 CDN 库，可选导航栏：返回首页/复制地址/打印，打印时自动隐藏导航） |
 | Markdown 在线预览 | ✅ Complete | `/md` 粘贴 Markdown → 渲染预览页 `/md/p/:id`（marked + GFM + MathJax，样式化渲染页，可选导航栏） |
 | 预览限额/存储上限 | ✅ Complete | 每 IP 每日上限（默认 100）、HTML+MD 存储上限（默认 10 万条，达到禁用创建并邮件通知管理员） |
+| 预览管理 | ✅ Complete | 单菜单 `/admin/previews`：设置面板在顶部 + HTML/MD 双 tab，支持查看/打开/编辑内容/删除 |
 | 预览自动清理 | ✅ Complete | 管理员可开关 + 设置清理天数，每小时清理 html_previews + markdown_previews |
 | Testing | ✅ Complete | Jest framework, 27 tests passing |
 | Logging | ✅ Complete | Pino structured logging |
@@ -120,6 +121,7 @@
 - [x] Markdown 在线预览: `/md` 粘贴 Markdown → 渲染预览页 `/md/p/:id`（marked v5 + GFM + MathJax，markdown_previews 表，base64 存储，管理员管理页 `/admin/markdown-previews`）
 - [x] 预览限额/存储上限: `settings` 表存储 preview_daily_limit（默认 100/日/IP）与 preview_storage_cap（默认 10 万条），`preview_usage` 表按 IP+日期计数，达到上限禁用创建并邮件通知管理员（6 小时限频），管理员设置页 `/admin/preview-settings`
 - [x] 预览自动清理可配置: `preview_cleanup_enabled` + `preview_cleanup_ttl_days` 由管理员在设置页控制，每小时清理 html_previews + markdown_previews；用户提示改为「预览可能随时被清理」不再写固定天数
+- [x] 预览管理整合: 单菜单 `/admin/previews`（设置面板在顶部 + HTML/MD 双 tab），管理员可编辑 HTML/MD 预览内容（`/admin/previews/:type/:id/edit`），旧页面 /admin/html-previews、/admin/markdown-previews、/admin/preview-settings 移除
 
 ### Codebase Refactoring (2026-06-23)
 - [x] Phase 1 - Security: SQL injection fix, rate limiting, helmet, remove hardcoded secrets

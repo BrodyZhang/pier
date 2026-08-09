@@ -34,6 +34,11 @@ export class HtmlPreviewService {
     return HtmlPreviewRepository.delete(id);
   }
 
+  static async update(id: string, html: string): Promise<boolean> {
+    const encoded = Buffer.from(html, 'utf-8').toString('base64');
+    return HtmlPreviewRepository.update(id, encoded);
+  }
+
   static async cleanupOlderThan(days: number): Promise<number> {
     return HtmlPreviewRepository.deleteOlderThan(days);
   }

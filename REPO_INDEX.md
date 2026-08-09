@@ -113,9 +113,8 @@ pier/
 │       └── admin/
 │           ├── requests.ejs
 │           ├── review.ejs
-│           ├── html-previews.ejs       # 管理所有 HTML 预览（查看/删除）
-│           ├── markdown-previews.ejs   # 管理所有 Markdown 预览（查看/删除）
-│           └── preview-settings.ejs    # 预览功能设置（清理/限额/存储上限）
+│           ├── previews.ejs             # 预览管理：设置 + HTML/MD 双 tab
+│           └── preview-edit.ejs         # 编辑 HTML/MD 预览内容
 │
 ├── docs/
 │   ├── architecture.md
@@ -183,12 +182,12 @@ Route → Validator (zod) → Service → Repository → Database
 | POST | `/admin/requests/:id/reject` | auth+admin | Reject |
 | POST | `/admin/requests/:id/upload` | auth+admin | Upload HTML |
 | POST | `/admin/requests/:id/delete` | auth+admin | Delete |
-| GET | `/admin/html-previews` | auth+admin | HTML 预览列表 |
-| POST | `/admin/html-previews/:id/delete` | auth+admin | 删除 HTML 预览 |
-| GET | `/admin/markdown-previews` | auth+admin | Markdown 预览列表 |
-| POST | `/admin/markdown-previews/:id/delete` | auth+admin | 删除 Markdown 预览 |
-| GET | `/admin/preview-settings` | auth+admin | 预览功能设置（清理/限额/存储上限） |
-| POST | `/admin/preview-settings` | auth+admin | 保存预览功能设置 |
+| GET | `/admin/previews` | auth+admin | 预览管理（设置 + HTML/MD 双 tab） |
+| POST | `/admin/previews/settings` | auth+admin | 保存预览功能设置 |
+| POST | `/admin/previews/html/:id/delete` | auth+admin | 删除 HTML 预览 |
+| POST | `/admin/previews/md/:id/delete` | auth+admin | 删除 Markdown 预览 |
+| GET | `/admin/previews/:type/:id/edit` | auth+admin | 编辑 HTML/MD 预览内容 |
+| POST | `/admin/previews/:type/:id/edit` | auth+admin | 保存 HTML/MD 预览内容 |
 | GET | `/api/v1/dev/agents` | devApiKey | List agents |
 | GET | `/api/v1/dev/pending` | devApiKey | Pending counts |
 | POST | `/api/v1/dev/create` | devApiKey | Create agent |

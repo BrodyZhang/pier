@@ -5,6 +5,7 @@ import { HtmlPreviewService } from '../services/html-preview.service';
 import { MarkdownPreviewService } from '../services/markdown-preview.service';
 import { SettingsService } from '../services/settings.service';
 import { reviewSchema, agentIdSchema } from '../validators/agent.validator';
+import { isValidUuid } from '../utils/validation';
 
 const router = Router();
 
@@ -161,56 +162,24 @@ router.post('/requests/:id/toggle-showcase', async (req: Request, res: Response,
   }
 });
 
-router.get('/html-previews', async (_req: Request, res: Response, next) => {
+router.get('/previews', async (_req: Request, res: Response, next) => {
   try {
-    const previews = await HtmlPreviewService.listAll(300);
-    res.render('admin/html-previews', { title: 'Admin - HTML Previews', previews });
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.post('/html-previews/:id/delete', async (req: Request, res: Response, next) => {
-  try {
-    await HtmlPreviewService.delete(req.params.id);
-    res.redirect('/admin/html-previews');
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.get('/markdown-previews', async (_req: Request, res: Response, next) => {
-  try {
-    const previews = await MarkdownPreviewService.listAll(300);
-    res.render('admin/markdown-previews', { title: 'Admin - Markdown Previews', previews });
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.post('/markdown-previews/:id/delete', async (req: Request, res: Response, next) => {
-  try {
-    await MarkdownPreviewService.delete(req.params.id);
-    res.redirect('/admin/markdown-previews');
-  } catch (err) {
-    next(err);
-  }
-});
-
-router.get('/preview-settings', async (_req: Request, res: Response, next) => {
-  try {
-    const [cleanupEnabled, ttlDays, dailyLimit, storageCap] = await Promise.all([
+    const [cleanupEnabled, ttlDays, dailyLimit, storageCap, htmlPreviews, markdownPreviews] = await Promise.all([
       SettingsService.getBool('preview_cleanup_enabled', true),
       SettingsService.getInt('preview_cleanup_ttl_days', 7),
       SettingsService.getInt('preview_daily_limit', 100),
       SettingsService.getInt('preview_storage_cap', 100000),
+      HtmlPreviewService.listAll(300),
+      MarkdownPreviewService.listAll(300),
     ]);
-    res.render('admin/preview-settings', {
-      title: 'Admin - Preview Settings',
+    res.render('admin/previews', {
+      title: 'Admin - Previews',
       cleanupEnabled,
       ttlDays,
       dailyLimit,
       storageCap,
+      htmlPreviews,
+      markdownPreviews,
       error: null,
       success: null,
     });
@@ -219,7 +188,7 @@ router.get('/preview-settings', async (_req: Request, res: Response, next) => {
   }
 });
 
-router.post('/preview-settings', async (req: Request, res: Response, next) => {
+router.post('/previews/settings', async (req: Request, res: Response, next) => {
   try {
     const cleanupEnabled = req.body.cleanup_enabled === 'on' || req.body.cleanup_enabled === '1';
     const ttlDays = Math.max(1, parseInt(req.body.cleanup_ttl_days, 10) || 7);
@@ -233,15 +202,82 @@ router.post('/preview-settings', async (req: Request, res: Response, next) => {
       SettingsService.set('preview_storage_cap', String(storageCap)),
     ]);
 
-    res.render('admin/preview-settings', {
-      title: 'Admin - Preview Settings',
-      cleanupEnabled,
-      ttlDays,
-      dailyLimit,
-      storageCap,
+    res.redirect('/admin/previews');
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/previews/html/:id/delete', async (req: Request, res: Response, next) => {
+  try {
+    if (isValidUuid(req.params.id)) {
+      await HtmlPreviewService.delete(req.params.id);
+    }
+    res.redirect('/admin/previews');
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/previews/md/:id/delete', async (req: Request, res: Response, next) => {
+  try {
+    if (isValidUuid(req.params.id)) {
+      await MarkdownPreviewService.delete(req.params.id);
+    }
+    res.redirect('/admin/previews');
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/previews/:type/:id/edit', async (req: Request, res: Response, next) => {
+  try {
+    const { type, id } = req.params;
+    if (!isValidUuid(id) || (type !== 'html' && type !== 'md')) {
+      return res.redirect('/admin/previews');
+    }
+    const preview =
+      type === 'html' ? await HtmlPreviewService.getById(id) : await MarkdownPreviewService.getById(id);
+    if (!preview) {
+      return res.redirect('/admin/previews');
+    }
+    res.render('admin/preview-edit', {
+      title: `Admin - Edit ${type.toUpperCase()} Preview`,
+      type,
+      id,
+      content: preview.content,
       error: null,
-      success: '设置已保存',
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/previews/:type/:id/edit', async (req: Request, res: Response, next) => {
+  try {
+    const { type, id } = req.params;
+    const content = typeof req.body.content === 'string' ? req.body.content : '';
+    if (!isValidUuid(id) || (type !== 'html' && type !== 'md')) {
+      return res.redirect('/admin/previews');
+    }
+    if (content.length < 1 || content.length > 500000) {
+      const preview =
+        type === 'html' ? await HtmlPreviewService.getById(id) : await MarkdownPreviewService.getById(id);
+      return res.render('admin/preview-edit', {
+        title: `Admin - Edit ${type.toUpperCase()} Preview`,
+        type,
+        id,
+        content: preview ? preview.content : '',
+        error: '内容长度需在 1 到 500000 字符之间',
+      });
+    }
+    const updated =
+      type === 'html' ? await HtmlPreviewService.update(id, content) : await MarkdownPreviewService.update(id, content);
+    if (updated) {
+      res.redirect('/admin/previews');
+    } else {
+      res.redirect('/admin/previews');
+    }
   } catch (err) {
     next(err);
   }

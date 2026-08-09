@@ -40,6 +40,14 @@ export class HtmlPreviewRepository {
     return result.rows.length > 0;
   }
 
+  static async update(id: string, content: string): Promise<boolean> {
+    const result = await pool.query(
+      'UPDATE html_previews SET content = $2 WHERE id = $1::uuid RETURNING id',
+      [id, content]
+    );
+    return result.rows.length > 0;
+  }
+
   static async deleteOlderThan(days: number): Promise<number> {
     const result = await pool.query(
       'DELETE FROM html_previews WHERE created_at < NOW() - ($1 * INTERVAL \'1 day\')',

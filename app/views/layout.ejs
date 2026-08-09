@@ -520,9 +520,7 @@
                     <a href="/dashboard">控制台</a>
                     <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
                         <a href="/admin/requests">管理后台</a>
-                        <a href="/admin/html-previews">HTML 预览</a>
-                        <a href="/admin/markdown-previews">MD 预览</a>
-                        <a href="/admin/preview-settings">预览设置</a>
+                        <a href="/admin/previews">预览管理</a>
                     <% } %>
                     <form method="POST" action="/auth/logout">
                         <button type="submit" class="btn btn-outline btn-sm">退出</button>

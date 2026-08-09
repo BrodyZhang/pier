@@ -40,6 +40,11 @@ export class MarkdownPreviewService {
     return MarkdownPreviewRepository.delete(id);
   }
 
+  static async update(id: string, markdown: string): Promise<boolean> {
+    const encoded = Buffer.from(markdown, 'utf-8').toString('base64');
+    return MarkdownPreviewRepository.update(id, encoded);
+  }
+
   static async cleanupOlderThan(days: number): Promise<number> {
     return MarkdownPreviewRepository.deleteOlderThan(days);
   }

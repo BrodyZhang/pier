@@ -61,7 +61,7 @@ export class PreviewAccessService {
 
     await sendAdminAlert(
       '预览存储已达上限，请清理',
-      `预览功能已因存储达到上限（${cap.toLocaleString()} 条，当前 ${total.toLocaleString()} 条）而停用。\n请尽快到管理后台清理旧预览：/admin/html-previews 和 /admin/markdown-previews。`
+      `预览功能已因存储达到上限（${cap.toLocaleString()} 条，当前 ${total.toLocaleString()} 条）而停用。\n请尽快到管理后台清理旧预览：/admin/previews`
     );
   }
 }
