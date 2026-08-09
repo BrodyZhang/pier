@@ -25,4 +25,8 @@ export class HtmlPreviewService {
   static async delete(id: string): Promise<boolean> {
     return HtmlPreviewRepository.delete(id);
   }
+
+  static async cleanupOlderThan(days: number): Promise<number> {
+    return HtmlPreviewRepository.deleteOlderThan(days);
+  }
 }

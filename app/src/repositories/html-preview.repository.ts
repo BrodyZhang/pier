@@ -38,4 +38,12 @@ export class HtmlPreviewRepository {
     );
     return result.rows.length > 0;
   }
+
+  static async deleteOlderThan(days: number): Promise<number> {
+    const result = await pool.query(
+      'DELETE FROM html_previews WHERE created_at < NOW() - ($1 * INTERVAL \'1 day\')',
+      [days]
+    );
+    return result.rowCount || 0;
+  }
 }

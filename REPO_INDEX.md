@@ -212,3 +212,4 @@ Route → Validator (zod) → Service → Repository → Database
 | `DEV_API_KEY` | Yes (for AI) | — |
 | `APP_ENV` | No | `prod` |
 | `NODE_ENV` | No | `production` |
+| `HTML_PREVIEW_TTL_DAYS` | No | `7` |

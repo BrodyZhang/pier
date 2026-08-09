@@ -17,6 +17,7 @@ import { requireAuth, requireAdmin, requireDevApiKey } from './middleware/auth';
 import { authLimiter, apiLimiter } from './middleware/rate-limit';
 import { errorHandler } from './middleware/error-handler';
 import { AgentService } from './services/agent.service';
+import { HtmlPreviewService } from './services/html-preview.service';
 import { decodeBase64Html, injectDisclaimer } from './utils/html';
 import { setupWebSocket } from './ws/chat';
 import { logger } from './utils/logger';
@@ -164,10 +165,29 @@ async function start(): Promise<void> {
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
+    startPreviewCleanup();
   } catch (err) {
     console.error('Failed to start server:', err);
     process.exit(1);
   }
+}
+
+const PREVIEW_TTL_DAYS = parseInt(process.env.HTML_PREVIEW_TTL_DAYS || '7', 10);
+
+async function cleanupHtmlPreviews(): Promise<void> {
+  try {
+    const removed = await HtmlPreviewService.cleanupOlderThan(PREVIEW_TTL_DAYS);
+    if (removed > 0) {
+      logger.info({ removed, ttlDays: PREVIEW_TTL_DAYS }, 'html_previews scheduled cleanup');
+    }
+  } catch (err) {
+    logger.error({ err }, 'html_previews scheduled cleanup failed');
+  }
+}
+
+function startPreviewCleanup(): void {
+  cleanupHtmlPreviews();
+  setInterval(cleanupHtmlPreviews, 60 * 60 * 1000);
 }
 
 start();
