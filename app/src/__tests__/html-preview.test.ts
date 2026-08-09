@@ -47,4 +47,13 @@ describe('buildPreviewNav', () => {
   it('should trigger window.print on print click', () => {
     expect(nav).toContain('window.print()');
   });
+
+  it('should collapse into a toggle on mobile and expand on click', () => {
+    expect(nav).toContain('pier-nav-toggle');
+    expect(nav).toContain('@media (max-width: 640px)');
+    expect(nav).toContain('#pier-preview-nav:not(.pier-open) .pier-nav-action {');
+    expect(nav).toContain('display: none;');
+    expect(nav).toContain('classList.toggle');
+    expect(nav).toContain('pier-open');
+  });
 });
