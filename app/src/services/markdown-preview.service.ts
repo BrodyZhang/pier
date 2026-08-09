@@ -1,17 +1,25 @@
 import { marked } from 'marked';
 import { MarkdownPreviewRepository } from '../repositories/markdown-preview.repository';
 
+export interface MarkdownPreviewView {
+  content: string;
+  addNav: boolean;
+}
+
 export class MarkdownPreviewService {
-  static async create(markdown: string): Promise<string> {
+  static async create(markdown: string, addNav: boolean): Promise<string> {
     const encoded = Buffer.from(markdown, 'utf-8').toString('base64');
-    const preview = await MarkdownPreviewRepository.create(encoded);
+    const preview = await MarkdownPreviewRepository.create(encoded, addNav);
     return preview.id;
   }
 
-  static async getById(id: string): Promise<string | null> {
+  static async getById(id: string): Promise<MarkdownPreviewView | null> {
     const preview = await MarkdownPreviewRepository.findById(id);
     if (!preview) return null;
-    return Buffer.from(preview.content, 'base64').toString('utf-8');
+    return {
+      content: Buffer.from(preview.content, 'base64').toString('utf-8'),
+      addNav: preview.add_nav,
+    };
   }
 
   static render(markdown: string): string {

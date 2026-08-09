@@ -111,6 +111,7 @@ CREATE TABLE IF NOT EXISTS html_previews (
     content TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE html_previews ADD COLUMN IF NOT EXISTS add_nav BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- Public Markdown previews (/md feature)
 CREATE TABLE IF NOT EXISTS markdown_previews (
@@ -118,6 +119,7 @@ CREATE TABLE IF NOT EXISTS markdown_previews (
     content TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+ALTER TABLE markdown_previews ADD COLUMN IF NOT EXISTS add_nav BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- Key-value app settings (admin controllable)
 CREATE TABLE IF NOT EXISTS settings (

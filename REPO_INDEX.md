@@ -80,6 +80,7 @@ pier/
 │   │   │   └── markdown-preview.validator.ts  # Markdown preview Zod schemas
 │   │   ├── utils/
 │   │   │   ├── html.ts                 # HTML decode/escape utilities
+│   │   │   ├── preview-nav.ts          # Preview nav bar (home/copy/print)
 │   │   │   ├── logger.ts               # Pino structured logging
 │   │   │   └── validation.ts           # Email/UUID/code validators
 │   │   ├── ws/

@@ -1,4 +1,5 @@
 import { htmlPreviewSchema } from '../validators/html-preview.validator';
+import { buildPreviewNav } from '../utils/preview-nav';
 
 describe('HTML Preview Validator', () => {
   it('should accept valid html', () => {
@@ -22,5 +23,27 @@ describe('HTML Preview Validator', () => {
   it('should accept html at max length', () => {
     const result = htmlPreviewSchema.safeParse({ html: 'a'.repeat(500000) });
     expect(result.success).toBe(true);
+  });
+});
+
+describe('buildPreviewNav', () => {
+  const nav = buildPreviewNav();
+
+  it('should include home, copy and print buttons', () => {
+    expect(nav).toContain('pier-nav-home');
+    expect(nav).toContain('pier-nav-copy');
+    expect(nav).toContain('pier-nav-print');
+    expect(nav).toContain('返回首页');
+    expect(nav).toContain('复制地址');
+    expect(nav).toContain('打印');
+  });
+
+  it('should hide the nav when printing', () => {
+    expect(nav).toContain('@media print');
+    expect(nav).toContain('#pier-preview-nav { display: none !important; }');
+  });
+
+  it('should trigger window.print on print click', () => {
+    expect(nav).toContain('window.print()');
   });
 });

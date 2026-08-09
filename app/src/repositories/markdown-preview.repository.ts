@@ -3,21 +3,22 @@ import pool from '../services/db';
 export interface MarkdownPreview {
   id: string;
   content: string;
+  add_nav: boolean;
   created_at: Date;
 }
 
 export class MarkdownPreviewRepository {
-  static async create(content: string): Promise<MarkdownPreview> {
+  static async create(content: string, addNav: boolean): Promise<MarkdownPreview> {
     const result = await pool.query(
-      'INSERT INTO markdown_previews (content) VALUES ($1) RETURNING id, content, created_at',
-      [content]
+      'INSERT INTO markdown_previews (content, add_nav) VALUES ($1, $2) RETURNING id, content, add_nav, created_at',
+      [content, addNav]
     );
     return result.rows[0];
   }
 
   static async findById(id: string): Promise<MarkdownPreview | null> {
     const result = await pool.query(
-      'SELECT id, content, created_at FROM markdown_previews WHERE id = $1::uuid',
+      'SELECT id, content, add_nav, created_at FROM markdown_previews WHERE id = $1::uuid',
       [id]
     );
     return result.rows[0] || null;
@@ -25,7 +26,7 @@ export class MarkdownPreviewRepository {
 
   static async findAll(limit = 300): Promise<MarkdownPreview[]> {
     const result = await pool.query(
-      'SELECT id, content, created_at FROM markdown_previews ORDER BY created_at DESC LIMIT $1',
+      'SELECT id, content, add_nav, created_at FROM markdown_previews ORDER BY created_at DESC LIMIT $1',
       [limit]
     );
     return result.rows;

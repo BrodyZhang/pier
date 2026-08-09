@@ -24,8 +24,8 @@
 | Email (Resend) | ✅ Complete | Resend HTTPS API (port 443, no SMTP), auto-detected from `smtp.resend.com` host, fallback to console.log |
 | Code Architecture | ✅ Refactored | Layered: Route → Validator → Service → Repository → Database |
 | Security | ✅ Hardened | helmet, rate-limit, parameterized queries, no hardcoded secrets |
-| HTML 在线预览 | ✅ Complete | `/html` 粘贴任意 HTML → 纯净预览页 `/html/p/:id`（原样展示、无 CSP、支持 MathJax 等 CDN 库） |
-| Markdown 在线预览 | ✅ Complete | `/md` 粘贴 Markdown → 渲染预览页 `/md/p/:id`（marked + GFM + MathJax，样式化渲染页） |
+| HTML 在线预览 | ✅ Complete | `/html` 粘贴任意 HTML → 纯净预览页 `/html/p/:id`（原样展示、无 CSP、支持 MathJax 等 CDN 库，可选导航栏：返回首页/复制地址/打印，打印时自动隐藏导航） |
+| Markdown 在线预览 | ✅ Complete | `/md` 粘贴 Markdown → 渲染预览页 `/md/p/:id`（marked + GFM + MathJax，样式化渲染页，可选导航栏） |
 | 预览限额/存储上限 | ✅ Complete | 每 IP 每日上限（默认 100）、HTML+MD 存储上限（默认 10 万条，达到禁用创建并邮件通知管理员） |
 | 预览自动清理 | ✅ Complete | 管理员可开关 + 设置清理天数，每小时清理 html_previews + markdown_previews |
 | Testing | ✅ Complete | Jest framework, 27 tests passing |

@@ -17,6 +17,10 @@
     <form method="POST" action="/md">
         <label for="md">Markdown 代码</label>
         <textarea id="md" name="md" rows="16" placeholder="# 标题&#10;&#10;支持 **加粗**、*斜体*、`代码`、数学公式 `$x^2$` 等" style="font-family:monospace;font-size:14px;" required></textarea>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:14px;">
+            <input type="checkbox" name="add_nav" value="on" style="width:auto;" <%= typeof addNav === 'undefined' || addNav ? 'checked' : '' %>>
+            自动添加导航按钮（返回首页 / 复制地址 / 打印）
+        </label>
         <div style="display:flex;gap:12px;align-items:center;margin-top:18px;flex-wrap:wrap;">
             <button type="submit" class="btn btn-primary">生成预览</button>
             <% if (typeof previewUrl !== 'undefined' && previewUrl) { %>
@@ -30,3 +34,16 @@
 <div class="disclaimer">
     <strong>提示：</strong> 预览页面为匿名公开访问，任何获得预览地址的人都可以查看，请勿粘贴包含个人敏感信息的内容。预览可能随时被清理，请勿依赖长期保存。每个 IP 每天最多生成 <%= typeof dailyLimit !== 'undefined' ? dailyLimit : 100 %> 次预览。
 </div>
+
+<% if (typeof previewUrl !== 'undefined' && previewUrl) { %>
+<script>
+(function() {
+    var url = '<%= previewUrl %>';
+    var timer = setTimeout(function() {
+        if (window.confirm('预览已生成，是否立即打开预览页面？')) {
+            window.open(url, '_blank');
+        }
+    }, 150);
+})();
+</script>
+<% } %>

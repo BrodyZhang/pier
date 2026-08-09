@@ -1,16 +1,24 @@
 import { HtmlPreviewRepository } from '../repositories/html-preview.repository';
 
+export interface HtmlPreviewView {
+  content: string;
+  addNav: boolean;
+}
+
 export class HtmlPreviewService {
-  static async create(html: string): Promise<string> {
+  static async create(html: string, addNav: boolean): Promise<string> {
     const encoded = Buffer.from(html, 'utf-8').toString('base64');
-    const preview = await HtmlPreviewRepository.create(encoded);
+    const preview = await HtmlPreviewRepository.create(encoded, addNav);
     return preview.id;
   }
 
-  static async getById(id: string): Promise<string | null> {
+  static async getById(id: string): Promise<HtmlPreviewView | null> {
     const preview = await HtmlPreviewRepository.findById(id);
     if (!preview) return null;
-    return Buffer.from(preview.content, 'base64').toString('utf-8');
+    return {
+      content: Buffer.from(preview.content, 'base64').toString('utf-8'),
+      addNav: preview.add_nav,
+    };
   }
 
   static async listAll(limit = 300): Promise<{ id: string; created_at: Date; content: string }[]> {

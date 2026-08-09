@@ -4,8 +4,13 @@ import { PreviewAccessService } from '../services/preview-access.service';
 import { markdownPreviewSchema } from '../validators/markdown-preview.validator';
 import { strictLimiter } from '../middleware/rate-limit';
 import { isValidUuid } from '../utils/validation';
+import { buildPreviewNav } from '../utils/preview-nav';
 
 const router = Router();
+
+function parseAddNav(value: unknown): boolean {
+  return value === 'on' || value === '1' || value === 'true' || value === true;
+}
 
 router.get('/md', async (_req: Request, res: Response) => {
   const dailyLimit = await PreviewAccessService.getDailyLimit();
@@ -15,11 +20,14 @@ router.get('/md', async (_req: Request, res: Response) => {
     success: null,
     previewUrl: null,
     dailyLimit,
+    addNav: true,
   });
 });
 
 router.post('/md', strictLimiter, async (req: Request, res: Response, next) => {
   try {
+    const addNav = parseAddNav(req.body.add_nav);
+
     const parsed = markdownPreviewSchema.safeParse(req.body);
     if (!parsed.success) {
       const errorMessage = parsed.error.issues[0]?.message || '输入无效';
@@ -30,6 +38,7 @@ router.post('/md', strictLimiter, async (req: Request, res: Response, next) => {
         success: null,
         previewUrl: null,
         dailyLimit,
+        addNav,
       });
     }
 
@@ -41,16 +50,18 @@ router.post('/md', strictLimiter, async (req: Request, res: Response, next) => {
         success: null,
         previewUrl: null,
         dailyLimit: access.dailyLimit,
+        addNav,
       });
     }
 
-    const id = await MarkdownPreviewService.create(parsed.data.md);
+    const id = await MarkdownPreviewService.create(parsed.data.md, addNav);
     res.render('md/index', {
       title: 'Markdown 在线预览',
       error: null,
       success: '预览已生成',
       previewUrl: `/md/p/${id}`,
       dailyLimit: access.dailyLimit,
+      addNav,
     });
   } catch (err) {
     next(err);
@@ -63,12 +74,13 @@ router.get('/md/p/:id', async (req: Request, res: Response, next) => {
       return res.status(404).send('预览不存在或已失效');
     }
 
-    const markdown = await MarkdownPreviewService.getById(req.params.id);
-    if (!markdown) {
+    const preview = await MarkdownPreviewService.getById(req.params.id);
+    if (!preview) {
       return res.status(404).send('预览不存在或已失效');
     }
 
-    const body = MarkdownPreviewService.render(markdown);
+    const body = MarkdownPreviewService.render(preview.content);
+    const nav = preview.addNav ? buildPreviewNav() : '';
 
     const html = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -143,6 +155,7 @@ window.MathJax = {
 };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+${nav}
 </body>
 </html>`;
 
