@@ -91,7 +91,9 @@
                     <tbody>
                         <% htmlPreviews.forEach(function(p) { %>
                         <tr>
-                            <td data-label="精选" style="white-space:nowrap;"><%= p.is_featured ? '<span style="font-size:16px;">⭐</span>' : '<span style="color:var(--text-muted);">—</span>' %></td>
+                            <td data-label="精选" style="white-space:nowrap;">
+                                <% if (p.is_featured) { %><span style="font-size:16px;">⭐</span><% } else { %><span style="color:var(--text-muted);">—</span><% } %>
+                            </td>
                             <td data-label="创建时间" style="white-space:nowrap;"><%= new Date(p.created_at).toLocaleString() %></td>
                             <td data-label="内容预览">
                                 <code style="font-size:12px;white-space:pre-wrap;word-break:break-all;background:rgba(255,107,157,0.06);padding:4px 8px;border-radius:6px;display:inline-block;max-width:520px;max-height:64px;overflow:hidden;">
@@ -136,7 +138,9 @@
                     <tbody>
                         <% markdownPreviews.forEach(function(p) { %>
                         <tr>
-                            <td data-label="精选" style="white-space:nowrap;"><%= p.is_featured ? '<span style="font-size:16px;">⭐</span>' : '<span style="color:var(--text-muted);">—</span>' %></td>
+                            <td data-label="精选" style="white-space:nowrap;">
+                                <% if (p.is_featured) { %><span style="font-size:16px;">⭐</span><% } else { %><span style="color:var(--text-muted);">—</span><% } %>
+                            </td>
                             <td data-label="创建时间" style="white-space:nowrap;"><%= new Date(p.created_at).toLocaleString() %></td>
                             <td data-label="内容预览">
                                 <code style="font-size:12px;white-space:pre-wrap;word-break:break-all;background:rgba(255,107,157,0.06);padding:4px 8px;border-radius:6px;display:inline-block;max-width:520px;max-height:64px;overflow:hidden;">
