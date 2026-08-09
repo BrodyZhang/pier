@@ -30,13 +30,16 @@ describe('HTML Preview Validator', () => {
 describe('buildPreviewNav', () => {
   const nav = buildPreviewNav();
 
-  it('should include home, copy and print buttons', () => {
+  it('should include home, copy and print buttons (text only)', () => {
     expect(nav).toContain('pier-nav-home');
     expect(nav).toContain('pier-nav-copy');
     expect(nav).toContain('pier-nav-print');
-    expect(nav).toContain('返回首页');
-    expect(nav).toContain('复制地址');
+    expect(nav).toContain('主页');
+    expect(nav).toContain('复制');
     expect(nav).toContain('打印');
+    expect(nav).not.toContain('返回首页');
+    expect(nav).not.toContain('复制地址');
+    expect(nav).not.toContain('pier-nav-toggle');
   });
 
   it('should hide the nav when printing', () => {
@@ -48,12 +51,7 @@ describe('buildPreviewNav', () => {
     expect(nav).toContain('window.print()');
   });
 
-  it('should collapse into a toggle on mobile and expand on click', () => {
-    expect(nav).toContain('pier-nav-toggle');
-    expect(nav).toContain('@media (max-width: 640px)');
-    expect(nav).toContain('#pier-preview-nav:not(.pier-open) .pier-nav-action {');
-    expect(nav).toContain('display: none;');
-    expect(nav).toContain('classList.toggle');
-    expect(nav).toContain('pier-open');
+  it('should float at the bottom of the viewport', () => {
+    expect(nav).toContain('position:fixed;bottom:16px');
   });
 });
