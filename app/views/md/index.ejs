@@ -1,8 +1,8 @@
 <div class="card" style="text-align:center;padding:40px 30px;">
-    <h1 style="font-size:32px;line-height:1.3;">HTML 在线预览</h1>
+    <h1 style="font-size:32px;line-height:1.3;">Markdown 在线预览</h1>
     <p style="font-size:15px;color:var(--text-desc);margin:12px 0 0;line-height:1.7;">
-        粘贴任意 HTML 代码，即可生成一个纯净的预览页面。<br>
-        页面原样展示、不做任何修改，支持 MathJax 等 CDN 外部库。
+        粘贴任意 Markdown 代码，即可生成一个渲染后的预览页面。<br>
+        支持 GFM、代码高亮风格与 MathJax 数学公式。
     </p>
 </div>
 
@@ -14,9 +14,9 @@
         <div class="success"><%= success %></div>
     <% } %>
 
-    <form method="POST" action="/html">
-        <label for="html">HTML 代码</label>
-        <textarea id="html" name="html" rows="16" placeholder="&lt;div style='text-align:center;'&gt;&lt;h1&gt;你好，世界&lt;/h1&gt;&lt;/div&gt;" style="font-family:monospace;font-size:14px;" required></textarea>
+    <form method="POST" action="/md">
+        <label for="md">Markdown 代码</label>
+        <textarea id="md" name="md" rows="16" placeholder="# 标题&#10;&#10;支持 **加粗**、*斜体*、`代码`、数学公式 `$x^2$` 等" style="font-family:monospace;font-size:14px;" required></textarea>
         <div style="display:flex;gap:12px;align-items:center;margin-top:18px;flex-wrap:wrap;">
             <button type="submit" class="btn btn-primary">生成预览</button>
             <% if (typeof previewUrl !== 'undefined' && previewUrl) { %>

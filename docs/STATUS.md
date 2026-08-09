@@ -24,8 +24,11 @@
 | Email (Resend) | ✅ Complete | Resend HTTPS API (port 443, no SMTP), auto-detected from `smtp.resend.com` host, fallback to console.log |
 | Code Architecture | ✅ Refactored | Layered: Route → Validator → Service → Repository → Database |
 | Security | ✅ Hardened | helmet, rate-limit, parameterized queries, no hardcoded secrets |
-| HTML 在线预览 | ✅ Complete | `/html` 粘贴任意 HTML → 纯净预览页 `/html/p/:id`（原样展示、无 CSP、支持 MathJax 等 CDN 库，rate-limit，管理员可查看/删除，定时清理 TTL 7 天） |
-| Testing | ✅ Complete | Jest framework, 21 tests passing |
+| HTML 在线预览 | ✅ Complete | `/html` 粘贴任意 HTML → 纯净预览页 `/html/p/:id`（原样展示、无 CSP、支持 MathJax 等 CDN 库） |
+| Markdown 在线预览 | ✅ Complete | `/md` 粘贴 Markdown → 渲染预览页 `/md/p/:id`（marked + GFM + MathJax，样式化渲染页） |
+| 预览限额/存储上限 | ✅ Complete | 每 IP 每日上限（默认 100）、HTML+MD 存储上限（默认 10 万条，达到禁用创建并邮件通知管理员） |
+| 预览自动清理 | ✅ Complete | 管理员可开关 + 设置清理天数，每小时清理 html_previews + markdown_previews |
+| Testing | ✅ Complete | Jest framework, 27 tests passing |
 | Logging | ✅ Complete | Pino structured logging |
 
 ## Deployment
@@ -114,6 +117,9 @@
 - [x] AGENTS.md: mandatory plan-first, summarize-after workflow
 - [x] TEST_VERSION git file: test version stored in repo (like PROD_VERSION), auto-updated by CI
 - [x] HTML 在线预览: `/html` 粘贴 HTML → 纯净预览页 `/html/p/:id`（原样展示、无 CSP、支持 MathJax 等 CDN 库，strictLimiter，html_previews 表，base64 存储，管理员管理页 `/admin/html-previews`，启动时 + 每小时定时清理超过 `HTML_PREVIEW_TTL_DAYS`（默认 7 天）的预览）
+- [x] Markdown 在线预览: `/md` 粘贴 Markdown → 渲染预览页 `/md/p/:id`（marked v5 + GFM + MathJax，markdown_previews 表，base64 存储，管理员管理页 `/admin/markdown-previews`）
+- [x] 预览限额/存储上限: `settings` 表存储 preview_daily_limit（默认 100/日/IP）与 preview_storage_cap（默认 10 万条），`preview_usage` 表按 IP+日期计数，达到上限禁用创建并邮件通知管理员（6 小时限频），管理员设置页 `/admin/preview-settings`
+- [x] 预览自动清理可配置: `preview_cleanup_enabled` + `preview_cleanup_ttl_days` 由管理员在设置页控制，每小时清理 html_previews + markdown_previews；用户提示改为「预览可能随时被清理」不再写固定天数
 
 ### Codebase Refactoring (2026-06-23)
 - [x] Phase 1 - Security: SQL injection fix, rate limiting, helmet, remove hardcoded secrets

@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import pool from '../services/db';
 import { AgentService } from '../services/agent.service';
 import { HtmlPreviewService } from '../services/html-preview.service';
+import { MarkdownPreviewService } from '../services/markdown-preview.service';
+import { SettingsService } from '../services/settings.service';
 import { reviewSchema, agentIdSchema } from '../validators/agent.validator';
 
 const router = Router();
@@ -172,6 +174,74 @@ router.post('/html-previews/:id/delete', async (req: Request, res: Response, nex
   try {
     await HtmlPreviewService.delete(req.params.id);
     res.redirect('/admin/html-previews');
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/markdown-previews', async (_req: Request, res: Response, next) => {
+  try {
+    const previews = await MarkdownPreviewService.listAll(300);
+    res.render('admin/markdown-previews', { title: 'Admin - Markdown Previews', previews });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/markdown-previews/:id/delete', async (req: Request, res: Response, next) => {
+  try {
+    await MarkdownPreviewService.delete(req.params.id);
+    res.redirect('/admin/markdown-previews');
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/preview-settings', async (_req: Request, res: Response, next) => {
+  try {
+    const [cleanupEnabled, ttlDays, dailyLimit, storageCap] = await Promise.all([
+      SettingsService.getBool('preview_cleanup_enabled', true),
+      SettingsService.getInt('preview_cleanup_ttl_days', 7),
+      SettingsService.getInt('preview_daily_limit', 100),
+      SettingsService.getInt('preview_storage_cap', 100000),
+    ]);
+    res.render('admin/preview-settings', {
+      title: 'Admin - Preview Settings',
+      cleanupEnabled,
+      ttlDays,
+      dailyLimit,
+      storageCap,
+      error: null,
+      success: null,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/preview-settings', async (req: Request, res: Response, next) => {
+  try {
+    const cleanupEnabled = req.body.cleanup_enabled === 'on' || req.body.cleanup_enabled === '1';
+    const ttlDays = Math.max(1, parseInt(req.body.cleanup_ttl_days, 10) || 7);
+    const dailyLimit = Math.max(1, parseInt(req.body.daily_limit, 10) || 100);
+    const storageCap = Math.max(1, parseInt(req.body.storage_cap, 10) || 100000);
+
+    await Promise.all([
+      SettingsService.set('preview_cleanup_enabled', cleanupEnabled ? '1' : '0'),
+      SettingsService.set('preview_cleanup_ttl_days', String(ttlDays)),
+      SettingsService.set('preview_daily_limit', String(dailyLimit)),
+      SettingsService.set('preview_storage_cap', String(storageCap)),
+    ]);
+
+    res.render('admin/preview-settings', {
+      title: 'Admin - Preview Settings',
+      cleanupEnabled,
+      ttlDays,
+      dailyLimit,
+      storageCap,
+      error: null,
+      success: '设置已保存',
+    });
   } catch (err) {
     next(err);
   }

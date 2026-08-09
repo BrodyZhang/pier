@@ -55,22 +55,29 @@ pier/
 │   │   │   ├── admin.ts                # Admin: approve/reject/upload
 │   │   │   ├── profile.ts              # User profile management
 │   │   │   ├── dev.ts                  # Dev API (DEV_API_KEY)
-│   │   │   └── html-preview.ts         # HTML 在线预览 (/html)
+│   │   │   ├── html-preview.ts         # HTML 在线预览 (/html)
+│   │   │   └── markdown-preview.ts     # Markdown 在线预览 (/md)
 │   │   ├── services/
 │   │   │   ├── db.ts                   # pg Pool + schema init
 │   │   │   ├── mail.ts                 # Email: Resend API or SMTP
 │   │   │   ├── agent.service.ts        # Agent business logic
 │   │   │   ├── auth.service.ts         # Auth business logic
 │   │   │   ├── user.service.ts         # User business logic
-│   │   │   └── html-preview.service.ts # HTML preview business logic
+│   │   │   ├── html-preview.service.ts # HTML preview business logic
+│   │   │   ├── markdown-preview.service.ts  # Markdown preview business logic
+│   │   │   ├── settings.service.ts     # App settings (admin controllable)
+│   │   │   ├── usage.service.ts        # Daily usage / storage counters
+│   │   │   └── preview-access.service.ts   # Preview limit/cap guard + admin alert
 │   │   ├── repositories/
 │   │   │   ├── agent.repository.ts     # Agent DB queries
 │   │   │   ├── user.repository.ts      # User DB queries
-│   │   │   └── html-preview.repository.ts  # HTML preview DB queries
+│   │   │   ├── html-preview.repository.ts  # HTML preview DB queries
+│   │   │   └── markdown-preview.repository.ts  # Markdown preview DB queries
 │   │   ├── validators/
 │   │   │   ├── agent.validator.ts      # Agent Zod schemas
 │   │   │   ├── auth.validator.ts       # Auth Zod schemas
-│   │   │   └── html-preview.validator.ts  # HTML preview Zod schemas
+│   │   │   ├── html-preview.validator.ts  # HTML preview Zod schemas
+│   │   │   └── markdown-preview.validator.ts  # Markdown preview Zod schemas
 │   │   ├── utils/
 │   │   │   ├── html.ts                 # HTML decode/escape utilities
 │   │   │   ├── logger.ts               # Pino structured logging
@@ -80,7 +87,8 @@ pier/
 │   │   └── __tests__/
 │   │       ├── html.test.ts            # HTML utils tests
 │   │       ├── validation.test.ts      # Validation utils tests
-│   │       └── html-preview.test.ts    # HTML preview validator tests
+│   │       ├── html-preview.test.ts    # HTML preview validator tests
+│   │       └── markdown-preview.test.ts    # Markdown validator + render tests
 │   └── views/
 │       ├── layout.ejs                  # Shared shell
 │       ├── index.ejs                   # Homepage
@@ -99,10 +107,14 @@ pier/
 │       │   └── 404.ejs
 │       ├── html/
 │       │   └── index.ejs               # HTML 粘贴 + 预览生成页
+│       ├── md/
+│       │   └── index.ejs               # Markdown 粘贴 + 预览生成页
 │       └── admin/
 │           ├── requests.ejs
 │           ├── review.ejs
-│           └── html-previews.ejs       # 管理所有 HTML 预览（查看/删除）
+│           ├── html-previews.ejs       # 管理所有 HTML 预览（查看/删除）
+│           ├── markdown-previews.ejs   # 管理所有 Markdown 预览（查看/删除）
+│           └── preview-settings.ejs    # 预览功能设置（清理/限额/存储上限）
 │
 ├── docs/
 │   ├── architecture.md
@@ -172,6 +184,10 @@ Route → Validator (zod) → Service → Repository → Database
 | POST | `/admin/requests/:id/delete` | auth+admin | Delete |
 | GET | `/admin/html-previews` | auth+admin | HTML 预览列表 |
 | POST | `/admin/html-previews/:id/delete` | auth+admin | 删除 HTML 预览 |
+| GET | `/admin/markdown-previews` | auth+admin | Markdown 预览列表 |
+| POST | `/admin/markdown-previews/:id/delete` | auth+admin | 删除 Markdown 预览 |
+| GET | `/admin/preview-settings` | auth+admin | 预览功能设置（清理/限额/存储上限） |
+| POST | `/admin/preview-settings` | auth+admin | 保存预览功能设置 |
 | GET | `/api/v1/dev/agents` | devApiKey | List agents |
 | GET | `/api/v1/dev/pending` | devApiKey | Pending counts |
 | POST | `/api/v1/dev/create` | devApiKey | Create agent |
@@ -181,6 +197,9 @@ Route → Validator (zod) → Service → Repository → Database
 | GET | `/html` | — | HTML 粘贴预览表单 |
 | POST | `/html` | rate-limit | 生成 HTML 预览 |
 | GET | `/html/p/:id` | — | 纯净预览页（原样展示，无 CSP，支持 CDN 外部库） |
+| GET | `/md` | — | Markdown 粘贴预览表单 |
+| POST | `/md` | rate-limit | 生成 Markdown 预览 |
+| GET | `/md/p/:id` | — | Markdown 渲染预览页（marked，支持 MathJax） |
 
 ## Database Tables
 
@@ -194,6 +213,9 @@ Route → Validator (zod) → Service → Repository → Database
 | `agent_shares` | Two-person access |
 | `user_sessions` | Express sessions |
 | `html_previews` | HTML 在线预览内容（base64） |
+| `markdown_previews` | Markdown 在线预览内容（base64） |
+| `settings` | 键值对应用设置（管理员可配置） |
+| `preview_usage` | 预览每日使用计数（按 IP+日期） |
 
 ## Environment Variables
 

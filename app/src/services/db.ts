@@ -111,6 +111,30 @@ CREATE TABLE IF NOT EXISTS html_previews (
     content TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Public Markdown previews (/md feature)
+CREATE TABLE IF NOT EXISTS markdown_previews (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    content TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Key-value app settings (admin controllable)
+CREATE TABLE IF NOT EXISTS settings (
+    key VARCHAR(100) PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Daily usage counters for preview features (per IP per day)
+CREATE TABLE IF NOT EXISTS preview_usage (
+    id SERIAL PRIMARY KEY,
+    feature VARCHAR(20) NOT NULL,
+    ip VARCHAR(64) NOT NULL,
+    day DATE NOT NULL,
+    count INT NOT NULL DEFAULT 0,
+    UNIQUE (feature, ip, day)
+);
 `;
 
 export async function initDB(): Promise<void> {

@@ -1,0 +1,36 @@
+<div class="card" style="padding:20px 28px;">
+    <h1>预览功能设置</h1>
+    <p style="font-size:14px;color:var(--text-desc);margin-top:6px;">控制 HTML / Markdown 预览功能的自动清理、每日限额与存储上限。</p>
+</div>
+
+<div class="card">
+    <% if (typeof error !== 'undefined' && error) { %>
+        <div class="error"><%= error %></div>
+    <% } %>
+    <% if (typeof success !== 'undefined' && success) { %>
+        <div class="success"><%= success %></div>
+    <% } %>
+
+    <form method="POST" action="/admin/preview-settings">
+        <label style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" name="cleanup_enabled" value="on" style="width:auto;" <%= cleanupEnabled ? 'checked' : '' %>>
+            启用自动清理（删除超过设定天数的旧预览）
+        </label>
+
+        <label for="cleanup_ttl_days">清理阈值（天）</label>
+        <input type="number" id="cleanup_ttl_days" name="cleanup_ttl_days" value="<%= ttlDays %>" min="1" required>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">超过该天数的 HTML 与 Markdown 预览会被自动删除，每小时执行一次。</p>
+
+        <label for="daily_limit">每日预览上限（每个 IP）</label>
+        <input type="number" id="daily_limit" name="daily_limit" value="<%= dailyLimit %>" min="1" required>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">每个 IP 每天最多生成预览的次数，HTML 与 Markdown 分开计数。</p>
+
+        <label for="storage_cap">存储上限（条）</label>
+        <input type="number" id="storage_cap" name="storage_cap" value="<%= storageCap %>" min="1" required>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:4px;">HTML + Markdown 预览总数达到该值时，创建功能自动停用并邮件通知管理员。</p>
+
+        <div style="margin-top:20px;">
+            <button type="submit" class="btn btn-primary">保存设置</button>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,44 @@
+<div class="card" style="padding:20px 28px;">
+    <div class="flex flex-wrap flex-between flex-center" style="gap:12px;">
+        <h1>Markdown 预览管理</h1>
+        <span class="text-muted" style="font-size:13px;">共 <%= previews.length %> 条（最多显示最近 300 条）</span>
+    </div>
+</div>
+
+<div class="card" style="padding:16px;">
+    <% if (previews.length === 0) { %>
+        <div class="empty-state">
+            <p style="font-size:14px;">暂无预览记录</p>
+        </div>
+    <% } else { %>
+    <div style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>创建时间</th>
+                    <th>内容预览</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% previews.forEach(function(p) { %>
+                <tr>
+                    <td data-label="创建时间" style="white-space:nowrap;"><%= new Date(p.created_at).toLocaleString() %></td>
+                    <td data-label="内容预览">
+                        <code style="font-size:12px;white-space:pre-wrap;word-break:break-all;background:rgba(255,107,157,0.06);padding:4px 8px;border-radius:6px;display:inline-block;max-width:520px;max-height:64px;overflow:hidden;">
+                            <%= p.content.length > 160 ? p.content.substring(0, 160) + ' …' : p.content %>
+                        </code>
+                    </td>
+                    <td data-label="操作" style="white-space:nowrap;">
+                        <a href="/md/p/<%= p.id %>" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">打开预览</a>
+                        <form method="POST" action="/admin/markdown-previews/<%= p.id %>/delete" style="display:inline;" onsubmit="return confirm('确定删除该预览？');">
+                            <button type="submit" class="btn btn-sm" style="background:rgba(233,30,99,0.08);color:var(--pink-700);border:1px solid rgba(233,30,99,0.15);padding:5px 10px;border-radius:8px;cursor:pointer;font-size:12px;">删除</button>
+                        </form>
+                    </td>
+                </tr>
+                <% }) %>
+            </tbody>
+        </table>
+    </div>
+    <% } %>
+</div>

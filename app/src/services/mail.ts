@@ -82,6 +82,52 @@ async function initTransporter(): Promise<void> {
 
 const initPromise = initTransporter();
 
+export async function sendAdminAlert(
+  subject: string,
+  text: string
+): Promise<void> {
+  await initPromise;
+
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.ADMIN_EMAIL_BUILTIN;
+  if (!adminEmail) {
+    console.warn('[MAIL] No ADMIN_EMAIL configured, alert not sent:', subject);
+    return;
+  }
+
+  const env = process.env.APP_ENV || '';
+  const isTest = env === 'test';
+  const prefix = isTest ? '[测试环境] ' : '';
+  const fullSubject = `${prefix}${subject}`;
+  const html = `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:30px;">
+    ${isTest ? '<p style="background:#fff3cd;padding:10px;border-radius:8px;text-align:center;font-weight:bold;">⚠️ 这是测试环境邮件，非正式操作</p>' : ''}
+    <h2 style="color:#e74c3c;">${subject}</h2>
+    <p style="font-size:14px;line-height:1.7;color:#333;">${text.replace(/\n/g, '<br>')}</p>
+  </div>`;
+
+  console.log(`[MAIL] Alert to ${adminEmail} | ${fullSubject}`);
+
+  const cfg = getSmtpConfig();
+  if (!cfg) return;
+
+  try {
+    if (isResend()) {
+      await withTimeout(sendViaResendApi(cfg.from, adminEmail, fullSubject, html), 10000);
+    } else if (transporter) {
+      await withTimeout(transporter.sendMail({
+        from: cfg.from,
+        to: adminEmail,
+        subject: fullSubject,
+        html,
+      }), 10000);
+    } else {
+      return;
+    }
+    console.log(`Alert email sent to ${adminEmail}`);
+  } catch (err: any) {
+    console.error(`Alert email delivery failed:`, err.message);
+  }
+}
+
 export async function sendVerificationCode(
   email: string,
   code: string

@@ -18,6 +18,8 @@ import { authLimiter, apiLimiter } from './middleware/rate-limit';
 import { errorHandler } from './middleware/error-handler';
 import { AgentService } from './services/agent.service';
 import { HtmlPreviewService } from './services/html-preview.service';
+import { MarkdownPreviewService } from './services/markdown-preview.service';
+import { SettingsService } from './services/settings.service';
 import { decodeBase64Html, injectDisclaimer } from './utils/html';
 import { setupWebSocket } from './ws/chat';
 import { logger } from './utils/logger';
@@ -28,6 +30,7 @@ import adminRoutes from './routes/admin';
 import profileRoutes from './routes/profile';
 import devRoutes from './routes/dev';
 import htmlPreviewRoutes from './routes/html-preview';
+import markdownPreviewRoutes from './routes/markdown-preview';
 
 const app = express();
 const server = http.createServer(app);
@@ -112,6 +115,7 @@ app.use('/api/v1/dev', apiLimiter, requireDevApiKey, devRoutes);
 app.use('/api/dev', apiLimiter, requireDevApiKey, devRoutes);
 app.use('/', publicRouter);
 app.use(htmlPreviewRoutes);
+app.use(markdownPreviewRoutes);
 
 app.get('/', async (_req, res, next) => {
   try {
@@ -172,16 +176,24 @@ async function start(): Promise<void> {
   }
 }
 
-const PREVIEW_TTL_DAYS = parseInt(process.env.HTML_PREVIEW_TTL_DAYS || '7', 10);
-
 async function cleanupHtmlPreviews(): Promise<void> {
   try {
-    const removed = await HtmlPreviewService.cleanupOlderThan(PREVIEW_TTL_DAYS);
+    const enabled = await SettingsService.getBool('preview_cleanup_enabled', true);
+    if (!enabled) return;
+
+    const ttlDays = await SettingsService.getInt(
+      'preview_cleanup_ttl_days',
+      parseInt(process.env.HTML_PREVIEW_TTL_DAYS || '7', 10)
+    );
+
+    const htmlRemoved = await HtmlPreviewService.cleanupOlderThan(ttlDays);
+    const mdRemoved = await MarkdownPreviewService.cleanupOlderThan(ttlDays);
+    const removed = htmlRemoved + mdRemoved;
     if (removed > 0) {
-      logger.info({ removed, ttlDays: PREVIEW_TTL_DAYS }, 'html_previews scheduled cleanup');
+      logger.info({ removed, ttlDays }, 'previews scheduled cleanup');
     }
   } catch (err) {
-    logger.error({ err }, 'html_previews scheduled cleanup failed');
+    logger.error({ err }, 'previews scheduled cleanup failed');
   }
 }
 
