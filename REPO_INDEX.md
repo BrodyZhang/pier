@@ -54,19 +54,23 @@ pier/
 │   │   │   ├── agent.ts                # Create, view, share/unshare agent
 │   │   │   ├── admin.ts                # Admin: approve/reject/upload
 │   │   │   ├── profile.ts              # User profile management
-│   │   │   └── dev.ts                  # Dev API (DEV_API_KEY)
+│   │   │   ├── dev.ts                  # Dev API (DEV_API_KEY)
+│   │   │   └── html-preview.ts         # HTML 在线预览 (/html)
 │   │   ├── services/
 │   │   │   ├── db.ts                   # pg Pool + schema init
 │   │   │   ├── mail.ts                 # Email: Resend API or SMTP
 │   │   │   ├── agent.service.ts        # Agent business logic
 │   │   │   ├── auth.service.ts         # Auth business logic
-│   │   │   └── user.service.ts         # User business logic
+│   │   │   ├── user.service.ts         # User business logic
+│   │   │   └── html-preview.service.ts # HTML preview business logic
 │   │   ├── repositories/
 │   │   │   ├── agent.repository.ts     # Agent DB queries
-│   │   │   └── user.repository.ts      # User DB queries
+│   │   │   ├── user.repository.ts      # User DB queries
+│   │   │   └── html-preview.repository.ts  # HTML preview DB queries
 │   │   ├── validators/
 │   │   │   ├── agent.validator.ts      # Agent Zod schemas
-│   │   │   └── auth.validator.ts       # Auth Zod schemas
+│   │   │   ├── auth.validator.ts       # Auth Zod schemas
+│   │   │   └── html-preview.validator.ts  # HTML preview Zod schemas
 │   │   ├── utils/
 │   │   │   ├── html.ts                 # HTML decode/escape utilities
 │   │   │   ├── logger.ts               # Pino structured logging
@@ -75,7 +79,8 @@ pier/
 │   │   │   └── chat.ts                 # WebSocket chat server
 │   │   └── __tests__/
 │   │       ├── html.test.ts            # HTML utils tests
-│   │       └── validation.test.ts      # Validation utils tests
+│   │       ├── validation.test.ts      # Validation utils tests
+│   │       └── html-preview.test.ts    # HTML preview validator tests
 │   └── views/
 │       ├── layout.ejs                  # Shared shell
 │       ├── index.ejs                   # Homepage
@@ -92,6 +97,8 @@ pier/
 │       │   ├── public.ejs
 │       │   ├── request-version.ejs
 │       │   └── 404.ejs
+│       ├── html/
+│       │   └── index.ejs               # HTML 粘贴 + 预览生成页
 │       └── admin/
 │           ├── requests.ejs
 │           └── review.ejs
@@ -168,6 +175,9 @@ Route → Validator (zod) → Service → Repository → Database
 | POST | `/api/v1/dev/upload/:id` | devApiKey | Upload HTML |
 | POST | `/api/v1/dev/approve/:id` | devApiKey | Approve |
 | POST | `/api/v1/dev/delete/:id` | devApiKey | Delete |
+| GET | `/html` | — | HTML 粘贴预览表单 |
+| POST | `/html` | rate-limit | 生成 HTML 预览 |
+| GET | `/html/p/:id` | — | 纯净预览页（仅底部显示预览地址） |
 
 ## Database Tables
 
@@ -180,6 +190,7 @@ Route → Validator (zod) → Service → Repository → Database
 | `agent_files` | Agent HTML content (base64) |
 | `agent_shares` | Two-person access |
 | `user_sessions` | Express sessions |
+| `html_previews` | HTML 在线预览内容（base64） |
 
 ## Environment Variables
 

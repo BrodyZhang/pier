@@ -26,6 +26,7 @@ import agentRoutes, { publicRouter } from './routes/agent';
 import adminRoutes from './routes/admin';
 import profileRoutes from './routes/profile';
 import devRoutes from './routes/dev';
+import htmlPreviewRoutes from './routes/html-preview';
 
 const app = express();
 const server = http.createServer(app);
@@ -57,7 +58,7 @@ app.set('trust proxy', 1);
 app.use(expressLayouts);
 app.set('layout', 'layout');
 
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(fileUpload({ limits: { fileSize: 10 * 1024 * 1024 } }));
 
@@ -109,6 +110,7 @@ app.use('/api/v1/dev', apiLimiter, requireDevApiKey, devRoutes);
 // Legacy API routes (backward compatible, redirect to v1)
 app.use('/api/dev', apiLimiter, requireDevApiKey, devRoutes);
 app.use('/', publicRouter);
+app.use(htmlPreviewRoutes);
 
 app.get('/', async (_req, res, next) => {
   try {

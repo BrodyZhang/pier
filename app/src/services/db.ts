@@ -104,6 +104,13 @@ CREATE TABLE IF NOT EXISTS user_sessions (
     expire TIMESTAMP(6) NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_user_sessions_expire ON user_sessions (expire);
+
+-- Public HTML previews (/html feature)
+CREATE TABLE IF NOT EXISTS html_previews (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    content TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 `;
 
 export async function initDB(): Promise<void> {
