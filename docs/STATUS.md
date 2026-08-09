@@ -41,8 +41,8 @@
 | VPS | Azure Ubuntu 24.04 |
 | Method | docker compose (4 services: router, app-test, app-prod, db) |
 | Image | `brodyzhang2026/pier` (Docker Hub) |
-| **Status** | ✅ Deployed (test: build #34, prod: build #34) |
-| Last Deploy | 2026-08-09 (build #34, v20260809-00000034) |
+| **Status** | ✅ Deployed (test: build #36, prod: build #36) |
+| Last Deploy | 2026-08-09 (build #36, v20260809-00000036) |
 | Prod Version File | `PROD_VERSION` — push changes to auto-promote via deploy-prod.yml |
 
 ## Development Tasks
@@ -162,7 +162,7 @@
 | 1 | ~~**PROD 502 Bad Gateway** — async middleware with DB query caused container crash. Fixed in build #81.~~ | ✅ Resolved |
 | 2 | ~~**Test deploy SSH fails (#132-#139)** — `docker compose up -d router app-test db` triggered `depends_on: app-prod`, which tried to resolve `${PROD_VERSION:-latest}` tag that didn't exist on Docker Hub. Fixed in build #140 by using `--no-deps`.~~ | ✅ Resolved |
 | 3 | ~~**Approve endpoint 500** — caused by PG type inference on null $2 inside jsonb_build_object. Fixed by building JSON in app code.~~ | ✅ Resolved |
-| 4 | **deploy-prod workflow reports failure but prod deploys** — 2026-08-09 promote (run #37) concluded "failure" yet `ailaopo.online` verified running build #34 (new routes + maxlength). Likely verify-step/container-start timing. Prod confirmed working via curl. | Verify step failed but deploy worked |
+| 4 | **deploy-prod workflow reports failure but prod deploys** — 2026-08-09 promote (run #38) concluded "failure" yet `ailaopo.online` verified running build #36 (bottom text-only nav, maxlength). Likely verify-step/container-start timing. Prod confirmed working via curl. | Verify step failed but deploy worked |
 
 ## Environment Variables
 
