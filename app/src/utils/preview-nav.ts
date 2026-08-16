@@ -58,9 +58,55 @@ export function buildPreviewNav(): string {
   if (printBtn) printBtn.addEventListener('click', function() { window.print(); });
   var pdfBtn = document.getElementById('pier-nav-pdf');
   if (pdfBtn) {
+    var loadJs = function(src) {
+      return new Promise(function(resolve, reject) {
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    };
+    var downloadPdf = function() {
+      var navEl = document.getElementById('pier-preview-nav');
+      if (navEl) navEl.style.display = 'none';
+      var pdfName = (document.title || 'preview') + '.pdf';
+      var opt = {
+        margin: 8,
+        filename: pdfName,
+        image: { type: 'jpeg', quality: 0.95 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+      var finish = function() { if (navEl) navEl.style.display = ''; };
+      loadJs('https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js')
+        .then(function() {
+          var render = function() {
+            html2pdf().set(opt).from(document.body).save().then(finish, finish);
+          };
+          if (window.MathJax && MathJax.typesetPromise) {
+            MathJax.typesetPromise().then(render, render);
+          } else {
+            render();
+          }
+        })
+        .catch(function() {
+          finish();
+          var orig = pdfBtn.textContent;
+          pdfBtn.textContent = '需联网';
+          setTimeout(function() { pdfBtn.textContent = orig; }, 1600);
+        });
+    };
     pdfBtn.addEventListener('click', function() {
       var originalTitle = document.title;
       document.title = originalTitle ? originalTitle : 'preview';
+      var ua = navigator.userAgent || '';
+      var inApp = /MicroMessenger|QQ\b|UCBrowser|baiduboxapp|NewsArticle|Toutiao|AlipayClient|DingTalk|Feishu|Douyin/i.test(ua);
+      if (typeof window.print !== 'function' || inApp || /Android|iPhone|iPad|Mobile/i.test(ua)) {
+        downloadPdf();
+        return;
+      }
       window.print();
       setTimeout(function() { document.title = originalTitle; }, 100);
     });
