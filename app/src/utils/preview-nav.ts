@@ -2,6 +2,7 @@ export function buildPreviewNav(): string {
   return `<div id="pier-preview-nav" style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:2147483647;display:flex;gap:8px;padding:8px;background:rgba(255,255,255,0.95);border:1px solid rgba(0,0,0,0.1);border-radius:999px;box-shadow:0 4px 16px rgba(0,0,0,0.18);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font-family:-apple-system,'Microsoft YaHei','PingFang SC',sans-serif;">
   <button type="button" id="pier-nav-home" class="pier-nav-action" style="display:inline-flex;align-items:center;gap:4px;padding:8px 18px;border:none;border-radius:999px;background:#ff6b9d;color:#fff;font-size:14px;cursor:pointer;">主页</button>
   <button type="button" id="pier-nav-copy" class="pier-nav-action" style="display:inline-flex;align-items:center;gap:4px;padding:8px 18px;border:1px solid rgba(0,0,0,0.12);border-radius:999px;background:#fff;color:#333;font-size:14px;cursor:pointer;">复制</button>
+  <button type="button" id="pier-nav-pdf" class="pier-nav-action" style="display:inline-flex;align-items:center;gap:4px;padding:8px 18px;border:none;border-radius:999px;background:#e91e63;color:#fff;font-size:14px;cursor:pointer;">保存PDF</button>
   <button type="button" id="pier-nav-print" class="pier-nav-action" style="display:inline-flex;align-items:center;gap:4px;padding:8px 18px;border:none;border-radius:999px;background:#1a73e8;color:#fff;font-size:14px;cursor:pointer;">打印</button>
 </div>
 <style>
@@ -55,6 +56,15 @@ export function buildPreviewNav(): string {
     });
   }
   if (printBtn) printBtn.addEventListener('click', function() { window.print(); });
+  var pdfBtn = document.getElementById('pier-nav-pdf');
+  if (pdfBtn) {
+    pdfBtn.addEventListener('click', function() {
+      var originalTitle = document.title;
+      document.title = originalTitle ? originalTitle : 'preview';
+      window.print();
+      setTimeout(function() { document.title = originalTitle; }, 100);
+    });
+  }
 })();
 </script>`;
 }
