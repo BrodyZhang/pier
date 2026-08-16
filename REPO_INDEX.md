@@ -127,7 +127,8 @@ pier/
 │   └── router.conf                     # nginx reverse proxy config
 │
 ├── scripts/
-│   └── poll-tasks.ps1                  # Task polling script
+│   ├── poll-tasks.ps1                  # Task polling script
+│   └── renew-cert.sh                   # Let's Encrypt cert renewal (standalone, Docker-safe)
 │
 ├── Dockerfile                          # Two-stage Node.js build
 ├── Dockerfile.router                   # nginx router image

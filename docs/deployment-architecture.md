@@ -379,6 +379,46 @@ sudo docker exec -it pier-app-test-1 sh         # Shell inside test container
 
 ---
 
+## 15. SSL Certificate Renewal
+
+Certificates live at `/etc/letsencrypt/live/{domain}/` on the host and are mounted read-only into the Docker `router` container. **The reverse proxy runs inside Docker (nginx:alpine) which binds host ports 80/443 — there is no system nginx on the host.**
+
+⚠️ **Do NOT use `certbot --nginx`** — the nginx plugin is not installed and cannot work here. Use the **standalone** method, which needs host port 80 free (temporarily stop the router).
+
+### One-shot renewal (manual)
+
+```bash
+ssh <your-user>@<VPS_IP>
+cd ~/pier
+docker compose stop router            # free port 80
+sudo certbot certonly --standalone --non-interactive --agree-tos \
+  --cert-name ailaopo.online --force-renewal
+sudo certbot certonly --standalone --non-interactive --agree-tos \
+  --cert-name test.ailaopo.online --force-renewal
+docker compose start router           # nginx reloads the new certs
+```
+
+### Automated renewal (recommended)
+
+Use the bundled script `scripts/renew-cert.sh`. In default mode it's **cron-safe**: it only stops the router when a cert expires within 30 days (so everyday runs cause zero downtime). Then schedule it:
+
+```bash
+sudo crontab -e
+# add this line — run daily at 03:00 (renewal itself only happens when due):
+0 3 * * * HOME=/home/<your-user> PIER_DIR=/home/<your-user>/pier bash /home/<your-user>/pier/scripts/renew-cert.sh >> /var/log/renew-cert.log 2>&1
+```
+
+Test it manually first:
+
+```bash
+bash ~/pier/scripts/renew-cert.sh --dry-run   # preview
+bash ~/pier/scripts/renew-cert.sh --force     # force renewal now
+```
+
+Note: `.well-known/acme-challenge/` on HTTP exists in `router.conf` for **webroot** renewal, but the acme file lives inside the ephemeral Docker container filesystem — standalone is simpler and reliable.
+
+---
+
 ## 14. Key Files Reference
 
 | File | Purpose |
@@ -388,6 +428,7 @@ sudo docker exec -it pier-app-test-1 sh         # Shell inside test container
 | `Dockerfile.router` | nginx:alpine image for routing |
 | `nginx/router.conf` | nginx config — 4 server blocks (HTTP+HTTPS for test, HTTP+HTTPS for prod) |
 | `.github/workflows/deploy-test.yml` | CI/CD pipeline definition |
+| `scripts/renew-cert.sh` | Let's Encrypt cert renewal (standalone, Docker-safe) |
 | `app/src/server.ts` | Express entry point (port 3000) |
 | `app/src/services/db.ts` | Database pool + schema init + admin seed |
 | `app/src/routes/admin.ts` | Admin approve/upload handlers (date-based dirs) |

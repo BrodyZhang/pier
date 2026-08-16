@@ -125,6 +125,7 @@
 - [x] 预览精选与统计: `is_featured` 列，设置页显示 HTML/MD 总数与精选数，每条预览可设/取消精选，精选数据不被自动或手动清理删除
 - [x] 预览手动批量清理: `/admin/previews/cleanup` 选择 html/md + 天数，立即删除该类型旧预览（精选保留），与自动清理（每小时）共用同一安全逻辑
 - [x] 预览长度限制: `PREVIEW_MAX_LENGTH` = 220000 字符（约为参考预览页长度的 20 倍），创建表单显示实时字数并 maxlength 限制，服务端 zod 双重校验
+- [x] SSL 自动续期脚本: `scripts/renew-cert.sh`（standalone 续期，停 router → certonly → 启 router，兼容 Docker nginx 反代），部署文档新增第 15 节续期说明
 
 ### Codebase Refactoring (2026-06-23)
 - [x] Phase 1 - Security: SQL injection fix, rate limiting, helmet, remove hardcoded secrets
@@ -163,6 +164,7 @@
 | 2 | ~~**Test deploy SSH fails (#132-#139)** — `docker compose up -d router app-test db` triggered `depends_on: app-prod`, which tried to resolve `${PROD_VERSION:-latest}` tag that didn't exist on Docker Hub. Fixed in build #140 by using `--no-deps`.~~ | ✅ Resolved |
 | 3 | ~~**Approve endpoint 500** — caused by PG type inference on null $2 inside jsonb_build_object. Fixed by building JSON in app code.~~ | ✅ Resolved |
 | 4 | **deploy-prod workflow reports failure but prod deploys** — 2026-08-09 promote (run #38) concluded "failure" yet `ailaopo.online` verified running build #36 (bottom text-only nav, maxlength). Likely verify-step/container-start timing. Prod confirmed working via curl. | Verify step failed but deploy worked |
+| 5 | **Let's Encrypt cert expired 2026-08-14** — ailaopo.online + test.ailaopo.online both refused by browsers (`SEC_E_CERT_EXPIRED`). Cause: certbot renewal was configured with `--nginx` plugin, but there is NO host nginx (router runs in Docker) and the plugin isn't installed. Fix: standalone renewal (`scripts/renew-cert.sh`), stop router → certonly → start router. | ⚠️ EXPIRED — awaiting manual renewal on VPS |
 
 ## Environment Variables
 
